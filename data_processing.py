@@ -17,7 +17,7 @@ from torch.utils.data import DataLoader
 
 #import matplotlib.pyplot as plt
 
-def adult_dataset_processing():
+def adult_dataset_processing(fname):
     '''Process the adult dataset from csv. Return the dataframe, as well as a
     list of columns that must be treated as one block during the enumeration of plausible causal predictors'''
 
@@ -34,7 +34,7 @@ def adult_dataset_processing():
     ######
 
     # 2.1 YOUR CODE HERE
-    data = pd.read_csv("./data/adult.csv")
+    data = pd.read_csv(fname)
 
     ######
 
