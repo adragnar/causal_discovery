@@ -4,6 +4,7 @@ import itertools
 import torch
 from sklearn.linear_model import LinearRegression
 import pandas as pd
+from tqdm import tqdm
 
 from utils import powerset
 from data_processing import adult_dataset_processing
@@ -32,17 +33,25 @@ def default(d_fname, s_fname, f_fname, alpha=0.05):
 
     coefficients = torch.zeros(data.shape[1])  #regression vector confidence intervals
 
+    for subset in tqdm(powerset(d_atts), desc='pcp_sets',
+                       total=len(list(powerset(d_atts)))):  #powerset of PCPs
 
-    for subset in powerset(d_atts):  #enumerate over powerset of PCPs
+        #Check for empty set
         if not subset:
             continue
+
+        #Check if 2 ME subsets have been accepted
+        if (len(accepted_subsets) > 0) and \
+                (set.intersection(*accepted_subsets) == set()):
+            break
+
         #Linear regression on all data
         y_all = data['income_>50K']
         x_s = data[list(itertools.chain(*[d_atts[cat] for cat in subset]))]
         reg = LinearRegression(fit_intercept=False).fit(x_s.values, y_all.values)
 
         p_values = []
-        for e_type in env_atts:
+        for e_type in env_atts:#tqdm(env_atts, desc='env_atts', leave=False):
 
             for e in e_type:  # currently missing the all 0
                 e_in = (data[e] == 1)
@@ -100,16 +109,17 @@ def default(d_fname, s_fname, f_fname, alpha=0.05):
     # self.coefficients = torch.Tensor(self.coefficients)
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Params')
-    parser.add_argument("alpha", type=float, \
-                        help="significance level for PCP acceptance")
-    parser.add_argument("data_fname", type=str,
-                        help="filename adult.csv")
-    parser.add_argument("subsets_fname", type=str,
-                        help="filename saving acc_subsets")
-    parser.add_argument("features_fname", type=str,
-                        help="filename saving acc_features")
+    # parser = argparse.ArgumentParser(description='Params')
+    # parser.add_argument("alpha", type=float, \
+    #                     help="significance level for PCP acceptance")
+    # parser.add_argument("data_fname", type=str,
+    #                     help="filename adult.csv")
+    # parser.add_argument("subsets_fname", type=str,
+    #                     help="filename saving acc_subsets")
+    # parser.add_argument("features_fname", type=str,
+    #                     help="filename saving acc_features")
+    #
+    # args = parser.parse_args()
+    # default(args.data_fname, args.subsets_fname, args.features_fname, alpha=args.alpha)
 
-    args = parser.parse_args()
-    default(args.alpha, args.data_fname, args.subsets_fname, args.features_fname)
-
+    default('data/adult.csv',0,0, alpha=0.05)
