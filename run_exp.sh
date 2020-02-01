@@ -27,9 +27,5 @@ done
 num_cmds=`wc -l $cmdfile | cut -d' ' -f1`
 echo "Wrote $num_cmds commands to $cmdfile"
 
-cmd=( $cmd )
-num_tokens=${#cmd[@]}
-echo $cmd
-echo $num_tokens
-xargs -n $num_tokens -P $max_proc srun --mem=16G -p cpu < $cmdfile
+xargs -P $max_proc srun --mem=16G -p cpu < $cmdfile
 echo cmds_sent
