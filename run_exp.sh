@@ -7,19 +7,19 @@ data="~/causal_discovery/data/adult.csv"
 
 #Set cluster parameters
 cmdfile="$expdir/cmdfile.sh"
-max_proc=20
+max_proc=32
 
 #Experiment parameters
-alphas=(0.01 0.05 0.10)
+alphas=(0.01)
+env_vars=("occupation" "workclass" "native-country" "education" "marital-status")
 
 #Generate experiment comamnds
 for a in ${alphas[*]}
 do
     subsetsfname="$expdir/${a}_acc_subsets.txt"
     featuresfname="$expdir/${a}_acc_features.txt"
-    cmd="python main.py $a $data $subsetsfname $featuresfname"
-    echo $cmd
-done > $cmdfile
+    srun --mem=16G -p cpu python setup_params.py $a $subsetsfname $featuresfname "test.txt" "${env_vars[@]}"
+done
 
 
 #Run evaluation on cluster

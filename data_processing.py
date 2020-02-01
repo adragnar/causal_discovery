@@ -92,8 +92,6 @@ def adult_dataset_processing(fname):
     print("cleaned shape: ", data.shape)
         ######
 
-
-
     #Categorical to one-hot
     categorical_feats = ['workclass',  'education', 'marital-status', 'occupation',
                         'relationship', 'race', 'sex', 'native-country', 'income', ]

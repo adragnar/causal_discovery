@@ -29,6 +29,7 @@ def default(d_fname, s_fname, f_fname, alpha=0.05):
 
     data, d_atts = adult_dataset_processing(d_fname)
 
+    esplit_vars = 'occupation, workclass, native-country, education, marital status'
     env_atts = [d_atts[cat] for cat in ['sex']]  #Note - assuming only split on categorical vars
 
     coefficients = torch.zeros(data.shape[1])  #regression vector confidence intervals
@@ -109,17 +110,17 @@ def default(d_fname, s_fname, f_fname, alpha=0.05):
     # self.coefficients = torch.Tensor(self.coefficients)
 
 if __name__ == '__main__':
-    # parser = argparse.ArgumentParser(description='Params')
-    # parser.add_argument("alpha", type=float, \
-    #                     help="significance level for PCP acceptance")
-    # parser.add_argument("data_fname", type=str,
-    #                     help="filename adult.csv")
-    # parser.add_argument("subsets_fname", type=str,
-    #                     help="filename saving acc_subsets")
-    # parser.add_argument("features_fname", type=str,
-    #                     help="filename saving acc_features")
-    #
-    # args = parser.parse_args()
-    # default(args.data_fname, args.subsets_fname, args.features_fname, alpha=args.alpha)
+    parser = argparse.ArgumentParser(description='Params')
+    parser.add_argument("alpha", type=float, \
+                        help="significance level for PCP acceptance")
+    parser.add_argument("data_fname", type=str,
+                        help="filename adult.csv")
+    parser.add_argument("subsets_fname", type=str,
+                        help="filename saving acc_subsets")
+    parser.add_argument("features_fname", type=str,
+                        help="filename saving acc_features")
 
-    default('data/adult.csv',0,0, alpha=0.05)
+    args = parser.parse_args()
+    default(args.data_fname, args.subsets_fname, args.features_fname, alpha=args.alpha)
+
+    #default('data/adult.csv',0,0, alpha=0.05)
