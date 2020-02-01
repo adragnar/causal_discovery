@@ -20,6 +20,7 @@ do
     subsetsfname="$expdir/${a}_acc_subsets.txt"
     featuresfname="$expdir/${a}_acc_features.txt"
     srun --mem=16G -p cpu python setup_params.py $a $data $subsetsfname $featuresfname $cmdfile "${env_vars[@]}"
+    #python setup_params.py $a $data $subsetsfname $featuresfname "text.txt" "${env_vars[@]}"
 done
 
 
@@ -27,5 +28,5 @@ done
 num_cmds=`wc -l $cmdfile | cut -d' ' -f1`
 echo "Wrote $num_cmds commands to $cmdfile"
 
-xargs -P $max_proc srun --mem=16G -p cpu < $cmdfile
+xargs -L 1 -P $max_proc srun --mem=16G -p cpu < $cmdfile
 echo cmds_sent

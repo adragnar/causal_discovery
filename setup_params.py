@@ -36,10 +36,9 @@ if __name__ == '__main__':
                       + args.featurefname + ' ' \
 
                 #Now deal with the env attributes
-                cmd = cmd + ' '
                 for elem in subset:
                     cmd = cmd + str(elem) + ' '
-                cmd = cmd + '\n'
+                cmd = cmd[:-1] + '\n'  #CANNOT be trailing ws for xargs
 
                 f.writelines(cmd)
         f.close()
