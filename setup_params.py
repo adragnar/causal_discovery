@@ -40,5 +40,5 @@ if __name__ == '__main__':
                     cmd = cmd + str(elem) + ' '
                 cmd = cmd[:-1] + '\n'  #CANNOT be trailing ws for xargs
 
-                f.writelines(cmd)
+                f.write(cmd)
         f.close()

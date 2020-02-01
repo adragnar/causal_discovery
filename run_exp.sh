@@ -19,8 +19,8 @@ for a in ${alphas[*]}
 do
     subsetsfname="$expdir/${a}_acc_subsets.txt"
     featuresfname="$expdir/${a}_acc_features.txt"
-    srun --mem=16G -p cpu python setup_params.py $a $data $subsetsfname $featuresfname $cmdfile "${env_vars[@]}"
-    #python setup_params.py $a $data $subsetsfname $featuresfname "text.txt" "${env_vars[@]}"
+#    srun --mem=16G -p cpu python setup_params.py $a $data $subsetsfname $featuresfname $cmdfile "${env_vars[@]}"
+    python setup_params.py $a $data $subsetsfname $featuresfname "text.txt" "${env_vars[@]}"
 done
 
 
