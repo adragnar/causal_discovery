@@ -34,6 +34,8 @@ def default(d_fname, s_fname, f_fname, alpha=0.05):
 
     coefficients = torch.zeros(data.shape[1])  #regression vector confidence intervals
 
+    max_pval = 0
+
     for subset in tqdm(powerset(d_atts), desc='pcp_sets',
                        total=len(list(powerset(d_atts)))):  #powerset of PCPs
 
@@ -82,6 +84,11 @@ def default(d_fname, s_fname, f_fname, alpha=0.05):
         # # TODO: Jonas uses "min(p_values) * len(environments) - 1"
         p_value = min(p_values) * sum(len(e_type) for e_type in env_atts)
 
+        ###Hack for debugging
+        if p_value > max_pval:
+            p_value = max_pval
+        #####################
+
         if p_value > alpha:
             accepted_subsets.append(set(subset))
             # if args["verbose"]:
@@ -92,6 +99,10 @@ def default(d_fname, s_fname, f_fname, alpha=0.05):
         accepted_features = list(set.intersection(*accepted_subsets))
     else:
         accepted_features = []
+
+    ###Hack for debugging
+    accepted_features.append(max_pval)
+    #########
 
     #Save results
     pickle.dump(accepted_subsets, open(s_fname,'wb'))
