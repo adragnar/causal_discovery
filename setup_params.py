@@ -43,8 +43,3 @@ if __name__ == '__main__':
 
                 f.writelines(cmd)
         f.close()
-
-
-
-    while(True):
-        pass
