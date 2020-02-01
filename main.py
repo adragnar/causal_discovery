@@ -24,13 +24,13 @@ def mean_var_test(x, y):
 
     return 2 * min(pvalue_mean, pvalue_var2)
 #########################################
-def default(d_fname, s_fname, f_fname, alpha=0.05):
+def default(d_fname, s_fname, f_fname, env_atts, alpha=0.05):
     accepted_subsets = []
 
     data, d_atts = adult_dataset_processing(d_fname)
 
     esplit_vars = 'occupation, workclass, native-country, education, marital status'
-    env_atts = [d_atts[cat] for cat in ['sex']]  #Note - assuming only split on categorical vars
+    env_atts = [d_atts[cat] for cat in env_atts]  #Note - assuming only split on categorical vars
 
     coefficients = torch.zeros(data.shape[1])  #regression vector confidence intervals
 
@@ -130,8 +130,12 @@ if __name__ == '__main__':
                         help="filename saving acc_subsets")
     parser.add_argument("features_fname", type=str,
                         help="filename saving acc_features")
+    parser.add_argument('env_atts', nargs='+', \
+                        help='atts categorical defining envs')
 
     args = parser.parse_args()
-    default(args.data_fname, args.subsets_fname, args.features_fname, alpha=args.alpha)
+    print(args.env_atts)
+    default(args.data_fname, args.subsets_fname, args.features_fname, \
+            args.env_atts, alpha=args.alpha)
 
     #default('data/adult.csv',0,0, alpha=0.05)

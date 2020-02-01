@@ -12,23 +12,25 @@ max_proc=32
 #Experiment parameters
 alphas=(0.01)
 env_vars=("occupation" "workclass" "native-country" "education" "marital-status")
+echo "${env_vars[@]}"
 
 #Generate experiment comamnds
 for a in ${alphas[*]}
 do
     subsetsfname="$expdir/${a}_acc_subsets.txt"
     featuresfname="$expdir/${a}_acc_features.txt"
-    srun --mem=16G -p cpu python setup_params.py $a $subsetsfname $featuresfname "test.txt" "${env_vars[@]}"
+#    srun --mem=16G -p cpu python setup_params.py $a $subsetsfname $featuresfname "test.txt" "${env_vars[@]}"
+   python setup_params.py $a "data.csv" $subsetsfname $featuresfname "test.txt" "${env_vars[@]}"
 done
 
 
-#Run evaluation on cluster
-num_cmds=`wc -l $cmdfile | cut -d' ' -f1`
-echo "Wrote $num_cmds commands to $cmdfile"
-
-cmd=( $cmd )
-num_tokens=${#cmd[@]}
-echo $cmd
-echo $num_tokens
-xargs -n $num_tokens -P $max_proc srun --mem=16G -p cpu < $cmdfile
-echo cmds_sent
+##Run evaluation on cluster
+#num_cmds=`wc -l $cmdfile | cut -d' ' -f1`
+#echo "Wrote $num_cmds commands to $cmdfile"
+#
+#cmd=( $cmd )
+#num_tokens=${#cmd[@]}
+#echo $cmd
+#echo $num_tokens
+#xargs -n $num_tokens -P $max_proc srun --mem=16G -p cpu < $cmdfile
+#echo cmds_sent
