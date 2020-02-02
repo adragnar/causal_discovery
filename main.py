@@ -54,35 +54,47 @@ def default(d_fname, s_fname, f_fname, env_atts, alpha=0.05):
         reg = LinearRegression(fit_intercept=False).fit(x_s.values, y_all.values)
 
         p_values = []
-        for e_type in env_atts:#tqdm(env_atts, desc='env_atts', leave=False):
 
-            for e in e_type:  # currently missing the all 0
-                e_in = (data[e] == 1)
-                e_out = (data[e] == 0)
+        all_env_combos = list(itertools.product(*env_atts))
+        #note - this neglects dummy variable, but I think that'll be okay for nw
+        for env_combo in all_env_combos:
+            for i, e in enumerate(env_combo):
+                if i == 0:
+                    e_in = (data[e] == 1)
+                    e_out = (data[e] == 0)
+                else:
+                    e_in = e_in & (data[e] == 1)
+                    e_out = e_out | (data[e] == 0)
 
+            try:  #Error handling in case no good e_in
                 res_in = (y_all.loc[e_in].values - reg.predict(x_s.loc[e_in].values)).ravel()
                 res_out = (y_all.loc[e_out].values - reg.predict(x_s.loc[e_out].values)).ravel()
 
                 p_values.append(mean_var_test(res_in, res_out))
+            except:
+                pass
 
-            # Cover the dummy variable
-            for i, e in enumerate(e_type):
-                if i == 0:
-                    e_in = (data[e] == 0)
-                else:
-                    e_in = e_in & (data[e] == 0)
-            e_out = ~e_in
-
-            res_in = (
-            y_all.loc[e_in].values - reg.predict(x_s.loc[e_in].values)).ravel()
-            res_out = (
-            y_all.loc[e_out].values - reg.predict(x_s.loc[e_out].values)).ravel()
-
-            p_values.append(mean_var_test(res_in, res_out))
+            # # Cover the dummy variable
+            # for i, e in enumerate(e_type):
+            #     if i == 0:
+            #         e_in = (data[e] == 0)
+            #     else:
+            #         e_in = e_in & (data[e] == 0)
+            # e_out = ~e_in
+            #
+            # res_in = (
+            # y_all.loc[e_in].values - reg.predict(x_s.loc[e_in].values)).ravel()
+            # res_out = (
+            # y_all.loc[e_out].values - reg.predict(x_s.loc[e_out].values)).ravel()
+            #
+            # p_values.append(mean_var_test(res_in, res_out))
 
 
         # # TODO: Jonas uses "min(p_values) * len(environments) - 1"
-        p_value = min(p_values) * sum(len(e_type) for e_type in env_atts)
+        try:  # In case no good e_in for all env_combos
+            p_value = min(p_values) * sum(len(e_type) for e_type in env_atts)
+        except:
+            p_value = 0
 
         ###Hack for debugging
         if p_value > max_pval:
@@ -121,21 +133,21 @@ def default(d_fname, s_fname, f_fname, env_atts, alpha=0.05):
     # self.coefficients = torch.Tensor(self.coefficients)
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Params')
-    parser.add_argument("alpha", type=float, \
-                        help="significance level for PCP acceptance")
-    parser.add_argument("data_fname", type=str,
-                        help="filename adult.csv")
-    parser.add_argument("subsets_fname", type=str,
-                        help="filename saving acc_subsets")
-    parser.add_argument("features_fname", type=str,
-                        help="filename saving acc_features")
-    parser.add_argument('env_atts', nargs='+', \
-                        help='atts categorical defining envs')
+    # parser = argparse.ArgumentParser(description='Params')
+    # parser.add_argument("alpha", type=float, \
+    #                     help="significance level for PCP acceptance")
+    # parser.add_argument("data_fname", type=str,
+    #                     help="filename adult.csv")
+    # parser.add_argument("subsets_fname", type=str,
+    #                     help="filename saving acc_subsets")
+    # parser.add_argument("features_fname", type=str,
+    #                     help="filename saving acc_features")
+    # parser.add_argument('env_atts', nargs='+', \
+    #                     help='atts categorical defining envs')
+    #
+    # args = parser.parse_args()
+    # print(args.env_atts)
+    # default(args.data_fname, args.subsets_fname, args.features_fname, \
+    #         args.env_atts, alpha=args.alpha)
 
-    args = parser.parse_args()
-    print(args.env_atts)
-    default(args.data_fname, args.subsets_fname, args.features_fname, \
-            args.env_atts, alpha=args.alpha)
-
-    #default('data/adult.csv',0,0, alpha=0.05)
+    default('data/adult.csv',0,0, ['occupation'], alpha=0.05)
