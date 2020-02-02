@@ -22,23 +22,72 @@ if __name__ == '__main__':
 
 
     args = parser.parse_args()
-    print(args.alpha)
-    print(args.subsetfname)
-    print(args.cmdfile)
 
     with open(args.cmdfile, 'w+') as f:
         for combolength in range(0, len(args.p_list) + 1):
             for subset in itertools.combinations(args.p_list, combolength):
+                #First set up the env attribute args
+                e_args = ' '
+                for elem in subset:
+                    e_args = e_args + str(elem) + ' '
+                e_args = e_args[:-1]  # CANNOT be trailing ws for xargs
+
+                #Now set up the proper result filenames
+                new_subsetfname = args.subsetfname.split('.txt')[0] + \
+                                  e_args.replace(' ', '_') \
+                                  + '.txt'
+
+                new_featurefname = args.featurefname.split('.txt')[0] + \
+                                  e_args.replace(' ', '_') \
+                                  + '.txt'
+
+
                 cmd = 'python main.py ' + ' ' \
                       + str(args.alpha) + ' ' \
                       + args.datafname + ' ' \
-                      + args.subsetfname + ' ' \
-                      + args.featurefname + ' ' \
-
-                #Now deal with the env attributes
-                for elem in subset:
-                    cmd = cmd + str(elem) + ' '
-                cmd = cmd[:-1] + '\n'  #CANNOT be trailing ws for xargs
+                      + new_subsetfname + ' ' \
+                      + new_featurefname + ' ' \
+                      + e_args + '\n'
 
                 f.write(cmd)
         f.close()
+
+
+        # #Consturct + write each command
+    # with open(args.cmdfile, 'w+') as f:
+    #     for combolength in range(0, len(args.p_list) + 1):
+    #         #First set up the env attribute args
+    #         e_args = ' '
+    #         for elem in args.p_list:
+    #             e_args = e_args + str(elem) + ' '
+    #         e_args = e_args[:-1]  # CANNOT be trailing ws for xargs
+    #
+    #         #Now set up the proper result filenames
+    #         new_subsetfname = args.subsetfname.split('.txt')[0] + \
+    #                           e_args.replace(' ', '_') \
+    #                           + '.txt'
+    #
+    #         new_featurefname = args.featurefname.split('.txt')[0] + \
+    #                           e_args.replace(' ', '_') \
+    #                           + '.txt'
+    #         # new_featurefname = args.featurefname.split('.txt')[0] + str(
+    #         #     args.p_list) \
+    #         #     .replace(' ', '').replace("'", '').replace(",", "_").replace(
+    #         #     '[', '_') \
+    #         #     .replace(']', '_') + '.txt'
+    #
+    #
+    #         #Now set up the rest
+    #         for subset in itertools.combinations(args.p_list, combolength):
+    #             cmd = 'python main.py ' + ' ' \
+    #                   + str(args.alpha) + ' ' \
+    #                   + args.datafname + ' ' \
+    #                   + new_subsetfname + ' ' \
+    #                   + new_featurefname + ' ' \
+    #                   + e_args \
+    #                   + '\n'
+    #
+    #
+    #
+    #             f.write(cmd)
+    #     f.close()
