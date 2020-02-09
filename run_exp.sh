@@ -11,16 +11,20 @@ max_proc=32
 
 #Experiment parameters
 alphas=(0.01)
+ft_combos=('1' '2' '12')
 env_vars=("occupation" "workclass" "native-country" "education" "marital-status")
 #echo "${env_vars[@]}"
 
 #Generate experiment comamnds
 for a in ${alphas[*]}
 do
-    subsetsfname="$expdir/${a}_acc_subsets.txt"
-    featuresfname="$expdir/${a}_acc_features.txt"
-    cmd="python main.py $a $data $subsetsfname $featuresfname ${env_vars[@]}"
-    echo $cmd
+    for f_eng in ${ft_combos[*]}
+    do
+        subsetsfname="$expdir/${a}_${f_eng}_acc_subsets.txt"
+        featuresfname="$expdir/${a}_${f_eng}_acc_features.txt"
+        cmd="python main.py $a $f_eng $data $subsetsfname $featuresfname ${env_vars[@]}"
+        echo $cmd
+    done
 done > $cmdfile
 
 

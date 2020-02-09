@@ -1,11 +1,13 @@
 import argparse
 from time import time
 
+from itertools import combinations
 import scipy.signal as sig
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 from sklearn.model_selection import train_test_split
+
 
 import torch
 from torch.autograd import Variable
@@ -17,9 +19,16 @@ from torch.utils.data import DataLoader
 
 #import matplotlib.pyplot as plt
 
-def adult_dataset_processing(fname):
+def adult_dataset_processing(fname, fteng):
     '''Process the adult dataset from csv. Return the dataframe, as well as a
-    list of columns that must be treated as one block during the enumeration of plausible causal predictors'''
+    list of columns that must be treated as one block during the enumeration of plausible causal predictors
+    
+    fteng: List of the feature engineering steps to do on data. 
+    1) Introtuce products of cat + cont vars
+    2) Introduce square of cont vars 
+    3) Convert education to continous
+    :return: cleaned dataframe with info
+    '''
 
     """ Adult income classification
     
@@ -74,23 +83,41 @@ def adult_dataset_processing(fname):
             pass
         ######
 
-    #Categorical to one-hot
-    categorical_feats = ['workclass',  'education', 'marital-status', 'occupation',
-                        'relationship', 'race', 'sex', 'native-country', 'income', ]
 
+    categorical_feats = ['workclass', 'education', 'marital-status', \
+                         'occupation', 'relationship', 'race', 'sex', \
+                         'native-country', 'income', ]
+    continous_feats = ['age', 'fnlwgt', 'educational-num', 'capital-gain', \
+                       'capital-loss', 'hours-per-week']
+
+    # Categorical to one-hot
     data = pd.get_dummies(data, prefix=categorical_feats, drop_first=True)
-    #print(data.head())
+
+    #Feature engineering
+    orig_cols = data.columns  # So that no problems with adding feats
+
+    if 1 in fteng:  #x^2 continous feats
+        for col in orig_cols:
+            if col in continous_feats:  #Assume only transform orig cont col
+                data[(col + '_sq')] = data[col] ** 2
+
+    if 2 in fteng:  #add new col with multiplied feats
+            for cp in combinations(orig_cols, 2):
+                data[(cp[0] + '_x_' + cp[1])] = data[cp[0]] * data[cp[1]]
 
 
-    #Get the relevant attribute classes
+
+    #Get the unmodified attribute classes for possible envs
     all_cats = {'age':[], 'workclass':[], 'fnlwgt':[], 'education':[], 'educational-num':[], 'marital-status':[], \
                 'occupation':[], 'relationship':[], \
      'race':[], 'sex':[], 'capital-gain':[], 'capital-loss':[], 'hours-per-week':[], 'native-country':[]}
 
     for col in data.columns:
         for cat in all_cats:
-            if (cat == col) or ((cat+'_') in col):
+            if (cat == col) or (((cat+'_') in col) and ('_sq' not in col) \
+                                        and ('_x_' not in col)):
                 all_cats[cat].append(col)
 
+    print(data.shape)
     return data, all_cats
 

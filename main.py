@@ -1,4 +1,5 @@
 import argparse
+import csv
 import pickle
 import itertools
 import torch
@@ -24,17 +25,27 @@ def mean_var_test(x, y):
 
     return 2 * min(pvalue_mean, pvalue_var2)
 #########################################
-def default(d_fname, s_fname, f_fname, env_atts, alpha=0.05):
+def default(d_fname, s_fname, f_fname, env_atts, alpha=0.05, feateng_type=[]):
+    '''
+    
+    :param d_fname: 
+    :param s_fname: 
+    :param f_fname: 
+    :param env_atts: 
+    :param alpha: 
+    :param feateng_type: The particular preprocess methodology 
+    '''
     accepted_subsets = []
 
-    data, d_atts = adult_dataset_processing(d_fname)
-
-    esplit_vars = 'occupation, workclass, native-country, education, marital status'
+    data, d_atts = adult_dataset_processing(d_fname, feateng_type)
     env_atts = [d_atts[cat] for cat in env_atts]  #Note - assuming only split on categorical vars
-
-    coefficients = torch.zeros(data.shape[1])  #regression vector confidence intervals
+    print(data.shape[1])
+    #coefficients = torch.zeros(data.shape[1])  #regression vector confidence intervals
 
     max_pval = 0
+    f = open('fulllog.csv', mode='w')
+    logger = csv.writer(f)
+
 
     for subset in tqdm(powerset(d_atts), desc='pcp_sets',
                        total=len(list(powerset(d_atts)))):  #powerset of PCPs
@@ -82,6 +93,7 @@ def default(d_fname, s_fname, f_fname, env_atts, alpha=0.05):
 
 
         # # TODO: Jonas uses "min(p_values) * len(environments) - 1"
+        logger.writerow(list(subset) + p_values)
         p_value = min(p_values) * sum(len(e_type) for e_type in env_atts)
 
         ###Hack for debugging
@@ -105,8 +117,22 @@ def default(d_fname, s_fname, f_fname, env_atts, alpha=0.05):
     #########
 
     #Save results
+
+    #First the data
     pickle.dump(accepted_subsets, open(s_fname,'wb'))
     pickle.dump(accepted_features, open(f_fname,'wb'))
+
+    #First, add header to logger file
+    try:
+        h_row = []
+        for e_type in env_atts:
+            for e in e_type:
+                h_row.append(e)
+        logger.writerow(h_row)
+        f.close()
+    except:
+        pass
+
 
 
     # if args["verbose"]:
@@ -124,6 +150,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Params')
     parser.add_argument("alpha", type=float, \
                         help="significance level for PCP acceptance")
+    parser.add_argument("feat_eng", type=str, \
+                        help="each digit id of diff feat engineering")
     parser.add_argument("data_fname", type=str,
                         help="filename adult.csv")
     parser.add_argument("subsets_fname", type=str,
@@ -132,10 +160,9 @@ if __name__ == '__main__':
                         help="filename saving acc_features")
     parser.add_argument('env_atts', nargs='+', \
                         help='atts categorical defining envs')
-
     args = parser.parse_args()
     print(args.env_atts)
     default(args.data_fname, args.subsets_fname, args.features_fname, \
-            args.env_atts, alpha=args.alpha)
+            args.env_atts, alpha=args.alpha, feateng_type=[int(c) for c in args.feat_eng])
 
-    #default('data/adult.csv',0,0, alpha=0.05)
+    #default('data/adult.csv',0,0, ['education'], alpha=0.05, feateng_type=[1,2])
