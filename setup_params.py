@@ -1,3 +1,5 @@
+'''Given a set of parameters (python func args), generates cmdfile with 
+commands with all combinations of argument inputs '''
 
 import argparse
 import itertools

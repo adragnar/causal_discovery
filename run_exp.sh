@@ -19,14 +19,15 @@ for a in ${alphas[*]}
 do
     subsetsfname="$expdir/${a}_acc_subsets.txt"
     featuresfname="$expdir/${a}_acc_features.txt"
-    srun --mem=16G -p cpu python setup_params.py $a $data $subsetsfname $featuresfname $cmdfile "${env_vars[@]}"
-#    python setup_params.py $a $data $subsetsfname $featuresfname "text.txt" "${env_vars[@]}"
-done
+    cmd="python main.py $a $data $subsetsfname $featuresfname ${env_vars[@]}"
+    echo $cmd
+done > $cmdfile
 
 
 #Run evaluation on cluster
 num_cmds=`wc -l $cmdfile | cut -d' ' -f1`
 echo "Wrote $num_cmds commands to $cmdfile"
 
-xargs -L 1 -P $max_proc srun --mem=16G -p cpu < $cmdfile
-echo cmds_sent
+cmd=( $cmd )
+num_tokens=${#cmd[@]}
+xargs -n $num_tokens -P $max_proc srun --mem=16G -p cpu < $cmdfile

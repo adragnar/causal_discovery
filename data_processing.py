@@ -47,16 +47,6 @@ def adult_dataset_processing(fname):
     # the task will be to predict the "income" field (>50k or <50k) based on the other fields in the dataset
     # check how balanced our dataset is using the .value_counts() method.
 
-    ######
-
-    # 2.2 YOUR CODE HERE
-
-    print("shape is ", data.shape)
-    print("columns are:", data.columns)
-    print("first 5 rows: \n", data.head())
-    print(data["income"].value_counts())
-
-    ######
 
 
     # =================================== DATA CLEANING =========================================== #
@@ -69,13 +59,7 @@ def adult_dataset_processing(fname):
     # let's first count how many missing entries there are for each feature
     col_names = data.columns
     num_rows = data.shape[0]
-    for feature in col_names:
-        ######
 
-        # 2.3 YOUR CODE HERE
-        print("For column", feature, data[feature].isin(["?"]).sum())
-        ######
-    print(3)
     # next let's throw out all rows (samples) with 1 or more "?"
     # Hint: take a look at what data[data["income"] != ">50K"] returns
     # Hint: if data[field] do not contain strings then data["income"] != ">50K" will return an error
@@ -86,10 +70,8 @@ def adult_dataset_processing(fname):
     for feature in col_names:
         try:
             data = data.loc[data[str(feature)] != "?"]
-            print(data.shape)
         except:  #If the column is all numbers and str comparisons dont work
             pass
-    print("cleaned shape: ", data.shape)
         ######
 
     #Categorical to one-hot
