@@ -133,21 +133,21 @@ def default(d_fname, s_fname, f_fname, env_atts, alpha=0.05):
     # self.coefficients = torch.Tensor(self.coefficients)
 
 if __name__ == '__main__':
-    # parser = argparse.ArgumentParser(description='Params')
-    # parser.add_argument("alpha", type=float, \
-    #                     help="significance level for PCP acceptance")
-    # parser.add_argument("data_fname", type=str,
-    #                     help="filename adult.csv")
-    # parser.add_argument("subsets_fname", type=str,
-    #                     help="filename saving acc_subsets")
-    # parser.add_argument("features_fname", type=str,
-    #                     help="filename saving acc_features")
-    # parser.add_argument('env_atts', nargs='+', \
-    #                     help='atts categorical defining envs')
-    #
-    # args = parser.parse_args()
-    # print(args.env_atts)
-    # default(args.data_fname, args.subsets_fname, args.features_fname, \
-    #         args.env_atts, alpha=args.alpha)
+    parser = argparse.ArgumentParser(description='Params')
+    parser.add_argument("alpha", type=float, \
+                        help="significance level for PCP acceptance")
+    parser.add_argument("data_fname", type=str,
+                        help="filename adult.csv")
+    parser.add_argument("subsets_fname", type=str,
+                        help="filename saving acc_subsets")
+    parser.add_argument("features_fname", type=str,
+                        help="filename saving acc_features")
+    parser.add_argument('env_atts', nargs='+', \
+                        help='atts categorical defining envs')
 
-    default('data/adult.csv',0,0, ['occupation'], alpha=0.05)
+    args = parser.parse_args()
+    print(args.env_atts)
+    default(args.data_fname, args.subsets_fname, args.features_fname, \
+            args.env_atts, alpha=args.alpha)
+
+    # default('data/adult.csv',0,0, ['occupation'], alpha=0.05)
