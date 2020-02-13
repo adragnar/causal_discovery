@@ -10,9 +10,9 @@ cmdfile="$expdir/cmdfile.sh"
 max_proc=32
 
 #Experiment parameters
-alphas=(0.01)
+alphas=(0.00001 0.0001 0.001 0.01)
 ft_combos=('1' '2' '12')
-env_vars=("occupation" "workclass" "native-country" "education" "marital-status")
+env_vars=("workclass" "native-country")
 #echo "${env_vars[@]}"
 
 #Generate experiment comamnds

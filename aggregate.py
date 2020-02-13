@@ -13,10 +13,7 @@ def aggregate_results(dname):
         for fname in os.listdir(dname):
             result = []
             if fname.endswith('.txt') and (fname != 'agg_results.txt'):
-                result.append(fname.split('_')[0])  #alpha
-                result.append(fname.split('_')[2])  #r_type
-
-                for i in range(3, len(fname.split('_'))):
+                for i in range(0, len(fname.split('_'))):
                     result.append(fname.split('_')[i].replace('.txt', ''))
 
 

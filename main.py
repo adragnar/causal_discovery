@@ -165,4 +165,5 @@ if __name__ == '__main__':
     default(args.data_fname, args.subsets_fname, args.features_fname, \
             args.env_atts, alpha=args.alpha, feateng_type=[int(c) for c in args.feat_eng])
 
-    #default('data/adult.csv',0,0, ['education'], alpha=0.05, feateng_type=[1,2])
+    # default('data/adult.csv',0,0, \
+    #         ["occupation", "workclass", "native-country", "education", "marital-status"], alpha=0.05, feateng_type=[1,2])
