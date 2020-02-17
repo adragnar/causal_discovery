@@ -3,6 +3,8 @@
 #Make expieriment directories
 expdir="/scratch/gobi1/adragnar/experiments/causal_discovery/$(date +'%s')"
 mkdir -p $expdir
+logdir="$expdir/logs"
+mkdir -p $logdir
 data="~/causal_discovery/data/adult.csv"
 
 #Set cluster parameters
@@ -10,8 +12,10 @@ cmdfile="$expdir/cmdfile.sh"
 max_proc=32
 
 #Experiment parameters
-alphas=(0.00001 0.0001 0.001 0.01)
-ft_combos=('1' '2' '12')
+#alphas=(0.00001 0.0001 0.001 0.01)
+#ft_combos=('1' '2' '12')
+alphas=(0.00001)
+ft_combos=('12')
 env_vars=("workclass" "native-country")
 #echo "${env_vars[@]}"
 
@@ -22,7 +26,8 @@ do
     do
         subsetsfname="$expdir/${a}_${f_eng}_acc_subsets.txt"
         featuresfname="$expdir/${a}_${f_eng}_acc_features.txt"
-        cmd="python main.py $a $f_eng $data $subsetsfname $featuresfname ${env_vars[@]}"
+        loggerfname="$logdir/${a}_${f_eng}_logging.csv"
+        cmd="python main.py $a $f_eng $data $subsetsfname $featuresfname ${env_vars[@]} --log_fname $loggerfname"
         echo $cmd
     done
 done > $cmdfile
