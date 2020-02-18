@@ -11,6 +11,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Params')
     parser.add_argument('alpha', type=float, \
                         help='c-interval val')
+    parser.add_argument('feat_eng', type=str, \
+                        help='c-interval val')
     parser.add_argument('datafname', type=str, \
                         help='adult.csv')
     parser.add_argument('subsetfname', type=str, \
@@ -21,7 +23,8 @@ if __name__ == '__main__':
                        help="filename to write all commands")
     parser.add_argument("p_list", nargs='+', \
                         help="All the environment variables to split on")
-
+    parser.add_argument('--log_fname', type=str, \
+                        help='fname to write log')
 
     args = parser.parse_args()
 
@@ -34,7 +37,7 @@ if __name__ == '__main__':
                     e_args = e_args + str(elem) + ' '
                 e_args = e_args[:-1]  # CANNOT be trailing ws for xargs
 
-                #Now set up the proper result filenames
+                #Now set up the proper result filenames for different env_vars
                 new_subsetfname = args.subsetfname.split('.txt')[0] + \
                                   e_args.replace(' ', '_') \
                                   + '.txt'
@@ -46,10 +49,15 @@ if __name__ == '__main__':
 
                 cmd = 'python main.py ' + ' ' \
                       + str(args.alpha) + ' ' \
+                      + str(args.feat_eng) + ' ' \
                       + args.datafname + ' ' \
                       + new_subsetfname + ' ' \
                       + new_featurefname + ' ' \
-                      + e_args + '\n'
+                      + e_args + '\n'  #Note - no space ever allowed before \n
+
+                #Deal with optiona arguments
+                if args.log_fname is not None:
+                    cmd = cmd[:-1] + ' --log_fname' + ' ' + args.log_fname + '\n'
 
                 f.write(cmd)
         f.close()
