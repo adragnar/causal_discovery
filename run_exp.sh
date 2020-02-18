@@ -30,7 +30,7 @@ then
             subsetsfname="$expdir/${a}_${f_eng}_acc_subsets.txt"
             featuresfname="$expdir/${a}_${f_eng}_acc_features.txt"
             loggerfname="$logdir/${a}_${f_eng}_logging.csv"
-            cmd="main.py $a $f_eng $data $subsetsfname $featuresfname ${env_vars[@]} --log_fname $loggerfname"
+            cmd="main.py $a $f_eng $data $subsetsfname $featuresfname $loggerfname ${env_vars[@]}"
             echo $cmd
         done
     done > $cmdfile
@@ -45,7 +45,7 @@ then
             subsetsfname="$expdir/${a}_${f_eng}_acc_subsets.txt"
             featuresfname="$expdir/${a}_${f_eng}_acc_features.txt"
             loggerfname="$logdir/${a}_${f_eng}_logging.csv"
-            srun --mem=16G -p cpu python setup_params.py $a $f_eng $data $subsetsfname $featuresfname $cmdfile ${env_vars[@]} --log_fname $loggerfname
+            srun --mem=16G -p cpu python setup_params.py $a $f_eng $data $subsetsfname $featuresfname $cmdfile $loggerfname ${env_vars[@]}
         done
     done
 fi

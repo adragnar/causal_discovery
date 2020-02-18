@@ -21,10 +21,11 @@ if __name__ == '__main__':
                         help='fname to write features')
     parser.add_argument("cmdfile", type=str, \
                        help="filename to write all commands")
+    parser.add_argument('log_fname', type=str, \
+                        help='fname to write log')
     parser.add_argument("p_list", nargs='+', \
                         help="All the environment variables to split on")
-    parser.add_argument('--log_fname', type=str, \
-                        help='fname to write log')
+
 
     args = parser.parse_args()
 
@@ -53,11 +54,12 @@ if __name__ == '__main__':
                       + args.datafname + ' ' \
                       + new_subsetfname + ' ' \
                       + new_featurefname + ' ' \
+                      + args.log_fname + ' ' \
                       + e_args + '\n'  #Note - no space ever allowed before \n
 
                 #Deal with optiona arguments
-                if args.log_fname is not None:
-                    cmd = cmd[:-1] + ' --log_fname' + ' ' + args.log_fname + '\n'
+                # if args.log_fname is not None:
+                #     cmd = cmd[:-1] + ' --log_fname' + ' ' + args.log_fname + '\n'
 
                 f.write(cmd)
         f.close()

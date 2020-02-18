@@ -164,10 +164,11 @@ if __name__ == '__main__':
                         help="filename saving acc_subsets")
     parser.add_argument("features_fname", type=str,
                         help="filename saving acc_features")
-    parser.add_argument('env_atts', nargs='+', required=False,  \
-                        help='atts categorical defining envs')
-    parser.add_argument("--log_fname", type=str, required=False, default=None,
+    parser.add_argument("log_fname", type=str, required=False, default=None,
                         help="filename saving log")
+    parser.add_argument('env_atts', nargs='+',  \
+                        help='atts categorical defining envs')
+
 
     args = parser.parse_args()
     # print(args.env_atts)
