@@ -92,6 +92,7 @@ def adult_dataset_processing(fname, fteng):
 
     # Categorical to one-hot
     data = pd.get_dummies(data, prefix=categorical_feats, drop_first=True)
+    #data['env_select'] = 1  #Use this column for env selection
 
     #Feature engineering
     orig_cols = data.columns  # So that no problems with adding feats
@@ -105,6 +106,7 @@ def adult_dataset_processing(fname, fteng):
             for cp in combinations(orig_cols, 2):
                 data[(cp[0] + '_x_' + cp[1])] = data[cp[0]] * data[cp[1]]
 
+    #Note - doing a logical or of features will break dummy encoding
 
 
     #Get the unmodified attribute classes for possible envs
@@ -117,6 +119,8 @@ def adult_dataset_processing(fname, fteng):
             if (cat == col) or (((cat+'_') in col) and ('_sq' not in col) \
                                         and ('_x_' not in col)):
                 all_cats[cat].append(col)
+    for cat in all_cats:  #Dummy case
+        all_cats[cat].append(cat + '_DUMmY')
 
     print(data.shape)
     return data, all_cats

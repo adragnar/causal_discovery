@@ -44,22 +44,18 @@ def default(d_fname, s_fname, f_fname, env_atts, alpha=0.05, feateng_type=[], \
     #coefficients = torch.zeros(data.shape[1])  #regression vector confidence intervals
     max_pval = 0
 
-    if logger is not None:  #Setup logger and write header
+    # Setup logger and write header
+    if logger is not None:
         f = open(logger, mode='w')
         logger = csv.writer(f)
+        logger.writerow(list(itertools.product(*env_atts)))
 
-        h_row = []  #Write header
-        for e_type in env_atts:
-            for e in e_type:
-                h_row.append(e)
-            h_row.append(h_row[-1].split('_')[0] + '_base')
-        logger.writerow(h_row)
-
+    # Define whatever you want in here to make sure that stuff works
     if testing:
-        #Define whatever you want in here to make sure that stuff works
         pass
         return
 
+    #Now start the loop
     for subset in tqdm(powerset(d_atts), desc='pcp_sets',
                        total=len(list(powerset(d_atts)))):  #powerset of PCPs
 
@@ -74,39 +70,48 @@ def default(d_fname, s_fname, f_fname, env_atts, alpha=0.05, feateng_type=[], \
 
         #Linear regression on all data
         y_all = data['income_>50K']
-        x_s = data[list(itertools.chain(*[d_atts[cat] for cat in subset]))]
+
+        regressors = [d_atts[cat] for cat in subset]
+        regressors = [item for sublist in regressors for item in sublist if '_DUMmY' not in item]
+        x_s = data[list(itertools.chain(regressors))]
+
         reg = LinearRegression(fit_intercept=False).fit(x_s.values, y_all.values)
-
         p_values = []
-        for e_type in env_atts:#tqdm(env_atts, desc='env_atts', leave=False):
 
-            for e in e_type:  # currently missing the all 0
-                e_in = (data[e] == 1)
-                e_out = (data[e] == 0)
-
-                res_in = (y_all.loc[e_in].values - reg.predict(x_s.loc[e_in].values)).ravel()
-                res_out = (y_all.loc[e_out].values - reg.predict(x_s.loc[e_out].values)).ravel()
-
-                p_values.append(mean_var_test(res_in, res_out))
-
-            # Cover the dummy variable
-            for i, e in enumerate(e_type):
-                if i == 0:
-                    e_in = (data[e] == 0)
+        #Find p_values for every environment
+        for env in itertools.product(*env_atts):
+            dummy_envs = []
+            live_envs = []
+            for att in env:
+                if '_DUMmY' in att:
+                    dummy_envs = [d for d in d_atts[att.split('_')[0]] if d != att]
                 else:
-                    e_in = e_in & (data[e] == 0)
+                    live_envs.append(att)
+
+            #Compute e_in without error
+            if not dummy_envs:
+                e_in = ((data[live_envs] == 1)).all(1)
+            elif not live_envs:
+                e_in = ((data[dummy_envs] == 0)).all(1)
+            else:
+                e_in = ((data[live_envs] == 1) & (data[dummy_envs] == 0)).all(1)
+
+            if True not in e_in:  #No data from environment
+                continue
             e_out = ~e_in
 
             res_in = (
             y_all.loc[e_in].values - reg.predict(x_s.loc[e_in].values)).ravel()
-            res_out = (
-            y_all.loc[e_out].values - reg.predict(x_s.loc[e_out].values)).ravel()
+            res_out = (y_all.loc[e_out].values - reg.predict(
+                x_s.loc[e_out].values)).ravel()
 
             p_values.append(mean_var_test(res_in, res_out))
 
 
         # # TODO: Jonas uses "min(p_values) * len(environments) - 1"
+        print(p_values)
         if logger is not None:
+            print('here')
             logger.writerow(list(subset) + p_values)
         p_value = min(p_values) * sum(len(e_type) for e_type in env_atts)
 
@@ -117,10 +122,8 @@ def default(d_fname, s_fname, f_fname, env_atts, alpha=0.05, feateng_type=[], \
 
         if p_value > alpha:
             accepted_subsets.append(set(subset))
-            # if args["verbose"]:
-            #     print("Accepted subset:", subset)
 
-    # #STEP 2
+    #STEP 2
     if len(accepted_subsets):
         accepted_features = list(set.intersection(*accepted_subsets))
     else:
@@ -167,15 +170,13 @@ if __name__ == '__main__':
                         help='atts categorical defining envs')
     parser.add_argument("--log_fname", type=str, required=False, default=None,
                         help="filename saving log")
-    parser.add_argument("--test", type=bool, required=False, default=False,
-                        help="whether local machine test run")
 
     args = parser.parse_args()
     print(args.env_atts)
     print(args.log_fname)
     default(args.data_fname, args.subsets_fname, args.features_fname,  \
             args.env_atts, alpha=args.alpha, feateng_type=[int(c) for c in args.feat_eng], \
-            logger=args.log_fname, testing=args.test)
+            logger=args.log_fname, testing=False)
 
     # default('data/adult.csv',0,0, \
-    #         ["occupation", "workclass", "native-country", "education", "marital-status"], alpha=0.05, feateng_type=[1,2])
+    #         ["race"], alpha=0.05, feateng_type=[1,2])

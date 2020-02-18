@@ -12,10 +12,9 @@ cmdfile="$expdir/cmdfile.sh"
 max_proc=32
 
 #Experiment parameters
-#alphas=(0.00001 0.0001 0.001 0.01)
-#ft_combos=('1' '2' '12')
 alphas=(0.00001)
 ft_combos=('12')
+
 env_vars=("workclass" "native-country")
 #echo "${env_vars[@]}"
 
