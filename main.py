@@ -25,7 +25,7 @@ def mean_var_test(x, y):
 
     return 2 * min(pvalue_mean, pvalue_var2)
 #########################################
-def default(d_fname, s_fname, f_fname, env_atts, alpha=0.05, feateng_type=[], \
+def default(d_fname, s_fname, f_fname, env_atts=[], alpha=0.05, feateng_type=[], \
             logger=None, testing=False):
     '''
     
@@ -109,9 +109,7 @@ def default(d_fname, s_fname, f_fname, env_atts, alpha=0.05, feateng_type=[], \
 
 
         # # TODO: Jonas uses "min(p_values) * len(environments) - 1"
-        print(p_values)
         if logger is not None:
-            print('here')
             logger.writerow(list(subset) + p_values)
         p_value = min(p_values) * sum(len(e_type) for e_type in env_atts)
 
@@ -166,14 +164,14 @@ if __name__ == '__main__':
                         help="filename saving acc_subsets")
     parser.add_argument("features_fname", type=str,
                         help="filename saving acc_features")
-    parser.add_argument('env_atts', nargs='+', \
+    parser.add_argument('env_atts', nargs='+', required=False\
                         help='atts categorical defining envs')
     parser.add_argument("--log_fname", type=str, required=False, default=None,
                         help="filename saving log")
 
     args = parser.parse_args()
-    print(args.env_atts)
-    print(args.log_fname)
+    # print(args.env_atts)
+    # print(args.log_fname)
     default(args.data_fname, args.subsets_fname, args.features_fname,  \
             args.env_atts, alpha=args.alpha, feateng_type=[int(c) for c in args.feat_eng], \
             logger=args.log_fname, testing=False)
