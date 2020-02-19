@@ -56,7 +56,8 @@ def default(d_fname, s_fname, f_fname, env_atts=[], alpha=0.05, feateng_type=[],
 
     # Define whatever you want in here to make sure that stuff works
     if testing:
-        pass
+        pickle.dump([1,2], open(s_fname, 'wb'))
+        pickle.dump([3,4], open(f_fname, 'wb'))
         return
 
     #Now start the loop
@@ -158,29 +159,29 @@ def default(d_fname, s_fname, f_fname, env_atts=[], alpha=0.05, feateng_type=[],
     # self.coefficients = torch.Tensor(self.coefficients)
 
 if __name__ == '__main__':
-    # parser = argparse.ArgumentParser(description='Params')
-    # parser.add_argument("alpha", type=float, \
-    #                     help="significance level for PCP acceptance")
-    # parser.add_argument("feat_eng", type=str, \
-    #                     help="each digit id of diff feat engineering")
-    # parser.add_argument("data_fname", type=str,
-    #                     help="filename adult.csv")
-    # parser.add_argument("subsets_fname", type=str,
-    #                     help="filename saving acc_subsets")
-    # parser.add_argument("features_fname", type=str,
-    #                     help="filename saving acc_features")
-    # parser.add_argument("log_fname", type=str, default=None,
-    #                     help="filename saving log")
-    # parser.add_argument('env_atts', nargs='+',  \
-    #                     help='atts categorical defining envs')
-    #
-    #
-    # args = parser.parse_args()
-    # # print(args.env_atts)
-    # # print(args.log_fname)
-    # default(args.data_fname, args.subsets_fname, args.features_fname,  \
-    #         args.env_atts, alpha=args.alpha, feateng_type=[int(c) for c in args.feat_eng], \
-    #         logger=args.log_fname, testing=False)
+    parser = argparse.ArgumentParser(description='Params')
+    parser.add_argument("alpha", type=float, \
+                        help="significance level for PCP acceptance")
+    parser.add_argument("feat_eng", type=str, \
+                        help="each digit id of diff feat engineering")
+    parser.add_argument("data_fname", type=str,
+                        help="filename adult.csv")
+    parser.add_argument("subsets_fname", type=str,
+                        help="filename saving acc_subsets")
+    parser.add_argument("features_fname", type=str,
+                        help="filename saving acc_features")
+    parser.add_argument("log_fname", type=str, default=None,
+                        help="filename saving log")
+    parser.add_argument('env_atts', nargs='+',  \
+                        help='atts categorical defining envs')
 
-    default('data/adult.csv',0,0, \
-            ["race", "workclass"], alpha=0.05, feateng_type=[1,2])
+
+    args = parser.parse_args()
+    # print(args.env_atts)
+    # print(args.log_fname)
+    default(args.data_fname, args.subsets_fname, args.features_fname,  \
+            args.env_atts, alpha=args.alpha, feateng_type=[int(c) for c in args.feat_eng], \
+            logger=args.log_fname, testing=False)
+
+    # default('data/adult.csv',0,0, \
+    #         ["race", "workclass"], alpha=0.05, feateng_type=[1,2], testing=xTrue)
