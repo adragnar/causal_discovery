@@ -4,11 +4,15 @@ import pickle
 import itertools
 import torch
 from sklearn.linear_model import LinearRegression
+import warnings
 import pandas as pd
 from tqdm import tqdm
 
 from utils import powerset
 from data_processing import adult_dataset_processing
+
+warnings.simplefilter(action='ignore', category=FutureWarning)
+warnings.simplefilter(action='ignore', category=RuntimeWarning)
 
 #########################################
 import numpy as np
@@ -97,7 +101,7 @@ def default(d_fname, s_fname, f_fname, env_atts=[], alpha=0.05, feateng_type=[],
                 e_in = ((data[live_envs] == 1).all(1) & (data[dummy_envs] == 0).all(1))
 
             if e_in.isin([True]).all() or e_in.isin([False]).all():  #No data from environment
-                #p_values.append('NA')
+                p_values.append('NA')
                 continue
             e_out = ~e_in
 
@@ -112,7 +116,7 @@ def default(d_fname, s_fname, f_fname, env_atts=[], alpha=0.05, feateng_type=[],
         # # TODO: Jonas uses "min(p_values) * len(environments) - 1"
         if logger is not None:
             logger.writerow(list(subset) + p_values)
-        p_value = min(p_values) * sum(len(e_type) for e_type in env_atts)
+        p_value = min([p for p in p_values if type(p) != str]) * len(list(itertools.product(*env_atts)))
 
         ###Hack for debugging
         if p_value > max_pval:
