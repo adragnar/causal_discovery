@@ -25,7 +25,7 @@ def data_conversion(data, categorical_feats, continous_feats, predictor_feats, f
     :param data: Dataframe of cleaned data 
     :param categorical_feats: categorical feats (all including labels)
     :param continous_feats: (all including labels)
-    :param predictor_feats: all
+    :param predictor_feats: all labels
     :param fteng: ids of feature manipulations wanted
     :return: 
     '''
@@ -138,52 +138,30 @@ def adult_dataset_processing(fname, fteng):
     return data_conversion(data, cat_feats, cont_feats, pred_feats, fteng)
 
 
-# def german_credit_dataset_processing(fname, fteng=[]):
-#     data = pd.read_csv(fname)
-#     data = data.drop('Telephone', axis=1)
-#
-#     categorical_feats = ['Purpose', 'Savings', 'Personal', 'OtherDebtors', \
-#                          'Property', 'OtherInstallmentPlans', 'Housing', \
-#                          'Foreign', 'Labels']
-#     integer_feats = ['CheqAccountStatus', 'Duration', 'CreditHistory', \
-#                      'PresentEmployment', 'Age', 'Job', 'Deps' ]
-#     continous_feats = ['CreditAmount', 'InstallmentDisposable', 'PresRes', \
-#                        'NumExistCredits', ]
-#
-#     in_order = ['Labels', 'CheqAccountStatus', 'Duration', 'CreditHistory', 'Purpose', \
-#                 'CreditAmount', 'Savings', 'PresentEmployment', \
-#                 'InstallmentDisposable', 'Personal', 'OtherDebtors', 'PresRes', \
-#                 'Property', 'Age', 'OtherInstallmentPlans', 'Housing', \
-#                 'NumExistCredits', 'Job', 'Deps', 'Foreign']
-#
-#     # Note - for knowing which column is which, might be good to associate numbers with labels
-#     data.columns = in_order
-#     data = pd.get_dummies(data, columns=categorical_feats, drop_first=True)
-#
-#
-#     #Feature engineering
-#     orig_cols = data.columns  # So that no problems with adding feats
-#
-#     if 1 in fteng:  #x^2 continous feats
-#         for col in orig_cols:
-#             if col in (continous_feats + integer_feats):  #Assume only transform orig cont col
-#                 data[(col + '_sq')] = data[col] ** 2
-#
-#     if 2 in fteng:  #add new col with multiplied feats
-#             for cp in combinations(orig_cols, 2):
-#                 data[(cp[0] + '_x_' + cp[1])] = data[cp[0]] * data[cp[1]]
+def german_credit_dataset_processing(fname, fteng=[]):
+    data = pd.read_csv(fname)
+    data = data.drop('Telephone', axis=1)
 
+    # NOTE - These lists aren't MECE
+    cat_feats = ['Purpose', 'Savings', 'Personal', 'OtherDebtors', \
+                         'Property', 'OtherInstallmentPlans', 'Housing', \
+                         'Foreign', 'Labels']
+    cont_feats = ['CreditAmount', 'InstallmentDisposable', 'PresRes', \
+                       'NumExistCredits', 'CheqAccountStatus', 'Duration', 'CreditHistory', \
+                     'PresentEmployment', 'Age', 'Job', 'Deps']
+    pred_feats = ['Labels']
+    in_order = ['Labels', 'CheqAccountStatus', 'Duration', 'CreditHistory', 'Purpose', \
+                'CreditAmount', 'Savings', 'PresentEmployment', \
+                'InstallmentDisposable', 'Personal', 'OtherDebtors', 'PresRes', \
+                'Property', 'Age', 'OtherInstallmentPlans', 'Housing', \
+                'NumExistCredits', 'Job', 'Deps', 'Foreign']
 
+    # Note - for knowing which column is which, might be good to associate numbers with labels
+    data.columns = in_order
+
+    return data_conversion(data, cat_feats, cont_feats, pred_feats, fteng=fteng)
 
 
 if __name__ == '__main__':
-    # german_credit_dataset_processing('data/german_credit.csv')
-    a, __ = adult_dataset_processing('data/adult.csv', [])
-    b, __ = new_adult_dataset_processing('data/adult.csv', [])
-
-    assert a.equals(b)
-    # print(len(a.columns), len(b.columns))
-    # assert a.columns == b.columns
-    # for col in a.columns:
-    #     print(col)
-    #     assert a[col].equals(b[col])
+    a,b = german_credit_dataset_processing('data/german_credit.csv', [1,2])
+    print(3)
