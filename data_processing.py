@@ -19,23 +19,25 @@ from torch.utils.data import DataLoader
 
 #import matplotlib.pyplot as plt
 
-def data_conversion(data, categorical_feats, continous_feats, predictor_feats, fteng):
+def data_conversion(data, categorical_feats, continous_feats, predictor, fteng):
     '''
     
-    :param data: Dataframe of cleaned data 
+    :param data: Dataframe of cleaned data - feats & labels 
     :param categorical_feats: categorical feats (all including labels)
     :param continous_feats: (all including labels)
-    :param predictor_feats: all labels
+    :param predictor_feats: (str) single label. Assume is Categorical, Binary   
     :param fteng: ids of feature manipulations wanted
     :return: 
     '''
 
+    labels = data.pop(predictor)
+
     # Categorical to one-hot
     data = pd.get_dummies(data, columns=categorical_feats, drop_first=True)
-    #data['env_select'] = 1  #Use this column for env selection
+    labels = pd.get_dummies(labels, columns=[predictor], drop_first=True)
 
     #Feature engineering
-    orig_cols = data.columns  # So that no problems with adding feats
+    orig_cols = data.columns
 
     if 1 in fteng:  #x^2 continous feats
         for col in orig_cols:
@@ -43,14 +45,15 @@ def data_conversion(data, categorical_feats, continous_feats, predictor_feats, f
                 data[(col + '_sq')] = data[col] ** 2
 
     if 2 in fteng:  #add new col with multiplied feats
-            for i, cp in enumerate(combinations(orig_cols, 2)):
+            for cp in [com for com in combinations(orig_cols, 2) \
+                       if (com[0].split('_')[0] != com[1].split('_')[0])]:
                 data[(cp[0] + '_x_' + cp[1])] = data[cp[0]] * data[cp[1]]
 
     #Note - doing a logical or of features will break dummy encoding
 
 
     #Get the unmodified attribute classes for possible envs
-    all_cats={cat:[] for cat in ([ft for ft in (categorical_feats + continous_feats) if ft not in predictor_feats])}
+    all_cats={cat:[] for cat in (categorical_feats + continous_feats)}
 
     for col in data.columns:
         for cat in all_cats:
@@ -61,7 +64,7 @@ def data_conversion(data, categorical_feats, continous_feats, predictor_feats, f
         all_cats[cat].append(cat + '_DUMmY')
 
     print(data.shape)
-    return data, all_cats
+    return data, labels, all_cats
 
 def adult_dataset_processing(fname, fteng):
     '''Process the adult dataset from csv. Return the dataframe, as well as a
@@ -130,10 +133,10 @@ def adult_dataset_processing(fname, fteng):
     #NOTE - These lists aren't MECE
     cat_feats = ['workclass', 'education', 'marital-status', \
                          'occupation', 'relationship', 'race', 'gender', \
-                         'native-country', 'income']
+                         'native-country']
     cont_feats = ['age', 'fnlwgt', 'educational-num', 'capital-gain', \
                        'capital-loss', 'hours-per-week']
-    pred_feats = ['income']
+    pred_feats = 'income'
 
     return data_conversion(data, cat_feats, cont_feats, pred_feats, fteng)
 
@@ -142,14 +145,14 @@ def german_credit_dataset_processing(fname, fteng=[]):
     data = pd.read_csv(fname)
     data = data.drop('Telephone', axis=1)
 
-    # NOTE - These lists aren't MECE
+    # NOTE - These lists are MECE
     cat_feats = ['Purpose', 'Savings', 'Personal', 'OtherDebtors', \
                          'Property', 'OtherInstallmentPlans', 'Housing', \
-                         'Foreign', 'Labels']
+                         'Foreign']
     cont_feats = ['CreditAmount', 'InstallmentDisposable', 'PresRes', \
                        'NumExistCredits', 'CheqAccountStatus', 'Duration', 'CreditHistory', \
                      'PresentEmployment', 'Age', 'Job', 'Deps']
-    pred_feats = ['Labels']
+    pred_feats = 'Labels'
     in_order = ['Labels', 'CheqAccountStatus', 'Duration', 'CreditHistory', 'Purpose', \
                 'CreditAmount', 'Savings', 'PresentEmployment', \
                 'InstallmentDisposable', 'Personal', 'OtherDebtors', 'PresRes', \

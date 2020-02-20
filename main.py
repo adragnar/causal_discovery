@@ -43,7 +43,7 @@ def default(d_fname, s_fname, f_fname, env_atts=[], alpha=0.05, feateng_type=[],
     '''
     accepted_subsets = []
 
-    data, d_atts = adult_dataset_processing(d_fname, feateng_type)
+    data, y_all, d_atts = adult_dataset_processing(d_fname, feateng_type)
     env_atts = [d_atts[cat] for cat in env_atts]  #Note - assuming only split on categorical vars
     #coefficients = torch.zeros(data.shape[1])  #regression vector confidence intervals
     max_pval = 0
@@ -56,8 +56,6 @@ def default(d_fname, s_fname, f_fname, env_atts=[], alpha=0.05, feateng_type=[],
 
     # Define whatever you want in here to make sure that stuff works
     if testing:
-        pickle.dump([1,2], open(s_fname, 'wb'))
-        pickle.dump([3,4], open(f_fname, 'wb'))
         return
 
     #Now start the loop
@@ -74,8 +72,6 @@ def default(d_fname, s_fname, f_fname, env_atts=[], alpha=0.05, feateng_type=[],
             break
 
         #Linear regression on all data
-        y_all = data['income_>50K']
-
         regressors = [d_atts[cat] for cat in subset]
         regressors = [item for sublist in regressors for item in sublist if '_DUMmY' not in item]
         x_s = data[list(itertools.chain(regressors))]
@@ -184,4 +180,4 @@ if __name__ == '__main__':
             logger=args.log_fname, testing=False)
 
     # default('data/adult.csv',0,0, \
-    #         ["race", "workclass"], alpha=0.05, feateng_type=[1,2], testing=xTrue)
+    #         ["race", "workclass"], alpha=0.05, feateng_type=[1,2], testing=False)
