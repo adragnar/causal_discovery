@@ -2,7 +2,6 @@ import argparse
 import csv
 import pickle
 import itertools
-import torch
 from sklearn.linear_model import LinearRegression
 import warnings
 import pandas as pd

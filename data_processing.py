@@ -8,11 +8,6 @@ import pandas as pd
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 from sklearn.model_selection import train_test_split
 
-
-import torch
-from torch.autograd import Variable
-from torch.utils.data import DataLoader
-
 # from model import MultiLayerPerceptron
 # from dataset import AdultDataset
 # from util import *
@@ -163,7 +158,6 @@ def german_credit_dataset_processing(fname, fteng=[]):
     data.columns = in_order
 
     return data_conversion(data, cat_feats, cont_feats, pred_feats, fteng=fteng)
-
 
 if __name__ == '__main__':
     a,b = german_credit_dataset_processing('data/german_credit.csv', [1,2])

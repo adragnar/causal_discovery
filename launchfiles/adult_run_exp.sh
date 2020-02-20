@@ -30,7 +30,7 @@ then
             subsetsfname="$expdir/${a}_${f_eng}_acc_subsets.txt"
             featuresfname="$expdir/${a}_${f_eng}_acc_features.txt"
             loggerfname="$logdir/${a}_${f_eng}_logging.csv"
-            cmd="main.py $a $f_eng $data $subsetsfname $featuresfname $loggerfname ${env_vars[@]}"
+            cmd="python main.py $a $f_eng $data $subsetsfname $featuresfname $loggerfname ${env_vars[@]}"
             echo $cmd
         done
     done > $cmdfile
