@@ -2,7 +2,7 @@ import argparse
 import csv
 import pickle
 import itertools
-import torch
+import logging
 from sklearn.linear_model import LinearRegression
 import warnings
 import pandas as pd
@@ -30,7 +30,7 @@ def mean_var_test(x, y):
     return 2 * min(pvalue_mean, pvalue_var2)
 #########################################
 def default(d_fname, s_fname, f_fname, env_atts=[], alpha=0.05, feateng_type=[], \
-            logger=None, rawres=None, testing=False):
+            logger_fname='rando.txt', rawres=None, testing=False):
     '''
     
     :param d_fname: 
@@ -41,23 +41,29 @@ def default(d_fname, s_fname, f_fname, env_atts=[], alpha=0.05, feateng_type=[],
     :param feateng_type: The particular preprocess methodology 
     :param logger: filepath to log file 
     '''
-    accepted_subsets = []
+    #Meta-function Accounting
+    logging.basicConfig(filename=logger_fname, level=logging.DEBUG)
 
+
+    accepted_subsets = []
     #Select correct dataset
     if 'adult' in d_fname:
         data, y_all, d_atts = dp.adult_dataset_processing(d_fname, feateng_type)
+        logging.info('Adult Dataset loaded - size ' + str(data.shape))
     elif 'german' in d_fname:
         data, y_all, d_atts = dp.german_credit_dataset_processing(d_fname, feateng_type)
+        logging.info('German Dataset loaded - size ' + str(data.shape))
+
 
     env_atts = [d_atts[cat] for cat in env_atts]  #Note - assuming only split on categorical vars
     #coefficients = torch.zeros(data.shape[1])  #regression vector confidence intervals
     max_pval = 0
 
-    # Setup logger and write header
-    if logger is not None:
-        f = open(logger, mode='w')
-        logger = csv.writer(f)
-        logger.writerow(list(itertools.product(*env_atts)))
+    # Setup rawres and write header
+    if rawres is not None:
+        f = open(rawres, mode='w')
+        rawres = csv.writer(f)
+        rawres.writerow(list(itertools.product(*env_atts)))
 
     #Now start the loop
     for subset in tqdm(powerset(d_atts), desc='pcp_sets',
@@ -71,6 +77,7 @@ def default(d_fname, s_fname, f_fname, env_atts=[], alpha=0.05, feateng_type=[],
         if (len(accepted_subsets) > 0) and \
                 (set.intersection(*accepted_subsets) == set()):
             break
+            logging.info('Null Hyp accepted from MECE subsets')
 
         #Linear regression on all data
         regressors = [d_atts[cat] for cat in subset]
@@ -112,8 +119,8 @@ def default(d_fname, s_fname, f_fname, env_atts=[], alpha=0.05, feateng_type=[],
 
 
         # # TODO: Jonas uses "min(p_values) * len(environments) - 1"
-        if logger is not None:
-            logger.writerow(list(subset) + p_values)
+        if rawres is not None:
+            rawres.writerow(list(subset) + p_values)
         p_value = min([p for p in p_values if type(p) != str]) * len(list(itertools.product(*env_atts)))
 
         ###Hack for debugging
@@ -123,6 +130,7 @@ def default(d_fname, s_fname, f_fname, env_atts=[], alpha=0.05, feateng_type=[],
 
         if p_value > alpha:
             accepted_subsets.append(set(subset))
+            logging.info('Subset Accepted')
 
     #STEP 2
     if len(accepted_subsets):
@@ -140,7 +148,7 @@ def default(d_fname, s_fname, f_fname, env_atts=[], alpha=0.05, feateng_type=[],
     pickle.dump(accepted_subsets, open(s_fname,'wb'))
     pickle.dump(accepted_features, open(f_fname,'wb'))
 
-    if logger is not None:
+    if rawres is not None:
         f.close()
 
 
@@ -190,7 +198,7 @@ if __name__ == '__main__':
 
     default(args.data_fname, args.subsets_fname, args.features_fname,  \
             args.env_atts, alpha=args.alpha, feateng_type=[int(c) for c in args.feat_eng], \
-            logger=args.log_fname, rawres=args.rawres_fname, testing=args.testing)
+            logger_fname=args.log_fname, rawres=args.rawres_fname, testing=args.testing)
 
 
 
