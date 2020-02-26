@@ -77,7 +77,9 @@ if __name__ == '__main__':
             )
             subsets_fname = 'subsets_{}.txt'.format(uniqueid)
             features_fname = 'feats_{}.txt'.format(uniqueid)
+            rawres_fname = 'rawres_{}.txt'.format(uniqueid)
             log_fname = 'log_{}.txt'.format(uniqueid)
+
 
             if args.testing:
                 print(uniqueid)
@@ -88,13 +90,14 @@ if __name__ == '__main__':
             spacing = len(list_2_string(e, ' '))
 
             command_str = \
-                '''python main.py {alpha} {feat_eng} {data} {subsets_fname} {features_fname} {log_fname}{spacing}{env_list}\n'''
+                '''python main.py {alpha} {feat_eng} {data} {subsets_fname} {features_fname} {rawres_fname} {log_fname}{spacing}{env_list}\n'''
             command_str = command_str.format(
                 alpha=args.alpha,
                 feat_eng=args.feat_eng,
                 data=args.datafname,
                 subsets_fname=subsets_fname,
                 features_fname=features_fname,
+                rawres_fname=rawres_fname,
                 log_fname=log_fname,
                 spacing=(' ' * threshold(len(list_2_string(e, ' ')))),
                 env_list=list_2_string(e, ' ')

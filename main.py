@@ -2,13 +2,14 @@ import argparse
 import csv
 import pickle
 import itertools
+import torch
 from sklearn.linear_model import LinearRegression
 import warnings
 import pandas as pd
 from tqdm import tqdm
 
 from utils import powerset
-from data_processing import adult_dataset_processing
+import data_processing as dp
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 warnings.simplefilter(action='ignore', category=RuntimeWarning)
@@ -29,7 +30,7 @@ def mean_var_test(x, y):
     return 2 * min(pvalue_mean, pvalue_var2)
 #########################################
 def default(d_fname, s_fname, f_fname, env_atts=[], alpha=0.05, feateng_type=[], \
-            logger=None, testing=False):
+            logger=None, rawres=None, testing=False):
     '''
     
     :param d_fname: 
@@ -42,7 +43,12 @@ def default(d_fname, s_fname, f_fname, env_atts=[], alpha=0.05, feateng_type=[],
     '''
     accepted_subsets = []
 
-    data, y_all, d_atts = adult_dataset_processing(d_fname, feateng_type)
+    #Select correct dataset
+    if 'adult' in d_fname:
+        data, y_all, d_atts = dp.adult_dataset_processing(d_fname, feateng_type)
+    elif 'german' in d_fname:
+        data, y_all, d_atts = dp.german_credit_dataset_processing(d_fname, feateng_type)
+
     env_atts = [d_atts[cat] for cat in env_atts]  #Note - assuming only split on categorical vars
     #coefficients = torch.zeros(data.shape[1])  #regression vector confidence intervals
     max_pval = 0
@@ -52,10 +58,6 @@ def default(d_fname, s_fname, f_fname, env_atts=[], alpha=0.05, feateng_type=[],
         f = open(logger, mode='w')
         logger = csv.writer(f)
         logger.writerow(list(itertools.product(*env_atts)))
-
-    # Define whatever you want in here to make sure that stuff works
-    if testing:
-        return
 
     #Now start the loop
     for subset in tqdm(powerset(d_atts), desc='pcp_sets',
@@ -165,18 +167,34 @@ if __name__ == '__main__':
                         help="filename saving acc_subsets")
     parser.add_argument("features_fname", type=str,
                         help="filename saving acc_features")
+    parser.add_argument("rawres_fname", type=str, default=None,
+                        help="filename saving raw results")
     parser.add_argument("log_fname", type=str, default=None,
                         help="filename saving log")
     parser.add_argument('env_atts', nargs='+',  \
                         help='atts categorical defining envs')
-
-
+    parser.add_argument("--testing", action='store_true')
     args = parser.parse_args()
-    # print(args.env_atts)
-    # print(args.log_fname)
+
+    if args.testing:
+        print("alpha:", args.alpha)
+        print("feat_eng:", args.feat_eng)
+        print("data:", args.data_fname)
+        print("subsets:", args.subsets_fname)
+        print("feats:", args.features_fname)
+        print("rawres:", args.rawres_fname)
+        print("log:", args.log_fname)
+        print("env_list:", args.env_atts)
+        print("testing?:", args.testing)
+        quit()
+
     default(args.data_fname, args.subsets_fname, args.features_fname,  \
             args.env_atts, alpha=args.alpha, feateng_type=[int(c) for c in args.feat_eng], \
-            logger=args.log_fname, testing=False)
+            logger=args.log_fname, rawres=args.rawres_fname, testing=args.testing)
+
+
+
+
 
     # default('data/adult.csv',0,0, \
     #         ["race", "workclass"], alpha=0.05, feateng_type=[1,2], testing=False)

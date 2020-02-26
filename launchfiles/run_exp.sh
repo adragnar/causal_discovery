@@ -29,3 +29,7 @@ done
 
 
 
+
+
+
+#Note - must be run from the causal_discovery directory
