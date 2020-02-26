@@ -67,7 +67,7 @@ if __name__ == '__main__':
     elif args.envcombos == 'single':
         allenvs = [[a] for a in args.env_list]
 
-    with open(os.path.join(args.expdir, args.cmdfile), 'w+') as f:
+    with open(os.path.join(args.expdir, args.cmdfile), 'a') as f:
         for e in allenvs:
             uniqueid = '''{alpha}_{feat_eng}_{data}_{env_list}'''
             uniqueid= uniqueid.format(
