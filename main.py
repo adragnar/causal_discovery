@@ -57,7 +57,7 @@ def default(d_fname, s_fname, f_fname, env_atts=[], alpha=0.05, feateng_type=[],
 
 
     env_atts = [d_atts[cat] for cat in env_atts]  #Note - assuming only split on categorical vars
-    logging.info('%d environment attributes'.format(len(env_atts)))
+    logging.info('{} environment attributes'.format(len(env_atts)))
     logging.debug('Environment attributes are ' + str(env_atts))
     #coefficients = torch.zeros(data.shape[1])  #regression vector confidence intervals
     max_pval = 0
@@ -67,7 +67,7 @@ def default(d_fname, s_fname, f_fname, env_atts=[], alpha=0.05, feateng_type=[],
 
     with open(rawres_fname, mode='w+') as rawres:
         #Now start the loop
-        for i, subset in enumerate(tqdm(powerset(d_atts)[:100], desc='pcp_sets',
+        for i, subset in enumerate(tqdm(powerset(d_atts), desc='pcp_sets',
                            total=len(list(powerset(d_atts))))):  #powerset of PCPs
 
             #Setup raw result logging
@@ -80,8 +80,8 @@ def default(d_fname, s_fname, f_fname, env_atts=[], alpha=0.05, feateng_type=[],
             #Check if 2 ME subsets have been accepted
             if (len(accepted_subsets) > 0) and \
                     (set.intersection(*accepted_subsets) == set()):
-                break
                 logging.info('Null Hyp accepted from MECE subsets')
+                break
 
             #Linear regression on all data
             regressors = [d_atts[cat] for cat in subset]

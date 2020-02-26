@@ -24,7 +24,7 @@ fi
 if [ $dtype == "german" ]
 then
     data="~/causal_discovery/data/germanCredit.csv"
-    alphas=(0.01 0.000001)
+    alphas=(0.1 0.01 0.000001)
     ft_combos=('1' '2' '12')
     env_vars=('Purpose' 'Savings' 'Personal' 'OtherDebtors' 'Property' 'OtherInstallmentPlans' 'Housing' 'Foreign')
 fi
