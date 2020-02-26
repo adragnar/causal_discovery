@@ -34,7 +34,7 @@ for a in ${alphas[*]}
 do
     for f_eng in ${ft_combos[*]}
     do
-        python "$(dirname "$(pwd)")/setup_params.py" $a $f_eng $data $expdir $cmdfile ${env_vars[@]} -envcombos $exptype
+        python setup_params.py $a $f_eng $data $expdir $cmdfile ${env_vars[@]} -envcombos $exptype
     done
 done
 
