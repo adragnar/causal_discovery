@@ -77,7 +77,7 @@ if __name__ == '__main__':
             )
             subsets_fname = 'subsets_{}.txt'.format(uniqueid)
             features_fname = 'feats_{}.txt'.format(uniqueid)
-            rawres_fname = 'rawres_{}.txt'.format(uniqueid)
+            rawres_fname = 'rawres_{}.json'.format(uniqueid)
             log_fname = 'log_{}.txt'.format(uniqueid)
 
 

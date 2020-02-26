@@ -2,6 +2,7 @@ import argparse
 import csv
 import pickle
 import itertools
+import json
 import logging
 from sklearn.linear_model import LinearRegression
 import warnings
@@ -30,7 +31,7 @@ def mean_var_test(x, y):
     return 2 * min(pvalue_mean, pvalue_var2)
 #########################################
 def default(d_fname, s_fname, f_fname, env_atts=[], alpha=0.05, feateng_type=[], \
-            logger_fname='rando.txt', rawres=None, testing=False):
+            logger_fname='rando.txt', rawres_fname='rando2.txt', testing=False):
     '''
     
     :param d_fname: 
@@ -56,100 +57,107 @@ def default(d_fname, s_fname, f_fname, env_atts=[], alpha=0.05, feateng_type=[],
 
 
     env_atts = [d_atts[cat] for cat in env_atts]  #Note - assuming only split on categorical vars
+    logging.info('%d environment attributes'.format(len(env_atts)))
+    logging.debug('Environment attributes are ' + str(env_atts))
     #coefficients = torch.zeros(data.shape[1])  #regression vector confidence intervals
     max_pval = 0
 
-    # Setup rawres and write header
-    if rawres is not None:
-        f = open(rawres, mode='w')
-        rawres = csv.writer(f)
-        rawres.writerow(list(itertools.product(*env_atts)))
+    # Setup rawres
+    full_res = {}
 
-    #Now start the loop
-    for subset in tqdm(powerset(d_atts), desc='pcp_sets',
-                       total=len(list(powerset(d_atts)))):  #powerset of PCPs
+    with open(rawres_fname, mode='w+') as rawres:
+        #Now start the loop
+        for i, subset in enumerate(tqdm(powerset(d_atts), desc='pcp_sets',
+                           total=len(list(powerset(d_atts))))):  #powerset of PCPs
 
-        #Check for empty set
-        if not subset:
-            continue
+            #Setup raw result logging
+            full_res[str(subset)] = {}
 
-        #Check if 2 ME subsets have been accepted
-        if (len(accepted_subsets) > 0) and \
-                (set.intersection(*accepted_subsets) == set()):
-            break
-            logging.info('Null Hyp accepted from MECE subsets')
-
-        #Linear regression on all data
-        regressors = [d_atts[cat] for cat in subset]
-        regressors = [item for sublist in regressors for item in sublist if '_DUMmY' not in item]
-        x_s = data[list(itertools.chain(regressors))]
-
-        reg = LinearRegression(fit_intercept=False).fit(x_s.values, y_all.values)
-        p_values = []
-
-        #Find p_values for every environment
-        for env in itertools.product(*env_atts):
-            dummy_envs = []
-            live_envs = []
-            for att in env:
-                if '_DUMmY' in att:
-                    dummy_envs = [d for d in d_atts[att.split('_')[0]] if d != att]
-                else:
-                    live_envs.append(att)
-
-            #Compute e_in without error
-            if not dummy_envs:
-                e_in = ((data[live_envs] == 1)).all(1)
-            elif not live_envs:
-                e_in = ((data[dummy_envs] == 0)).all(1)
-            else:
-                e_in = ((data[live_envs] == 1).all(1) & (data[dummy_envs] == 0).all(1))
-
-            if e_in.isin([True]).all() or e_in.isin([False]).all():  #No data from environment
-                p_values.append('NA')
+            #Check for empty set
+            if not subset:
                 continue
-            e_out = ~e_in
 
-            res_in = (
-            y_all.loc[e_in].values - reg.predict(x_s.loc[e_in].values)).ravel()
-            res_out = (y_all.loc[e_out].values - reg.predict(
-                x_s.loc[e_out].values)).ravel()
+            #Check if 2 ME subsets have been accepted
+            if (len(accepted_subsets) > 0) and \
+                    (set.intersection(*accepted_subsets) == set()):
+                break
+                logging.info('Null Hyp accepted from MECE subsets')
 
-            p_values.append(mean_var_test(res_in, res_out))
+            #Linear regression on all data
+            regressors = [d_atts[cat] for cat in subset]
+            regressors = [item for sublist in regressors for item in sublist if '_DUMmY' not in item]
+            x_s = data[list(itertools.chain(regressors))]
+            reg = LinearRegression(fit_intercept=False).fit(x_s.values, y_all.values)
+
+            #Find p_values for every environment
+            for env in itertools.product(*env_atts):
+                dummy_envs = []
+                live_envs = []
+                for att in env:
+                    if '_DUMmY' in att:
+                        dummy_envs = [d for d in d_atts[att.split('_')[0]] if d != att]
+                    else:
+                        live_envs.append(att)
+
+                #Compute e_in without error
+                if not dummy_envs:
+                    e_in = ((data[live_envs] == 1)).all(1)
+                elif not live_envs:
+                    e_in = ((data[dummy_envs] == 0)).all(1)
+                else:
+                    e_in = ((data[live_envs] == 1).all(1) & (data[dummy_envs] == 0).all(1))
+
+                if e_in.isin([True]).all() or e_in.isin([False]).all():  #No data from environment
+                    full_res[str(subset)][str(env)] = 'NA'
+                    continue
+                e_out = ~e_in
+
+                res_in = (
+                y_all.loc[e_in].values - reg.predict(x_s.loc[e_in].values)).ravel()
+                res_out = (y_all.loc[e_out].values - reg.predict(
+                    x_s.loc[e_out].values)).ravel()
+
+                #Check for NaNs
+                if (mean_var_test(res_in, res_out) is np.nan) or (mean_var_test(res_in, res_out) != mean_var_test(res_in, res_out)):
+                    continue
+                    # print(env)
+                    # pickle.dump(res_in, open('res_in.txt', 'wb'))
+                    # pickle.dump(res_out, open('res_out.txt', 'wb'))
+                    # quit()
+                else:
+                    full_res[str(subset)][str(env)] = mean_var_test(res_in,
+                                                                    res_out)
 
 
-        # # TODO: Jonas uses "min(p_values) * len(environments) - 1"
-        if rawres is not None:
-            rawres.writerow(list(subset) + p_values)
-        p_value = min([p for p in p_values if type(p) != str]) * len(list(itertools.product(*env_atts)))
+            # # TODO: Jonas uses "min(p_values) * len(environments) - 1"
+            full_res[str(subset)]['Final_tstat'] = min([p for p in full_res[str(subset)].values() if type(p) != str]) * len(list(itertools.product(*env_atts)))
 
-        ###Hack for debugging
-        if p_value > max_pval:
-            p_value = max_pval
-        #####################
 
-        if p_value > alpha:
-            accepted_subsets.append(set(subset))
-            logging.info('Subset Accepted')
+            if full_res[str(subset)]['Final_tstat'] > alpha:
+                accepted_subsets.append(set(subset))
+                logging.info('Subset Accepted')
 
-    #STEP 2
-    if len(accepted_subsets):
-        accepted_features = list(set.intersection(*accepted_subsets))
-    else:
-        accepted_features = []
+            ########DEBUG HACK
+            # if i == 100:
+            #     json.dump(full_res, open('testy.json', 'w'), indent=4, separators=(',',':'))
+            #     quit()
+            ################
 
-    ###Hack for debugging
-    accepted_features.append(max_pval)
-    #########
 
-    #Save results
+        #STEP 2
+        if len(accepted_subsets):
+            accepted_features = list(set.intersection(*accepted_subsets))
+        else:
+            accepted_features = []
 
-    #First the data
-    pickle.dump(accepted_subsets, open(s_fname,'wb'))
-    pickle.dump(accepted_features, open(f_fname,'wb'))
+        #Save results
 
-    if rawres is not None:
-        f.close()
+        #First the data results
+        pickle.dump(accepted_subsets, open(s_fname,'wb'))
+        pickle.dump(accepted_features, open(f_fname,'wb'))
+
+        #Next the Raw results
+        json.dump(full_res, rawres, indent=4, separators=(',',':'))
 
 
     # if args["verbose"]:
@@ -198,7 +206,7 @@ if __name__ == '__main__':
 
     default(args.data_fname, args.subsets_fname, args.features_fname,  \
             args.env_atts, alpha=args.alpha, feateng_type=[int(c) for c in args.feat_eng], \
-            logger_fname=args.log_fname, rawres=args.rawres_fname, testing=args.testing)
+            logger_fname=args.log_fname, rawres_fname=args.rawres_fname, testing=args.testing)
 
 
 

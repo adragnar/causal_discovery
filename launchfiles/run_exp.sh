@@ -23,7 +23,7 @@ for a in ${alphas[*]}
 do
     for f_eng in ${ft_combos[*]}
     do
-        python "$(dirname "$(pwd)")/setup_params.py" $a $f_eng $data $expdir $cmdfile ${env_vars[@]} --envcombos 1 --testing $testing
+        python "$(dirname "$(pwd)")/setup_params.py" $a $f_eng $data $expdir $cmdfile ${env_vars[@]} --envcombos 0 --testing $testing
     done
 done
 
