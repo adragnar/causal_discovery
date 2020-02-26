@@ -67,7 +67,7 @@ def default(d_fname, s_fname, f_fname, env_atts=[], alpha=0.05, feateng_type=[],
 
     with open(rawres_fname, mode='w+') as rawres:
         #Now start the loop
-        for i, subset in enumerate(tqdm(powerset(d_atts), desc='pcp_sets',
+        for i, subset in enumerate(tqdm(powerset(d_atts)[:100], desc='pcp_sets',
                            total=len(list(powerset(d_atts))))):  #powerset of PCPs
 
             #Setup raw result logging
@@ -108,7 +108,7 @@ def default(d_fname, s_fname, f_fname, env_atts=[], alpha=0.05, feateng_type=[],
                     e_in = ((data[live_envs] == 1).all(1) & (data[dummy_envs] == 0).all(1))
 
                 if e_in.isin([True]).all() or e_in.isin([False]).all():  #No data from environment
-                    full_res[str(subset)][str(env)] = 'NA'
+                    full_res[str(subset)][str(env)] = 'EnvNA'
                     continue
                 e_out = ~e_in
 
@@ -119,6 +119,7 @@ def default(d_fname, s_fname, f_fname, env_atts=[], alpha=0.05, feateng_type=[],
 
                 #Check for NaNs
                 if (mean_var_test(res_in, res_out) is np.nan) or (mean_var_test(res_in, res_out) != mean_var_test(res_in, res_out)):
+                    full_res[str(subset)][str(env)] = 'NaN'
                     continue
                     # print(env)
                     # pickle.dump(res_in, open('res_in.txt', 'wb'))

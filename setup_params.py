@@ -46,7 +46,7 @@ if __name__ == '__main__':
     parser.add_argument("env_list", nargs='+', \
                         help="All the environment variables to split on")
 
-    parser.add_argument("--envcombos", action='store_true')
+    parser.add_argument("-envcombos", type=str, required=True)
     parser.add_argument("--testing", action='store_true')
 
     args = parser.parse_args()
@@ -60,11 +60,12 @@ if __name__ == '__main__':
         print("env_list:", args.env_list)
         print("envcombo?:", args.envcombos)
         print("testing?:", args.testing)
+        quit()
 
-    if args.envcombos:
+    if args.envcombos == 'all_combos':
         allenvs = utils.powerset(args.env_list)
-    else:
-        allenvs = [args.env_list]
+    elif args.envcombos == 'single':
+        allenvs = [[a] for a in args.env_list]
 
     with open(os.path.join(args.expdir, args.cmdfile), 'w+') as f:
         for e in allenvs:
