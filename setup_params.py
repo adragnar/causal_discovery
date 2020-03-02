@@ -1,4 +1,4 @@
-'''Given a set of parameters (python func args), generates cmdfile with 
+'''Given a set of parameters (python func args), generates cmdfile with
 commands with all combinations of argument inputs '''
 
 import argparse
@@ -8,10 +8,10 @@ import utils
 
 def list_2_string(elems, bchar):
     '''
-    
-    :param elems: all elems want to line up 
+
+    :param elems: all elems want to line up
     :param bchar: buffer character
-    :return: 
+    :return:
     '''
     uid=''
     for i, e in enumerate(elems):
@@ -96,10 +96,10 @@ if __name__ == '__main__':
                 alpha=args.alpha,
                 feat_eng=args.feat_eng,
                 data=args.datafname,
-                subsets_fname=subsets_fname,
-                features_fname=features_fname,
-                rawres_fname=rawres_fname,
-                log_fname=log_fname,
+                subsets_fname=os.path.join(args.expdir, subsets_fname),
+                features_fname=os.path.join(args.expdir, features_fname),
+                rawres_fname=os.path.join(args.expdir, rawres_fname),
+                log_fname=os.path.join(args.expdir, log_fname),
                 spacing=(' ' * threshold(len(list_2_string(e, ' ')))),
                 env_list=list_2_string(e, ' ')
             )
