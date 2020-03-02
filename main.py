@@ -33,14 +33,14 @@ def mean_var_test(x, y):
 def default(d_fname, s_fname, f_fname, env_atts=[], alpha=0.05, feateng_type=[], \
             logger_fname='rando.txt', rawres_fname='rando2.txt', testing=False):
     '''
-    
-    :param d_fname: 
-    :param s_fname: 
-    :param f_fname: 
-    :param env_atts: 
-    :param alpha: 
-    :param feateng_type: The particular preprocess methodology 
-    :param logger: filepath to log file 
+
+    :param d_fname:
+    :param s_fname:
+    :param f_fname:
+    :param env_atts:
+    :param alpha:
+    :param feateng_type: The particular preprocess methodology
+    :param logger: filepath to log file
     '''
     #Meta-function Accounting
     logging.basicConfig(filename=logger_fname, level=logging.DEBUG)
@@ -106,11 +106,11 @@ def default(d_fname, s_fname, f_fname, env_atts=[], alpha=0.05, feateng_type=[],
                     e_in = ((data[dummy_envs] == 0)).all(1)
                 else:
                     e_in = ((data[live_envs] == 1).all(1) & (data[dummy_envs] == 0).all(1))
-
-                if e_in.isin([True]).all() or e_in.isin([False]).all():  #No data from environment
+                e_out = ~e_in
+                
+                if (e_in.sum() < 10) or (e_out.sum() < 10) :  #No data from environment
                     full_res[str(subset)][str(env)] = 'EnvNA'
                     continue
-                e_out = ~e_in
 
                 res_in = (
                 y_all.loc[e_in].values - reg.predict(x_s.loc[e_in].values)).ravel()
@@ -203,7 +203,7 @@ if __name__ == '__main__':
         print("log:", args.log_fname)
         print("env_list:", args.env_atts)
         print("testing?:", args.testing)
-        quit()
+        #quit()
 
     default(args.data_fname, args.subsets_fname, args.features_fname,  \
             args.env_atts, alpha=args.alpha, feateng_type=[int(c) for c in args.feat_eng], \
