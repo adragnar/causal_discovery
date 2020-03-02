@@ -31,16 +31,16 @@ def mean_var_test(x, y):
     return 2 * min(pvalue_mean, pvalue_var2)
 #########################################
 def default(d_fname, s_fname, f_fname, env_atts=[], alpha=0.05, feateng_type=[], \
-            logger_fname='rando.txt', rawres_fname='rando2.txt', testing=False):
+            logger_fname='rando.txt', e_stop=True, rawres_fname='rando2.txt', testing=False):
     '''
-    
-    :param d_fname: 
-    :param s_fname: 
-    :param f_fname: 
-    :param env_atts: 
-    :param alpha: 
-    :param feateng_type: The particular preprocess methodology 
-    :param logger: filepath to log file 
+
+    :param d_fname:
+    :param s_fname:
+    :param f_fname:
+    :param env_atts:
+    :param alpha:
+    :param feateng_type: The particular preprocess methodology
+    :param logger: filepath to log file
     '''
     #Meta-function Accounting
     logging.basicConfig(filename=logger_fname, level=logging.DEBUG)
@@ -78,7 +78,7 @@ def default(d_fname, s_fname, f_fname, env_atts=[], alpha=0.05, feateng_type=[],
                 continue
 
             #Check if 2 ME subsets have been accepted
-            if (len(accepted_subsets) > 0) and \
+            if e_stop and (len(accepted_subsets) > 0) and \
                     (set.intersection(*accepted_subsets) == set()):
                 logging.info('Null Hyp accepted from MECE subsets')
                 break
@@ -190,6 +190,7 @@ if __name__ == '__main__':
                         help="filename saving log")
     parser.add_argument('env_atts', nargs='+',  \
                         help='atts categorical defining envs')
+    parser.add_argument("-early_stopping", type=int, required=True)
     parser.add_argument("--testing", action='store_true')
     args = parser.parse_args()
 
@@ -202,12 +203,14 @@ if __name__ == '__main__':
         print("rawres:", args.rawres_fname)
         print("log:", args.log_fname)
         print("env_list:", args.env_atts)
+        print("early_stopping?:", args.early_stopping)
         print("testing?:", args.testing)
         quit()
 
     default(args.data_fname, args.subsets_fname, args.features_fname,  \
             args.env_atts, alpha=args.alpha, feateng_type=[int(c) for c in args.feat_eng], \
-            logger_fname=args.log_fname, rawres_fname=args.rawres_fname, testing=args.testing)
+            logger_fname=args.log_fname, rawres_fname=args.rawres_fname, \
+            e_stop=bool(args.early_stopping), testing=args.testing)
 
 
 

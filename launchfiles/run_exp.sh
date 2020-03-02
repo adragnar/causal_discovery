@@ -11,6 +11,7 @@ max_proc=32
 #Set Experiment Type
 dtype="german"  #adult, german
 exptype="single"  #all_combos, single
+early_stopping=0
 
 #Experiment Hyperparameters
 if [ $dtype == "adult" ]
@@ -34,7 +35,7 @@ for a in ${alphas[*]}
 do
     for f_eng in ${ft_combos[*]}
     do
-        python setup_params.py $a $f_eng $data $expdir $cmdfile ${env_vars[@]} -envcombos $exptype
+        python setup_params.py $a $f_eng $data $expdir $cmdfile ${env_vars[@]} -envcombos $exptype -early_stopping $early_stopping
     done
 done
 
