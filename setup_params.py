@@ -47,6 +47,7 @@ if __name__ == '__main__':
                         help="All the environment variables to split on")
 
     parser.add_argument("-envcombos", type=str, required=True)
+    parser.add_argument("-early_stopping", type=int, required=True)
     parser.add_argument("--testing", action='store_true')
 
     args = parser.parse_args()
@@ -60,6 +61,7 @@ if __name__ == '__main__':
         print("env_list:", args.env_list)
         print("envcombo?:", args.envcombos)
         print("testing?:", args.testing)
+        print("early_stopping?:", args.early_stopping)
         quit()
 
     if args.envcombos == 'all_combos':
@@ -81,7 +83,6 @@ if __name__ == '__main__':
             rawres_fname = 'rawres_{}.json'.format(uniqueid)
             log_fname = 'log_{}.txt'.format(uniqueid)
 
-
             if args.testing:
                 print(uniqueid)
                 print(((args.datafname).split('/')[-1]))
@@ -91,7 +92,7 @@ if __name__ == '__main__':
             spacing = len(list_2_string(e, ' '))
 
             command_str = \
-                '''python main.py {alpha} {feat_eng} {data} {subsets_fname} {features_fname} {rawres_fname} {log_fname}{spacing}{env_list}\n'''
+                '''python main.py {alpha} {feat_eng} {data} {subsets_fname} {features_fname} {rawres_fname} {log_fname}{e_spacing}{env_list} -early_stopping {e_stop}\n'''
             command_str = command_str.format(
                 alpha=args.alpha,
                 feat_eng=args.feat_eng,
@@ -100,8 +101,9 @@ if __name__ == '__main__':
                 features_fname=os.path.join(args.expdir, features_fname),
                 rawres_fname=os.path.join(args.expdir, rawres_fname),
                 log_fname=os.path.join(args.expdir, log_fname),
-                spacing=(' ' * threshold(len(list_2_string(e, ' ')))),
-                env_list=list_2_string(e, ' ')
+                e_spacing=(' ' * threshold(len(list_2_string(e, ' ')))),
+                env_list=list_2_string(e, ' '),
+                e_stop=args.early_stopping
             )
 
 
