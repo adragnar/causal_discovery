@@ -11,24 +11,42 @@ max_proc=32
 #Set Experiment Type
 dtype="german"  #adult, german
 exptype="single"  #all_combos, single
-early_stopping=0
+early_stopping=1
 binarize=1
 
 #Experiment Hyperparameters
 if [ $dtype == "adult" ]
 then
     data="~/causal_discovery/data/adult.csv"
-    alphas=(0.01 0.000001)
-    ft_combos=('1' '2' '12')
-    env_vars=("workclass" "native-country" "occupation" "marital-status" "education" "relationship")
+    alphas=(0.0001 0.000001 0.00000001)
+    ft_combos=('12')
+
+    #Only some environments binarized
+    if [ $binarize == 0 ]
+    then
+        env_vars=("workclass" "native-country" "occupation" "marital-status" "education" "relationship")
+    fi
+    if [ $binarize == 1 ]
+    then
+        env_vars=("workclass" "native-country" "marital-status")
+    fi
 fi
 
 if [ $dtype == "german" ]
 then
     data="~/causal_discovery/data/germanCredit.csv"
-    alphas=(0.1 0.01 0.000001)
-    ft_combos=('1' '2' '12')
-    env_vars=('Purpose' 'Savings' 'Personal' 'OtherDebtors' 'Property' 'OtherInstallmentPlans' 'Housing' 'Foreign')
+    alphas=(1 0.1)
+    ft_combos=('12')
+
+    #Only some environments binarized
+    if [ $binarize == 0 ]
+    then
+        env_vars=('Purpose' 'Savings' 'Personal' 'OtherDebtors' 'Property' 'OtherInstallmentPlans' 'Housing' 'Telephone' 'Foreign')
+    fi
+    if [ $binarize == 1 ]
+    then
+        env_vars=('Purpose' 'Telephone' 'Foreign')
+    fi
 fi
 
 #Generate the commandfile
