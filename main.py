@@ -31,7 +31,8 @@ def mean_var_test(x, y):
     return 2 * min(pvalue_mean, pvalue_var2)
 #########################################
 def default(d_fname, s_fname, f_fname, env_atts=[], alpha=0.05, feateng_type=[], \
-            logger_fname='rando.txt', rawres_fname='rando2.txt', testing=False):
+            logger_fname='rando.txt', rawres_fname='rando2.txt', \
+            d_size=-1, testing=False):
     '''
 
     :param d_fname:
@@ -49,7 +50,7 @@ def default(d_fname, s_fname, f_fname, env_atts=[], alpha=0.05, feateng_type=[],
     accepted_subsets = []
     #Select correct dataset
     if 'adult' in d_fname:
-        data, y_all, d_atts = dp.adult_dataset_processing(d_fname, feateng_type)
+        data, y_all, d_atts = dp.adult_dataset_processing(d_fname, feateng_type, reduce_dsize=d_size)
         logging.info('Adult Dataset loaded - size ' + str(data.shape))
     elif 'german' in d_fname:
         data, y_all, d_atts = dp.german_credit_dataset_processing(d_fname, feateng_type)
@@ -107,7 +108,7 @@ def default(d_fname, s_fname, f_fname, env_atts=[], alpha=0.05, feateng_type=[],
                 else:
                     e_in = ((data[live_envs] == 1).all(1) & (data[dummy_envs] == 0).all(1))
                 e_out = ~e_in
-                
+
                 if (e_in.sum() < 10) or (e_out.sum() < 10) :  #No data from environment
                     full_res[str(subset)][str(env)] = 'EnvNA'
                     continue
@@ -190,6 +191,7 @@ if __name__ == '__main__':
                         help="filename saving log")
     parser.add_argument('env_atts', nargs='+',  \
                         help='atts categorical defining envs')
+    parser.add_argument("-reduce_dsize", type=int, default=-1)
     parser.add_argument("--testing", action='store_true')
     args = parser.parse_args()
 
@@ -202,12 +204,14 @@ if __name__ == '__main__':
         print("rawres:", args.rawres_fname)
         print("log:", args.log_fname)
         print("env_list:", args.env_atts)
+        print("d_size:", args.reduce_dsize)
         print("testing?:", args.testing)
         #quit()
 
     default(args.data_fname, args.subsets_fname, args.features_fname,  \
             args.env_atts, alpha=args.alpha, feateng_type=[int(c) for c in args.feat_eng], \
-            logger_fname=args.log_fname, rawres_fname=args.rawres_fname, testing=args.testing)
+            logger_fname=args.log_fname, rawres_fname=args.rawres_fname, \
+            d_size=args.reduce_dsize, testing=args.testing)
 
 
 

@@ -9,15 +9,16 @@ cmdfile="$expdir/cmdfile.sh"
 max_proc=32
 
 #Set Experiment Type
-dtype="german"  #adult, german
+dtype="adult"  #adult, german
 exptype="single"  #all_combos, single
+reduce_dsize=1000 #Size of dataset subset to test. -1 if nullified
 
 #Experiment Hyperparameters
 if [ $dtype == "adult" ]
 then
     data="~/causal_discovery/data/adult.csv"
     alphas=(0.01 0.000001)
-    ft_combos=('1' '2' '12')
+    ft_combos=('12')
     env_vars=("workclass" "native-country" "occupation" "marital-status" "education" "relationship")
 fi
 
@@ -34,7 +35,7 @@ for a in ${alphas[*]}
 do
     for f_eng in ${ft_combos[*]}
     do
-        python setup_params.py $a $f_eng $data $expdir $cmdfile ${env_vars[@]} -envcombos $exptype
+        python setup_params.py $a $f_eng $data $expdir $cmdfile ${env_vars[@]} -envcombos $exptype -reduce_dsize $reduce_dsize
     done
 done
 

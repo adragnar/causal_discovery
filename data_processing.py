@@ -16,13 +16,13 @@ from sklearn.model_selection import train_test_split
 
 def data_conversion(data, categorical_feats, continous_feats, predictor, fteng):
     '''
-    
-    :param data: Dataframe of cleaned data - feats & labels 
+
+    :param data: Dataframe of cleaned data - feats & labels
     :param categorical_feats: categorical feats (all including labels)
     :param continous_feats: (all including labels)
-    :param predictor_feats: (str) single label. Assume is Categorical, Binary   
+    :param predictor_feats: (str) single label. Assume is Categorical, Binary
     :param fteng: ids of feature manipulations wanted
-    :return: 
+    :return:
     '''
 
     labels = data.pop(predictor)
@@ -61,14 +61,16 @@ def data_conversion(data, categorical_feats, continous_feats, predictor, fteng):
     print(data.shape)
     return data, labels, all_cats
 
-def adult_dataset_processing(fname, fteng):
+def adult_dataset_processing(fname, fteng, reduce_dsize=-1):
     '''Process the adult dataset from csv. Return the dataframe, as well as a
         list of columns that must be treated as one block during the enumeration of plausible causal predictors
 
-        fteng: List of the feature engineering steps to do on data. 
+        fteng: List of the feature engineering steps to do on data.
         1) Introtuce products of cat + cont vars
-        2) Introduce square of cont vars 
+        2) Introduce square of cont vars
         3) Convert education to continous
+        reduce_dsize: The size of randomly sampled rows from dset to take. -1 if not applicable
+
         :return: cleaned dataframe with info
         '''
 
@@ -124,6 +126,11 @@ def adult_dataset_processing(fname, fteng):
         except:  # If the column is all numbers and str comparisons dont work
             pass
             ######
+
+    #Deal with the external forced dataset size reduction
+    if reduce_dsize != -1:
+        assert reduce_dsize > 0
+        data = data.sample(n=reduce_dsize)
 
     #NOTE - These lists aren't MECE
     cat_feats = ['workclass', 'education', 'marital-status', \
