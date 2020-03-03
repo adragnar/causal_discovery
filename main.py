@@ -55,7 +55,9 @@ def default(d_fname, s_fname, f_fname, env_atts=[], alpha=0.05, feateng_type=[],
                               testing=testing)
         logging.info('Adult Dataset loaded - size ' + str(data.shape))
     elif 'german' in d_fname:
-        data, y_all, d_atts = dp.german_credit_dataset_processing(d_fname, feateng_type)
+        data, y_all, d_atts = dp.german_credit_dataset_processing(d_fname, \
+                              feateng_type, estrat_red=args.binarize, \
+                              testing=testing)
         logging.info('German Dataset loaded - size ' + str(data.shape))
 
 

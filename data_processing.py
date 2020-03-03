@@ -143,14 +143,26 @@ def adult_dataset_processing(fname, fteng, estrat_red=False, testing=False):
     #     quit()
 
 
-def german_credit_dataset_processing(fname, fteng=[]):
+def german_credit_dataset_processing(fname, fteng=[], estrat_red=False, testing=False):
     data = pd.read_csv(fname)
-    data = data.drop('Telephone', axis=1)
+
+    #Get rid of unwanted stuff before making feat lists
+    data = data[data['Purpose'] != 10]
 
     # NOTE - These lists are MECE
-    cat_feats = ['Purpose', 'Savings', 'Personal', 'OtherDebtors', \
-                         'Property', 'OtherInstallmentPlans', 'Housing', \
-                         'Foreign']
+    cat_feats = {'Purpose':{'investment':[6, 8, 9], \
+                            'car':[0, 1], \
+                            'domestic_needs':[2, 3, 4, 5]}, \
+                 'Savings':{}, \
+                 'Personal':{}, \
+                 'OtherDebtors':{}, \
+                 'Property':{}, \
+                 'OtherInstallmentPlans':{}, \
+                 'Housing':{}, \
+                 'Telephone':{'none':[1], 'registered':[2]}, \
+                 'Foreign':{'yes':[1], 'no':[2]}
+                 }
+
     cont_feats = ['CreditAmount', 'InstallmentDisposable', 'PresRes', \
                        'NumExistCredits', 'CheqAccountStatus', 'Duration', 'CreditHistory', \
                      'PresentEmployment', 'Age', 'Job', 'Deps']
@@ -159,12 +171,21 @@ def german_credit_dataset_processing(fname, fteng=[]):
                 'CreditAmount', 'Savings', 'PresentEmployment', \
                 'InstallmentDisposable', 'Personal', 'OtherDebtors', 'PresRes', \
                 'Property', 'Age', 'OtherInstallmentPlans', 'Housing', \
-                'NumExistCredits', 'Job', 'Deps', 'Foreign']
+                'NumExistCredits', 'Job', 'Deps', 'Telephone', 'Foreign']
 
     # Note - for knowing which column is which, might be good to associate numbers with labels
     data.columns = in_order
 
-    return data_conversion(data, cat_feats, cont_feats, pred_feats, fteng=fteng)
+    #Custom binarize the stratification categories
+    if estrat_red:
+        for ft in cat_feats:
+            for agg_ft in cat_feats[ft]:
+                data[ft] = data[ft].apply(lambda val: agg_ft if val in cat_feats[ft][agg_ft] else val)
+        # if testing:
+        #     print(data['Purpose'].value_counts())
+        #     quit()
+
+    return data_conversion(data, list(cat_feats.keys()), cont_feats, pred_feats, fteng=fteng)
 
     #Custom binarize the stratification categories
 
