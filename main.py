@@ -31,7 +31,8 @@ def mean_var_test(x, y):
     return 2 * min(pvalue_mean, pvalue_var2)
 #########################################
 def default(d_fname, s_fname, f_fname, env_atts=[], alpha=0.05, feateng_type=[], \
-            logger_fname='rando.txt', e_stop=True, rawres_fname='rando2.txt', testing=False):
+            logger_fname='rando.txt', e_stop=True, rawres_fname='rando2.txt', \
+            bin_env=False, testing=False):
     '''
 
     :param d_fname:
@@ -49,7 +50,9 @@ def default(d_fname, s_fname, f_fname, env_atts=[], alpha=0.05, feateng_type=[],
     accepted_subsets = []
     #Select correct dataset
     if 'adult' in d_fname:
-        data, y_all, d_atts = dp.adult_dataset_processing(d_fname, feateng_type)
+        data, y_all, d_atts = dp.adult_dataset_processing(d_fname, \
+                              feateng_type, estrat_red=args.binarize, \
+                              testing=testing)
         logging.info('Adult Dataset loaded - size ' + str(data.shape))
     elif 'german' in d_fname:
         data, y_all, d_atts = dp.german_credit_dataset_processing(d_fname, feateng_type)
@@ -191,6 +194,7 @@ if __name__ == '__main__':
     parser.add_argument('env_atts', nargs='+',  \
                         help='atts categorical defining envs')
     parser.add_argument("-early_stopping", type=int, required=True)
+    parser.add_argument("-binarize", type=int, required=True)
     parser.add_argument("--testing", action='store_true')
     args = parser.parse_args()
 
@@ -204,13 +208,14 @@ if __name__ == '__main__':
         print("log:", args.log_fname)
         print("env_list:", args.env_atts)
         print("early_stopping?:", args.early_stopping)
+        print("binarize?:", args.binarize)
         print("testing?:", args.testing)
         #quit()
 
     default(args.data_fname, args.subsets_fname, args.features_fname,  \
             args.env_atts, alpha=args.alpha, feateng_type=[int(c) for c in args.feat_eng], \
             logger_fname=args.log_fname, rawres_fname=args.rawres_fname, \
-            e_stop=bool(args.early_stopping), testing=args.testing)
+            e_stop=bool(args.early_stopping), bin_env=bool(args.binarize), testing=args.testing)
 
 
 
