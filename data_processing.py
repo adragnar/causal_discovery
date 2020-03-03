@@ -1,4 +1,5 @@
 import argparse
+import pickle
 from time import time
 
 from itertools import combinations
@@ -16,13 +17,13 @@ from sklearn.model_selection import train_test_split
 
 def data_conversion(data, categorical_feats, continous_feats, predictor, fteng):
     '''
-    
-    :param data: Dataframe of cleaned data - feats & labels 
+
+    :param data: Dataframe of cleaned data - feats & labels
     :param categorical_feats: categorical feats (all including labels)
     :param continous_feats: (all including labels)
-    :param predictor_feats: (str) single label. Assume is Categorical, Binary   
+    :param predictor_feats: (str) single label. Assume is Categorical, Binary
     :param fteng: ids of feature manipulations wanted
-    :return: 
+    :return:
     '''
 
     labels = data.pop(predictor)
@@ -61,51 +62,21 @@ def data_conversion(data, categorical_feats, continous_feats, predictor, fteng):
     print(data.shape)
     return data, labels, all_cats
 
-def adult_dataset_processing(fname, fteng):
+def adult_dataset_processing(fname, fteng, estrat_red=False, testing=False):
     '''Process the adult dataset from csv. Return the dataframe, as well as a
         list of columns that must be treated as one block during the enumeration of plausible causal predictors
 
-        fteng: List of the feature engineering steps to do on data. 
+        fteng: List of the feature engineering steps to do on data.
         1) Introtuce products of cat + cont vars
-        2) Introduce square of cont vars 
+        2) Introduce square of cont vars
         3) Convert education to continous
         :return: cleaned dataframe with info
         '''
 
-    """ Adult income classification
-
-    In this lab we will build our own neural network pipeline to do classification on the adult income dataset. More
-    information on the dataset can be found here: http://www.cs.toronto.edu/~delve/data/adult/adultDetail.html
-
-    """
     seed = 0
-
-    # =================================== LOAD DATASET =========================================== #
-
-    ######
 
     # 2.1 YOUR CODE HERE
     data = pd.read_csv(fname)
-
-    ######
-
-    # =================================== DATA VISUALIZATION =========================================== #
-
-    # the dataset is imported as a DataFrame object, for more information refer to
-    # https://pandas.pydata.org/pandas-docs/stable/generated/pandas.DataFrame.html
-    # we can check the number of rows and columns in the dataset using the .shape field
-    # to get a taste of what our datset looks like, let's visualize the first 5 rows of the dataset using the .head() method
-    # the task will be to predict the "income" field (>50k or <50k) based on the other fields in the dataset
-    # check how balanced our dataset is using the .value_counts() method.
-
-
-
-    # =================================== DATA CLEANING =========================================== #
-
-    # datasets often come with missing or null values, this is an inherent limit of the data collecting process
-    # before we run any algorithm, we should clean the data of any missing values or unwanted outliers which could be
-    # detrimental to the performance or training of the algorithm. In this case, we are told that missing values are
-    # indicated with the symbol "?" in the dataset
 
     # let's first count how many missing entries there are for each feature
     col_names = data.columns
@@ -125,15 +96,51 @@ def adult_dataset_processing(fname, fteng):
             pass
             ######
 
+    #Get rid of unwanted columns before making feat lists
+    data.drop('educational-num', axis=1, inplace=True)
+    data = data[data['native-country'] != 'South']
+
     #NOTE - These lists aren't MECE
-    cat_feats = ['workclass', 'education', 'marital-status', \
-                         'occupation', 'relationship', 'race', 'gender', \
-                         'native-country']
-    cont_feats = ['age', 'fnlwgt', 'educational-num', 'capital-gain', \
+    #cat_feat:{acceptable stratifications:orig_cols corresponding}
+    cat_feats = {'workclass':{'selfWork':['Private', 'Self-emp-not-inc', 'Self-emp-inc'], \
+                              'govWork':['Federal-gov', ' Local-gov', 'State-gov'], \
+                              'noWork':['Without-pay', 'Never-worked']}, \
+                 'education':{}, \
+                 'marital-status':{'married':['Married-civ-spouse', 'Married-spouse-absent', 'Married-AF-spouse', 'Widowed'],\
+                                   'divorced':['Divorced', 'Separated'], \
+                                   'neither':['Never-married']}, \
+                 'occupation':{}, \
+                 'relationship':{}, \
+                 'race':{}, \
+                 'gender':{}, \
+                 'native-country':{'highHDI':['United-States', 'England', 'Canada', 'Germany', 'Japan', 'Greece', \
+                                              'Italy', 'Poland', 'Portugal', 'Ireland', 'France', 'Hungary', 'Scotland', 'Hong', 'Holand-Netherlands'], \
+                                   'midHDI':['Puerto-Rico', 'Outlying-US(Guam-USVI-etc)', 'Cuba', 'Iran', 'Jamaica', \
+                                             'Mexico', 'Dominican-Republic', 'Ecuador', 'Taiwan', 'Columbia', 'Thailand', 'Yugoslavia', \
+                                             'Trinadad&Tobago', 'Peru'], \
+                                   'lowHDI':['Cambodia', 'India', 'China', 'Honduras', 'Philippines', 'Vietnam', 'Laos', 'Haiti', \
+                                             'Guatemala', 'Nicaragua', 'El-Salvador']}
+                 }
+    cont_feats = ['age', 'fnlwgt', 'capital-gain', \
                        'capital-loss', 'hours-per-week']
     pred_feats = 'income'
 
-    return data_conversion(data, cat_feats, cont_feats, pred_feats, fteng)
+    #Custom binarize the stratification categories
+    if estrat_red:
+        for ft in cat_feats:
+            for agg_ft in cat_feats[ft]:
+                data[ft] = data[ft].apply(lambda val: agg_ft if val in cat_feats[ft][agg_ft] else val)
+
+    return data_conversion(data, list(cat_feats.keys()), cont_feats, pred_feats, fteng)
+
+    #Custom binarize the stratification categories
+    # if testing:
+    #     print(type(data_fteng))
+    #     print(data_fteng.columns.values)
+    #     with open('adult_testy.txt', 'w') as f:
+    #         for item in data_fteng.columns.values:
+    #             f.write(item+"\n")
+    #     quit()
 
 
 def german_credit_dataset_processing(fname, fteng=[]):
@@ -158,6 +165,11 @@ def german_credit_dataset_processing(fname, fteng=[]):
     data.columns = in_order
 
     return data_conversion(data, cat_feats, cont_feats, pred_feats, fteng=fteng)
+
+    #Custom binarize the stratification categories
+
+
+
 
 if __name__ == '__main__':
     a,b = german_credit_dataset_processing('data/german_credit.csv', [1,2])
