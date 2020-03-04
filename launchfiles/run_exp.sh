@@ -6,10 +6,10 @@ mkdir -p $expdir
 cmdfile="$expdir/cmdfile.sh"
 
 #Set cluster parameters
-max_proc=32
+max_proc=40
 
 #Set Experiment Type
-dtype="german"  #adult, german
+dtype="adult"  #adult, german
 exptype="single"  #all_combos, single
 early_stopping=1
 binarize=1
@@ -18,7 +18,7 @@ binarize=1
 if [ $dtype == "adult" ]
 then
     data="~/causal_discovery/data/adult.csv"
-    alphas=(0.0001 0.000001 0.00000001)
+    alphas=(0.000000001 0.0000000001 0.00000000001 0.000000000001 0.0000000000001 0.00000000000001 0.000000000000001)
     ft_combos=('12')
 
     #Only some environments binarized
@@ -35,7 +35,7 @@ fi
 if [ $dtype == "german" ]
 then
     data="~/causal_discovery/data/germanCredit.csv"
-    alphas=(1 0.1)
+    alphas=(1.5 2 2.5 3 3.5 4)
     ft_combos=('12')
 
     #Only some environments binarized

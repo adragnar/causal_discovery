@@ -111,11 +111,11 @@ def default(d_fname, s_fname, f_fname, env_atts=[], alpha=0.05, feateng_type=[],
                     e_in = ((data[dummy_envs] == 0)).all(1)
                 else:
                     e_in = ((data[live_envs] == 1).all(1) & (data[dummy_envs] == 0).all(1))
+                e_out = ~e_in
 
                 if (e_in.sum() < 10) or (e_out.sum() < 10) :  #No data from environment
                     full_res[str(subset)][str(env)] = 'EnvNA'
                     continue
-                e_out = ~e_in
 
                 res_in = (
                 y_all.loc[e_in].values - reg.predict(x_s.loc[e_in].values)).ravel()
