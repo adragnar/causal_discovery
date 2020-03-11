@@ -47,7 +47,11 @@ if __name__ == '__main__':
                         help="All the environment variables to split on")
 
     parser.add_argument("-envcombos", type=str, required=True)
+<<<<<<< HEAD
     parser.add_argument("-early_stopping", type=int, required=True)
+=======
+    parser.add_argument("-reduce_dsize", type=int, required=True)
+>>>>>>> reduce_sample_size
     parser.add_argument("--testing", action='store_true')
 
     args = parser.parse_args()
@@ -60,6 +64,7 @@ if __name__ == '__main__':
         print("cmdfile:", args.cmdfile)
         print("env_list:", args.env_list)
         print("envcombo?:", args.envcombos)
+        print("d_size:", args.reduce_dsize)
         print("testing?:", args.testing)
         print("early_stopping?:", args.early_stopping)
         quit()
@@ -92,7 +97,11 @@ if __name__ == '__main__':
             spacing = len(list_2_string(e, ' '))
 
             command_str = \
+<<<<<<< HEAD
                 '''python main.py {alpha} {feat_eng} {data} {subsets_fname} {features_fname} {rawres_fname} {log_fname}{e_spacing}{env_list} -early_stopping {e_stop}\n'''
+=======
+                '''python main.py {alpha} {feat_eng} {data} {subsets_fname} {features_fname} {rawres_fname} {log_fname}{spacing}{env_list} -reduce_dsize {d_size}\n'''
+>>>>>>> reduce_sample_size
             command_str = command_str.format(
                 alpha=args.alpha,
                 feat_eng=args.feat_eng,
@@ -101,9 +110,15 @@ if __name__ == '__main__':
                 features_fname=os.path.join(args.expdir, features_fname),
                 rawres_fname=os.path.join(args.expdir, rawres_fname),
                 log_fname=os.path.join(args.expdir, log_fname),
+<<<<<<< HEAD
                 e_spacing=(' ' * threshold(len(list_2_string(e, ' ')))),
                 env_list=list_2_string(e, ' '),
                 e_stop=args.early_stopping
+=======
+                spacing=(' ' * threshold(len(list_2_string(e, ' ')))),
+                env_list=list_2_string(e, ' '),
+                d_size=args.reduce_dsize
+>>>>>>> reduce_sample_size
             )
 
 
