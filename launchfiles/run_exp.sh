@@ -6,29 +6,50 @@ mkdir -p $expdir
 cmdfile="$expdir/cmdfile.sh"
 
 #Set cluster parameters
-max_proc=32
+max_proc=40
 
 #Set Experiment Type
 dtype="adult"  #adult, german
 exptype="single"  #all_combos, single
+
 early_stopping=0
 reduce_dsize=-1
+binarize=1
+
 
 #Experiment Hyperparameters
 if [ $dtype == "adult" ]
 then
     data="~/causal_discovery/data/adult.csv"
-    alphas=(0.01 0.000001)
+    alphas=(0.000000001 0.0000000001 0.00000000001 0.000000000001 0.0000000000001 0.00000000000001 0.000000000000001)
     ft_combos=('12')
-    env_vars=("workclass" "native-country" "occupation" "marital-status" "education" "relationship")
+
+    #Only some environments binarized
+    if [ $binarize == 0 ]
+    then
+        env_vars=("workclass" "native-country" "occupation" "marital-status" "education" "relationship")
+    fi
+    if [ $binarize == 1 ]
+    then
+        env_vars=("workclass" "native-country" "marital-status")
+    fi
 fi
 
 if [ $dtype == "german" ]
 then
     data="~/causal_discovery/data/germanCredit.csv"
-    alphas=(0.1 0.01 0.000001)
-    ft_combos=('1' '2' '12')
-    env_vars=('Purpose' 'Savings' 'Personal' 'OtherDebtors' 'Property' 'OtherInstallmentPlans' 'Housing' 'Foreign')
+    alphas=(1.5 2 2.5 3 3.5 4)
+    ft_combos=('12')
+
+    #Only some environments binarized
+    if [ $binarize == 0 ]
+    then
+        env_vars=('Purpose' 'Savings' 'Personal' 'OtherDebtors' 'Property' 'OtherInstallmentPlans' 'Housing' 'Telephone' 'Foreign')
+    fi
+    if [ $binarize == 1 ]
+    then
+        env_vars=('Purpose' 'Telephone' 'Foreign')
+    fi
 fi
 
 #Generate the commandfile
@@ -36,7 +57,7 @@ for a in ${alphas[*]}
 do
     for f_eng in ${ft_combos[*]}
     do
-        python setup_params.py $a $f_eng $data $expdir $cmdfile ${env_vars[@]} -envcombos $exptype -early_stopping $early_stopping -reduce_dsize $reduce_dsize
+        python setup_params.py $a $f_eng $data $expdir $cmdfile ${env_vars[@]} -envcombos $exptype -early_stopping $early_stopping -reduce_dsize $reduce_dsize -binarize $binarize
     done
 done
 
