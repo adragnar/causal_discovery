@@ -11,11 +11,8 @@ max_proc=32
 #Set Experiment Type
 dtype="adult"  #adult, german
 exptype="single"  #all_combos, single
-<<<<<<< HEAD
 early_stopping=0
-=======
-reduce_dsize=1000 #Size of dataset subset to test. -1 if nullified
->>>>>>> reduce_sample_size
+reduce_dsize=-1
 
 #Experiment Hyperparameters
 if [ $dtype == "adult" ]
@@ -39,11 +36,7 @@ for a in ${alphas[*]}
 do
     for f_eng in ${ft_combos[*]}
     do
-<<<<<<< HEAD
-        python setup_params.py $a $f_eng $data $expdir $cmdfile ${env_vars[@]} -envcombos $exptype -early_stopping $early_stopping
-=======
-        python setup_params.py $a $f_eng $data $expdir $cmdfile ${env_vars[@]} -envcombos $exptype -reduce_dsize $reduce_dsize
->>>>>>> reduce_sample_size
+        python setup_params.py $a $f_eng $data $expdir $cmdfile ${env_vars[@]} -envcombos $exptype -early_stopping $early_stopping -reduce_dsize $reduce_dsize
     done
 done
 
