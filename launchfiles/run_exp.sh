@@ -15,6 +15,7 @@ exptype="single"  #all_combos, single
 early_stopping=0
 reduce_dsize=-1
 binarize=1
+takeout_envs=1
 
 
 #Experiment Hyperparameters
@@ -57,7 +58,7 @@ for a in ${alphas[*]}
 do
     for f_eng in ${ft_combos[*]}
     do
-        python setup_params.py $a $f_eng $data $expdir $cmdfile ${env_vars[@]} -envcombos $exptype -early_stopping $early_stopping -reduce_dsize $reduce_dsize -binarize $binarize
+        python setup_params.py $a $f_eng $data $expdir $cmdfile ${env_vars[@]} -envcombos $exptype -early_stopping $early_stopping -reduce_dsize $reduce_dsize -binarize $binarize -takeout_envs $takeout_envs
     done
 done
 

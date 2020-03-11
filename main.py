@@ -30,9 +30,9 @@ def mean_var_test(x, y):
 
     return 2 * min(pvalue_mean, pvalue_var2)
 #########################################
-def default(d_fname, s_fname, f_fname, env_atts=[], alpha=0.05, feateng_type=[], \
+def default(d_fname, s_fname, f_fname, env_atts_types, alpha=0.05, feateng_type=[], \
             logger_fname='rando.txt', e_stop=True, rawres_fname='rando2.txt', \
-            d_size=-1, bin_env=False, testing=False):
+            d_size=-1, bin_env=False, takeout_envs=False, testing=False):
 
     '''
 
@@ -63,7 +63,13 @@ def default(d_fname, s_fname, f_fname, env_atts=[], alpha=0.05, feateng_type=[],
         logging.info('German Dataset loaded - size ' + str(data.shape))
 
 
-    env_atts = [d_atts[cat] for cat in env_atts]  #Note - assuming only split on categorical vars
+    env_atts = [d_atts[cat] for cat in env_atts_types]  #Note - assuming only split on categorical vars
+    #Set whether we iterate through env_atts as PCPs
+    if takeout_envs:
+        allowed_datts = {cat:d_atts[cat] for cat in d_atts.keys() if cat not in env_atts_types}
+    else:
+        allowed_datts = d_atts
+
     logging.info('{} environment attributes'.format(len(env_atts)))
     logging.debug('Environment attributes are ' + str(env_atts))
     #coefficients = torch.zeros(data.shape[1])  #regression vector confidence intervals
@@ -74,8 +80,8 @@ def default(d_fname, s_fname, f_fname, env_atts=[], alpha=0.05, feateng_type=[],
 
     with open(rawres_fname, mode='w+') as rawres:
         #Now start the loop
-        for i, subset in enumerate(tqdm(powerset(d_atts), desc='pcp_sets',
-                           total=len(list(powerset(d_atts))))):  #powerset of PCPs
+        for i, subset in enumerate(tqdm(powerset(allowed_datts), desc='pcp_sets',
+                           total=len(list(powerset(allowed_datts))))):  #powerset of PCPs
 
             #Setup raw result logging
             full_res[str(subset)] = {}
@@ -91,7 +97,7 @@ def default(d_fname, s_fname, f_fname, env_atts=[], alpha=0.05, feateng_type=[],
                 break
 
             #Linear regression on all data
-            regressors = [d_atts[cat] for cat in subset]
+            regressors = [allowed_datts[cat] for cat in subset]
             regressors = [item for sublist in regressors for item in sublist if '_DUMmY' not in item]
             x_s = data[list(itertools.chain(regressors))]
             reg = LinearRegression(fit_intercept=False).fit(x_s.values, y_all.values)
@@ -120,7 +126,9 @@ def default(d_fname, s_fname, f_fname, env_atts=[], alpha=0.05, feateng_type=[],
                     continue
 
                 res_in = (
-                y_all.loc[e_in].values - reg.predict(x_s.loc[e_in].values)).ravel()
+                y_all.loc[e_in].values - reg.predict(\
+                          x_s.loc[e_in].values)).ravel()
+
                 res_out = (y_all.loc[e_out].values - reg.predict(
                     x_s.loc[e_out].values)).ravel()
 
@@ -201,6 +209,7 @@ if __name__ == '__main__':
     parser.add_argument("-early_stopping", type=int, required=True)
     parser.add_argument("-reduce_dsize", type=int, default=-1)
     parser.add_argument("-binarize", type=int, required=True)
+    parser.add_argument("-takeout_envs", type=int, required=True)
     parser.add_argument("--testing", action='store_true')
     args = parser.parse_args()
 
@@ -223,7 +232,8 @@ if __name__ == '__main__':
             args.env_atts, alpha=args.alpha, feateng_type=[int(c) for c in args.feat_eng], \
             logger_fname=args.log_fname, rawres_fname=args.rawres_fname, \
             e_stop=bool(args.early_stopping), d_size=args.reduce_dsize, \
-            bin_env=bool(args.binarize), testing=args.testing)
+            bin_env=bool(args.binarize), takeout_envs=args.takeout_envs, \
+            testing=args.testing)
 
 
 
