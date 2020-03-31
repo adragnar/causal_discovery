@@ -32,7 +32,8 @@ def mean_var_test(x, y):
 #########################################
 def default(d_fname, s_fname, f_fname, env_atts_types, alpha=0.05, feateng_type=[], \
             logger_fname='rando.txt', e_stop=True, rawres_fname='rando2.txt', \
-            d_size=-1, bin_env=False, takeout_envs=False, testing=False):
+            d_size=-1, bin_env=False, takeout_envs=False, eq_estrat=-1,
+            testing=False):
 
     '''
 
@@ -70,16 +71,61 @@ def default(d_fname, s_fname, f_fname, env_atts_types, alpha=0.05, feateng_type=
     else:
         allowed_datts = d_atts
 
+    #Clean data to make sure no cases where some environments are too low
+
+
     logging.info('{} environment attributes'.format(len(env_atts)))
     logging.debug('Environment attributes are ' + str(env_atts))
     #coefficients = torch.zeros(data.shape[1])  #regression vector confidence intervals
     max_pval = 0
-
     # Setup rawres
     full_res = {}
 
+
+    #First, figure out the available individuals in each environment strat
+    #Compute & store the e_in for each environment
+    e_ins_store = {}
+    for env in itertools.product(*env_atts):
+        dummy_envs = []
+        live_envs = []
+        for att in env:
+            if '_DUMmY' in att:
+                dummy_envs = [d for d in d_atts[att.split('_')[0]] if d != att]
+            else:
+                live_envs.append(att)
+
+        #Compute e_in without error
+        if not dummy_envs:
+            e_in = ((data[live_envs] == 1)).all(1)
+        elif not live_envs:
+            e_in = ((data[dummy_envs] == 0)).all(1)
+        else:
+            e_in = ((data[live_envs] == 1).all(1) & (data[dummy_envs] == 0).all(1))
+        e_ins_store[str(env)] = e_in
+
+    #Normalize operation on e_ins
+    if eq_estrat != -1:
+        assert eq_estrat > 0
+        sizes = []
+        for env in e_ins_store:
+            sizes.append(e_ins_store[env].sum())
+
+        if (min(sizes) < eq_estrat) or \
+               (max(sizes) > (data.shape[0] - eq_estrat)) : #Check if normalization broken
+            logging.error('Environment Stratification Below Threshold')
+            for env, e_in in e_ins_store:
+                logging.error('{} : {}'.format(env, e_ins_store[env].sum()))
+            assert True == False
+
+        for env in e_ins_store: #Now normalize with min samples
+            raw = e_ins_store[env].to_frame(name='vals')
+            chosen_cols = raw[raw['vals'] == True].sample(min(sizes))
+            raw.loc[:,:] = False
+            raw.update(chosen_cols)
+            e_ins_store[env] = raw.squeeze()
+
+    #Now start enumerating PCPs
     with open(rawres_fname, mode='w+') as rawres:
-        #Now start the loop
         for i, subset in enumerate(tqdm(powerset(allowed_datts), desc='pcp_sets',
                            total=len(list(powerset(allowed_datts))))):  #powerset of PCPs
 
@@ -102,24 +148,10 @@ def default(d_fname, s_fname, f_fname, env_atts_types, alpha=0.05, feateng_type=
             x_s = data[list(itertools.chain(regressors))]
             reg = LinearRegression(fit_intercept=False).fit(x_s.values, y_all.values)
 
-            #Find p_values for every environment
+            #Use the normalized e_ins to compute the residuals + Find p_values for every environment
             for env in itertools.product(*env_atts):
-                dummy_envs = []
-                live_envs = []
-                for att in env:
-                    if '_DUMmY' in att:
-                        dummy_envs = [d for d in d_atts[att.split('_')[0]] if d != att]
-                    else:
-                        live_envs.append(att)
-
-                #Compute e_in without error
-                if not dummy_envs:
-                    e_in = ((data[live_envs] == 1)).all(1)
-                elif not live_envs:
-                    e_in = ((data[dummy_envs] == 0)).all(1)
-                else:
-                    e_in = ((data[live_envs] == 1).all(1) & (data[dummy_envs] == 0).all(1))
-                e_out = ~e_in
+                e_in = e_ins_store[str(env)]
+                e_out = np.logical_not(e_in)
 
                 if (e_in.sum() < 10) or (e_out.sum() < 10) :  #No data from environment
                     full_res[str(subset)][str(env)] = 'EnvNA'
@@ -133,7 +165,8 @@ def default(d_fname, s_fname, f_fname, env_atts_types, alpha=0.05, feateng_type=
                     x_s.loc[e_out].values)).ravel()
 
                 #Check for NaNs
-                if (mean_var_test(res_in, res_out) is np.nan) or (mean_var_test(res_in, res_out) != mean_var_test(res_in, res_out)):
+                if (mean_var_test(res_in, res_out) is np.nan) or \
+                (mean_var_test(res_in, res_out) != mean_var_test(res_in, res_out)):
                     full_res[str(subset)][str(env)] = 'NaN'
                     continue
                     # print(env)
@@ -147,17 +180,9 @@ def default(d_fname, s_fname, f_fname, env_atts_types, alpha=0.05, feateng_type=
 
             # # TODO: Jonas uses "min(p_values) * len(environments) - 1"
             full_res[str(subset)]['Final_tstat'] = min([p for p in full_res[str(subset)].values() if type(p) != str]) * len(list(itertools.product(*env_atts)))
-
-
             if full_res[str(subset)]['Final_tstat'] > alpha:
                 accepted_subsets.append(set(subset))
                 logging.info('Subset Accepted')
-
-            ########DEBUG HACK
-            # if i == 100:
-            #     json.dump(full_res, open('testy.json', 'w'), indent=4, separators=(',',':'))
-            #     quit()
-            ################
 
 
         #STEP 2
@@ -210,6 +235,7 @@ if __name__ == '__main__':
     parser.add_argument("-reduce_dsize", type=int, default=-1)
     parser.add_argument("-binarize", type=int, required=True)
     parser.add_argument("-takeout_envs", type=int, required=True)
+    parser.add_argument("-eq_estrat", type=int, default=-1)
     parser.add_argument("--testing", action='store_true')
     args = parser.parse_args()
 
@@ -225,15 +251,17 @@ if __name__ == '__main__':
         print("early_stopping?:", args.early_stopping)
         print("d_size:", args.reduce_dsize)
         print("binarize?:", args.binarize)
+        print("takeout_envs?:", args.takeout_envs)
+        print("eq_estrat?:", args.eq_estrat)
         print("testing?:", args.testing)
-        #quit()
+        quit()
 
     default(args.data_fname, args.subsets_fname, args.features_fname,  \
             args.env_atts, alpha=args.alpha, feateng_type=[int(c) for c in args.feat_eng], \
             logger_fname=args.log_fname, rawres_fname=args.rawres_fname, \
             e_stop=bool(args.early_stopping), d_size=args.reduce_dsize, \
             bin_env=bool(args.binarize), takeout_envs=args.takeout_envs, \
-            testing=args.testing)
+            eq_estrat=args.eq_estrat, testing=args.testing)
 
 
 

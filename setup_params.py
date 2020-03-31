@@ -51,6 +51,7 @@ if __name__ == '__main__':
     parser.add_argument("-reduce_dsize", type=int, required=True)
     parser.add_argument("-binarize", type=int, required=True)
     parser.add_argument("-takeout_envs", type=int, required=True)
+    parser.add_argument("-eq_estrat", type=int, default=-1)
     parser.add_argument("--testing", action='store_true')
 
     args = parser.parse_args()
@@ -68,6 +69,7 @@ if __name__ == '__main__':
         print("early_stopping?:", args.early_stopping)
         print("binarize?:", args.binarize)
         print("takeout_envs?:", args.takeout_envs)
+        print("eq_estrat?:", args.eq_estrat)
         quit()
 
     if args.envcombos == 'all_combos':
@@ -98,7 +100,7 @@ if __name__ == '__main__':
             spacing = len(list_2_string(e, ' '))
 
             command_str = \
-                '''python main.py {alpha} {feat_eng} {data} {subsets_fname} {features_fname} {rawres_fname} {log_fname}{e_spacing}{env_list} -early_stopping {e_stop} -reduce_dsize {d_size} -binarize {bin} -takeout_envs {takeout}\n'''
+                '''python main.py {alpha} {feat_eng} {data} {subsets_fname} {features_fname} {rawres_fname} {log_fname}{e_spacing}{env_list} -early_stopping {e_stop} -reduce_dsize {d_size} -binarize {bin} -takeout_envs {takeout} -eq_estrat {eq}\n'''
 
             command_str = command_str.format(
                 alpha=args.alpha,
@@ -113,7 +115,8 @@ if __name__ == '__main__':
                 e_stop=args.early_stopping,
                 d_size=args.reduce_dsize,
                 bin=args.binarize,
-                takeout=args.takeout_envs
+                takeout=args.takeout_envs,
+                eq=args.eq_estrat
             )
 
 
