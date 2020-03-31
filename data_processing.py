@@ -105,13 +105,15 @@ def adult_dataset_processing(fname, fteng, reduce_dsize=-1, estrat_red=False, te
 
     #Get rid of unwanted columns before making feat lists
     data.drop('educational-num', axis=1, inplace=True)
-    data = data[data['native-country'] != 'South']
+    data.drop('fnlwgt', axis=1, inplace=True)
+    data = data[data['native-country'] != 'South']  #no entries
+    data = data[(data['workclass'] != 'Without-pay') & \
+            (data['workclass'] != 'Never-worked')] #small num-_entries (21)
 
     #NOTE - These lists aren't MECE
     #cat_feat:{acceptable stratifications:orig_cols corresponding}
     cat_feats = {'workclass':{'selfWork':['Private', 'Self-emp-not-inc', 'Self-emp-inc'], \
-                              'govWork':['Federal-gov', ' Local-gov', 'State-gov'], \
-                              'noWork':['Without-pay', 'Never-worked']}, \
+                              'govWork':['Federal-gov', ' Local-gov', 'State-gov']}, \
                  'education':{}, \
                  'marital-status':{'married':['Married-civ-spouse', 'Married-spouse-absent', 'Married-AF-spouse', 'Widowed'],\
                                    'divorced':['Divorced', 'Separated'], \
@@ -128,7 +130,7 @@ def adult_dataset_processing(fname, fteng, reduce_dsize=-1, estrat_red=False, te
                                    'lowHDI':['Cambodia', 'India', 'China', 'Honduras', 'Philippines', 'Vietnam', 'Laos', 'Haiti', \
                                              'Guatemala', 'Nicaragua', 'El-Salvador']}
                  }
-    cont_feats = ['age', 'fnlwgt', 'capital-gain', \
+    cont_feats = ['age', 'capital-gain', \
                        'capital-loss', 'hours-per-week']
     pred_feats = 'income'
 
@@ -137,6 +139,9 @@ def adult_dataset_processing(fname, fteng, reduce_dsize=-1, estrat_red=False, te
         for ft in cat_feats:
             for agg_ft in cat_feats[ft]:
                 data[ft] = data[ft].apply(lambda val: agg_ft if val in cat_feats[ft][agg_ft] else val)
+
+    if testing:  #Return dataset before processing for testing
+        return data
 
     return data_conversion(data, list(cat_feats.keys()), cont_feats, pred_feats, fteng)
 
@@ -167,7 +172,7 @@ def german_credit_dataset_processing(fname, fteng=[], estrat_red=False, testing=
                  'OtherInstallmentPlans':{}, \
                  'Housing':{}, \
                  'Telephone':{'none':[1], 'registered':[2]}, \
-                 'Foreign':{'yes':[1], 'no':[2]}
+                 'Foreign':{}  #No balance for env-split
                  }
 
     cont_feats = ['CreditAmount', 'InstallmentDisposable', 'PresRes', \
@@ -188,9 +193,9 @@ def german_credit_dataset_processing(fname, fteng=[], estrat_red=False, testing=
         for ft in cat_feats:
             for agg_ft in cat_feats[ft]:
                 data[ft] = data[ft].apply(lambda val: agg_ft if val in cat_feats[ft][agg_ft] else val)
-        # if testing:
-        #     print(data['Purpose'].value_counts())
-        #     quit()
+
+    if testing:
+        return data
 
     return data_conversion(data, list(cat_feats.keys()), cont_feats, pred_feats, fteng=fteng)
 

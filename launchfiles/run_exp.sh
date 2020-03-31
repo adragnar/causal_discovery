@@ -50,7 +50,7 @@ then
     fi
     if [ $binarize == 1 ]
     then
-        env_vars=('Purpose' 'Telephone' 'Foreign')
+        env_vars=('Purpose' 'Telephone')
     fi
 fi
 
