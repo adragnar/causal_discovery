@@ -33,7 +33,7 @@ def threshold(num):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Params')
-    parser.add_argument('alpha', type=float, \
+    parser.add_argument('alpha', type=str, \
                         help='c-interval val')
     parser.add_argument('feat_eng', type=str, \
                         help='c-interval val')

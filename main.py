@@ -20,6 +20,20 @@ import numpy as np
 from scipy.stats import f as fdist
 from scipy.stats import ttest_ind
 
+def alpha_2_range(alpha):
+    ''' Convert encoded alpha values into range to test
+    :param: alpha of form 'start,end,step' or '(list of alphas)'
+    '''
+    if ('range' in alpha):
+        alpha = [float(a) for a in alpha.split('-')[1:]]
+        a_list = []
+        for i in np.linspace(alpha[0], alpha[1], ((alpha[1] - alpha[0])/alpha[2])):
+            a_list.append(float(i))
+    else:
+        a_list = [float(a) for a in alpha.split('-')]
+    return a_list
+
+
 def mean_var_test(x, y):
     pvalue_mean = ttest_ind(x, y, equal_var=False).pvalue
     pvalue_var1 = 1 - fdist.cdf(np.var(x, ddof=1) / np.var(y, ddof=1),
@@ -30,7 +44,7 @@ def mean_var_test(x, y):
 
     return 2 * min(pvalue_mean, pvalue_var2)
 #########################################
-def default(d_fname, s_fname, f_fname, env_atts_types, alpha=0.05, feateng_type=[], \
+def default(d_fname, s_fname, f_fname, env_atts_types, alpha='(0.05)', feateng_type=[], \
             logger_fname='rando.txt', e_stop=True, rawres_fname='rando2.txt', \
             d_size=-1, bin_env=False, takeout_envs=False, eq_estrat=-1,
             testing=False):
@@ -48,9 +62,10 @@ def default(d_fname, s_fname, f_fname, env_atts_types, alpha=0.05, feateng_type=
     #Meta-function Accounting
     logging.basicConfig(filename=logger_fname, level=logging.DEBUG)
 
+    a_list = alpha_2_range(alpha)
+    accepted_subsets = {a:[] for a in a_list}
 
-    accepted_subsets = []
-    #Select correct dataset
+     #Select correct dataset
     if 'adult' in d_fname:
         data, y_all, d_atts = dp.adult_dataset_processing(d_fname, \
                               feateng_type, reduce_dsize=d_size, \
@@ -125,6 +140,7 @@ def default(d_fname, s_fname, f_fname, env_atts_types, alpha=0.05, feateng_type=
             e_ins_store[env] = raw.squeeze()
 
     #Now start enumerating PCPs
+
     with open(rawres_fname, mode='w+') as rawres:
         for i, subset in enumerate(tqdm(powerset(allowed_datts), desc='pcp_sets',
                            total=len(list(powerset(allowed_datts))))):  #powerset of PCPs
@@ -137,10 +153,20 @@ def default(d_fname, s_fname, f_fname, env_atts_types, alpha=0.05, feateng_type=
                 continue
 
             #Check if 2 ME subsets have been accepted
-            if e_stop and (len(accepted_subsets) > 0) and \
-                    (set.intersection(*accepted_subsets) == set()):
-                logging.info('Null Hyp accepted from MECE subsets')
-                break
+            if e_stop:
+                if not a_list:  #Check if any remaining alphas
+                    break
+                else:  #See if any ME subsets accepted
+                    del_list = []
+                    for i, a in enumerate(a_list):
+                        if (len(accepted_subsets[a]) > 0) and \
+                                (set.intersection(*(accepted_subsets[a])) == set()):
+                            logging.info('Null Hyp accepted from MECE subsets for alpha={}'.format(a))
+                            del_list.append(i)
+                    for i in del_list:
+                        del a_list[i]
+
+
 
             #Linear regression on all data
             regressors = [allowed_datts[cat] for cat in subset]
@@ -180,22 +206,26 @@ def default(d_fname, s_fname, f_fname, env_atts_types, alpha=0.05, feateng_type=
 
             # # TODO: Jonas uses "min(p_values) * len(environments) - 1"
             full_res[str(subset)]['Final_tstat'] = min([p for p in full_res[str(subset)].values() if type(p) != str]) * len(list(itertools.product(*env_atts)))
-            if full_res[str(subset)]['Final_tstat'] > alpha:
-                accepted_subsets.append(set(subset))
-                logging.info('Subset Accepted')
+            for a in a_list:
+                if full_res[str(subset)]['Final_tstat'] > a:
+                    accepted_subsets[a].append(set(subset))
+                    logging.info('Subset Accepted for alpha={}'.format(a))
 
 
         #STEP 2
-        if len(accepted_subsets):
-            accepted_features = list(set.intersection(*accepted_subsets))
-        else:
-            accepted_features = []
+        accepted_features = {}
+        for a in accepted_subsets:
+            if len(accepted_subsets[a]):
+                accepted_features[a] = list(set.intersection(*(accepted_subsets[a])))
+            else:
+                accepted_features[a] = []
 
         #Save results
 
         #First the data results
-        pickle.dump(accepted_subsets, open(s_fname,'wb'))
-        pickle.dump(accepted_features, open(f_fname,'wb'))
+        for a in accepted_subsets:
+            pickle.dump(accepted_subsets[a], open(s_fname.replace(alpha, str(a)),'wb'))
+            pickle.dump(accepted_features[a], open(f_fname.replace(alpha, str(a)),'wb'))
 
         #Next the Raw results
         json.dump(full_res, rawres, indent=4, separators=(',',':'))
@@ -214,7 +244,7 @@ def default(d_fname, s_fname, f_fname, env_atts_types, alpha=0.05, feateng_type=
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Params')
-    parser.add_argument("alpha", type=float, \
+    parser.add_argument("alpha", type=str, \
                         help="significance level for PCP acceptance")
     parser.add_argument("feat_eng", type=str, \
                         help="each digit id of diff feat engineering")

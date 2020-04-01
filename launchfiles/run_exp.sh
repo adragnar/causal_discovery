@@ -23,7 +23,7 @@ eq_estrat=30
 if [ $dtype == "adult" ]
 then
     data="~/causal_discovery/data/adult.csv"
-    alphas=(0.000000001 0.0000000001 0.00000000001 0.000000000001 0.0000000000001 0.00000000000001 0.000000000000001)
+    alphas="0.000001-0.000000001-0.0000000001-0.00000000001-0.000000000001-0.0000000000001-0.00000000000001-0.000000000000001"  #'list-of-vals' or 'range-start-stop-step'
     ft_combos=('12')
 
     #Only some environments binarized
@@ -40,7 +40,7 @@ fi
 if [ $dtype == "german" ]
 then
     data="~/causal_discovery/data/germanCredit.csv"
-    alphas=(1.5 2 2.5 3 3.5 4)
+    alphas="range-1.0-4.0-0.5"
     ft_combos=('12')
 
     #Only some environments binarized
@@ -55,13 +55,12 @@ then
 fi
 
 #Generate the commandfile
-for a in ${alphas[*]}
-do
-    for f_eng in ${ft_combos[*]}
-    do
-        python setup_params.py $a $f_eng $data $expdir $cmdfile ${env_vars[@]} -envcombos $exptype -early_stopping $early_stopping -reduce_dsize $reduce_dsize -binarize $binarize -takeout_envs $takeout_envs -eq_estrat $eq_estrat
-    done
-done
+
+  for f_eng in ${ft_combos[*]}
+  do
+      python setup_params.py alphas $f_eng $data $expdir $cmdfile ${env_vars[@]} -envcombos $exptype -early_stopping $early_stopping -reduce_dsize $reduce_dsize -binarize $binarize -takeout_envs $takeout_envs -eq_estrat $eq_estrat
+  done
+
 
 #Run evaluation on cluster
 num_cmds=`wc -l $cmdfile | cut -d' ' -f1`
