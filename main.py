@@ -91,6 +91,7 @@ def default(d_fname, s_fname, f_fname, env_atts_types, alpha='(0.05)', feateng_t
 
     logging.info('{} environment attributes'.format(len(env_atts)))
     logging.debug('Environment attributes are ' + str(env_atts))
+    logging.debug('Alphas tested are ' + str(a_list))
     #coefficients = torch.zeros(data.shape[1])  #regression vector confidence intervals
     max_pval = 0
     # Setup rawres
@@ -158,14 +159,13 @@ def default(d_fname, s_fname, f_fname, env_atts_types, alpha='(0.05)', feateng_t
                     break
                 else:  #See if any ME subsets accepted
                     del_list = []
-                    for i, a in enumerate(a_list):
+                    for a in a_list:
                         if (len(accepted_subsets[a]) > 0) and \
                                 (set.intersection(*(accepted_subsets[a])) == set()):
                             logging.info('Null Hyp accepted from MECE subsets for alpha={}'.format(a))
-                            del_list.append(i)
-                    for i in del_list:
-                        del a_list[i]
-
+                            del_list.append(a)
+                    for a in del_list:
+                        a_list.remove(a)
 
 
             #Linear regression on all data
@@ -206,10 +206,15 @@ def default(d_fname, s_fname, f_fname, env_atts_types, alpha='(0.05)', feateng_t
 
             # # TODO: Jonas uses "min(p_values) * len(environments) - 1"
             full_res[str(subset)]['Final_tstat'] = min([p for p in full_res[str(subset)].values() if type(p) != str]) * len(list(itertools.product(*env_atts)))
+
+            any_acc = False
             for a in a_list:
                 if full_res[str(subset)]['Final_tstat'] > a:
                     accepted_subsets[a].append(set(subset))
                     logging.info('Subset Accepted for alpha={}'.format(a))
+                    any_acc = True
+            if any_acc:
+                logging.info('Interation_{}'.format(i))
 
 
         #STEP 2
