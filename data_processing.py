@@ -109,6 +109,7 @@ def adult_dataset_processing(fname, fteng, reduce_dsize=-1, estrat_red=False, te
     data = data[data['native-country'] != 'South']  #no entries
     data = data[(data['workclass'] != 'Without-pay') & \
             (data['workclass'] != 'Never-worked')] #small num-_entries (21)
+    data = data[(data['occupation'] != 'Armed-Forces')] #small num-_entries (14)
 
     #NOTE - These lists aren't MECE
     #cat_feat:{acceptable stratifications:orig_cols corresponding}
@@ -118,8 +119,20 @@ def adult_dataset_processing(fname, fteng, reduce_dsize=-1, estrat_red=False, te
                  'marital-status':{'married':['Married-civ-spouse', 'Married-spouse-absent', 'Married-AF-spouse', 'Widowed'],\
                                    'divorced':['Divorced', 'Separated'], \
                                    'neither':['Never-married']}, \
-                 'occupation':{}, \
-                 'relationship':{}, \
+                 'occupation':{'craft':['Craft-repair'],
+                               'professional':['prof-specialty'],
+                               'manager':['Exec-managerial'],
+                               'secretary':['Adm-clerical'],
+                               'sales':['Sales'],
+                               'other':['Other-service', 'Protective-serv', 'Priv-house-serv'],
+                               'machine':['Machine-op-inspct'],
+                               'transport':['Transport-moving'],
+                               'cleaners':['Handlers-cleaners'],
+                               'agriculture':['Farming-fishing'],
+                               'infotech':['Tech-support'],}, \
+                 'relationship':{'spouse':['Husband', 'Wife'],
+                                 'nofam':['Unmarried', 'Other-relative', 'Not-in-family'],
+                                 'ownchild':['Own-child']}, \
                  'race':{}, \
                  'gender':{}, \
                  'native-country':{'highHDI':['United-States', 'England', 'Canada', 'Germany', 'Japan', 'Greece', \
@@ -161,16 +174,21 @@ def german_credit_dataset_processing(fname, fteng=[], estrat_red=False, testing=
     #Get rid of unwanted stuff before making feat lists
     data = data[data['Purpose'] != 10]
 
-    # NOTE - These lists are MECE
+    # NOTE - These dictionary partitions are MECE over all possible att vals
     cat_feats = {'Purpose':{'investment':[6, 8, 9], \
                             'car':[0, 1], \
                             'domestic_needs':[2, 3, 4, 5]}, \
                  'Savings':{}, \
                  'Personal':{}, \
                  'OtherDebtors':{}, \
-                 'Property':{}, \
+                 'Property':{'1':[1],
+                             '2':[2],
+                             '3':[3],
+                             '4':[4]}, \
                  'OtherInstallmentPlans':{}, \
-                 'Housing':{}, \
+                 'Housing':{'1':[1],
+                            '2':[2],
+                            '3':[3]}, \
                  'Telephone':{'none':[1], 'registered':[2]}, \
                  'Foreign':{}  #No balance for env-split
                  }

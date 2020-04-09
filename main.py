@@ -20,6 +20,8 @@ import numpy as np
 from scipy.stats import f as fdist
 from scipy.stats import ttest_ind
 
+import random
+
 def alpha_2_range(alpha):
     ''' Convert encoded alpha values into range to test
     :param: alpha of form 'start,end,step' or '(list of alphas)'
@@ -46,7 +48,7 @@ def mean_var_test(x, y):
 #########################################
 def default(d_fname, s_fname, f_fname, env_atts_types, alpha='(0.05)', feateng_type=[], \
             logger_fname='rando.txt', e_stop=True, rawres_fname='rando2.txt', \
-            d_size=-1, bin_env=False, takeout_envs=False, eq_estrat=-1,
+            d_size=-1, bin_env=False, takeout_envs=False, eq_estrat=-1, SEED=100,
             testing=False):
 
     '''
@@ -59,6 +61,8 @@ def default(d_fname, s_fname, f_fname, env_atts_types, alpha='(0.05)', feateng_t
     :param feateng_type: The particular preprocess methodology
     :param logger: filepath to log file
     '''
+    random.seed(SEED)
+
     #Meta-function Accounting
     logging.basicConfig(filename=logger_fname, level=logging.DEBUG)
 
@@ -135,7 +139,7 @@ def default(d_fname, s_fname, f_fname, env_atts_types, alpha='(0.05)', feateng_t
 
         for env in e_ins_store: #Now normalize with min samples
             raw = e_ins_store[env].to_frame(name='vals')
-            chosen_cols = raw[raw['vals'] == True].sample(min(sizes))
+            chosen_cols = raw[raw['vals'] == True].sample(min(sizes), random_state=SEED)
             raw.loc[:,:] = False
             raw.update(chosen_cols)
             e_ins_store[env] = raw.squeeze()
@@ -271,6 +275,7 @@ if __name__ == '__main__':
     parser.add_argument("-binarize", type=int, required=True)
     parser.add_argument("-takeout_envs", type=int, required=True)
     parser.add_argument("-eq_estrat", type=int, default=-1)
+    parser.add_argument("-seed", type=int, default=100)
     parser.add_argument("--testing", action='store_true')
     args = parser.parse_args()
 
@@ -288,6 +293,7 @@ if __name__ == '__main__':
         print("binarize?:", args.binarize)
         print("takeout_envs?:", args.takeout_envs)
         print("eq_estrat?:", args.eq_estrat)
+        print("seed?:", args.seed)
         print("testing?:", args.testing)
         quit()
 
@@ -296,7 +302,7 @@ if __name__ == '__main__':
             logger_fname=args.log_fname, rawres_fname=args.rawres_fname, \
             e_stop=bool(args.early_stopping), d_size=args.reduce_dsize, \
             bin_env=bool(args.binarize), takeout_envs=args.takeout_envs, \
-            eq_estrat=args.eq_estrat, testing=args.testing)
+            eq_estrat=args.eq_estrat, SEED=args.seed, testing=args.testing)
 
 
 

@@ -12,36 +12,37 @@ max_proc=40
 dtype="adult"  #adult, german
 exptype="single"  #all_combos, single
 
-early_stopping=0
+early_stopping=1
 reduce_dsize=-1
 binarize=1
 takeout_envs=1
 eq_estrat=30
+seeds=(1000 8079 52 147)
 
 
 #Experiment Hyperparameters
 if [ $dtype == "adult" ]
 then
     data="~/causal_discovery/data/adult.csv"
-    alphas="0.000001-0.000000001-0.0000000001-0.00000000001-0.000000000001-0.0000000000001-0.00000000000001-0.000000000000001"  #'list-of-vals' or 'range-start-stop-step'
-    ft_combos=('12')
+    alphas="0.000000001-0.000000005-0.00000001-0.00000005-0.0000001-0.0000005-0.000001-0.000005-0.00001-0.00005-0.001-0.001-0.1"  #'list-of-vals' or 'range-start-stop-step'
+    ft_combos=('1' '2' '12')
 
     #Only some environments binarized
     if [ $binarize == 0 ]
     then
-        env_vars=("workclass" "native-country" "occupation" "marital-status" "education" "relationship")
+        env_vars=("workclass" "native-country" "occupation" "marital-status" "relationship")
     fi
     if [ $binarize == 1 ]
     then
-        env_vars=("workclass" "native-country" "marital-status")
+        env_vars=("workclass" "native-country" "occupation" "marital-status" "relationship")
     fi
 fi
 
 if [ $dtype == "german" ]
 then
     data="~/causal_discovery/data/germanCredit.csv"
-    alphas="range-1.0-4.0-0.5"
-    ft_combos=('12')
+    alphas="range-0.5-4.0-0.01"
+    ft_combos=('1' '2' '12')
 
     #Only some environments binarized
     if [ $binarize == 0 ]
@@ -50,17 +51,18 @@ then
     fi
     if [ $binarize == 1 ]
     then
-        env_vars=('Purpose' 'Telephone')
+        env_vars=('Purpose' 'Telephone' 'Housing' 'Property')
     fi
 fi
 
 #Generate the commandfile
-
+for s in ${seeds[*]}
+do
   for f_eng in ${ft_combos[*]}
   do
-      python setup_params.py alphas $f_eng $data $expdir $cmdfile ${env_vars[@]} -envcombos $exptype -early_stopping $early_stopping -reduce_dsize $reduce_dsize -binarize $binarize -takeout_envs $takeout_envs -eq_estrat $eq_estrat
+      python setup_params.py $alphas $f_eng $data $expdir $cmdfile ${env_vars[@]} -envcombos $exptype -early_stopping $early_stopping -reduce_dsize $reduce_dsize -binarize $binarize -takeout_envs $takeout_envs -eq_estrat $eq_estrat -seed $s
   done
-
+done
 
 #Run evaluation on cluster
 num_cmds=`wc -l $cmdfile | cut -d' ' -f1`
