@@ -56,7 +56,7 @@ def data_conversion(data, categorical_feats, continous_feats, predictor, fteng):
             if (cat == col) or (((cat+'_') in col) and ('_sq' not in col) \
                                         and ('_x_' not in col)):
                 all_cats[cat].append(col)
-    for cat in all_cats:  #Dummy case
+    for cat in categorical_feats:  #Dummy case
         all_cats[cat].append(cat + '_DUMmY')
 
     print(data.shape)

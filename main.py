@@ -8,6 +8,7 @@ from sklearn.linear_model import LinearRegression
 import warnings
 import pandas as pd
 from tqdm import tqdm
+from itertools import combinations
 
 from utils import powerset
 import data_processing as dp
@@ -19,6 +20,44 @@ warnings.simplefilter(action='ignore', category=RuntimeWarning)
 import numpy as np
 from scipy.stats import f as fdist
 from scipy.stats import ttest_ind
+
+import random
+
+def get_data_regressors(atts, sub, ft_eng, data):
+    '''From a given subset of attributes being predicted on and the attributes
+    dictionary with the original columns, extract all coluns to predict on from
+    dataset
+
+    :param atts - dictionary of attributes, {att, [one-hot col list of at vals]}
+    :param sub - subset of atts being predicted on
+    :param ft_eng - [which mods applicable]
+    '''
+    orig_regressors = [atts[cat] for cat in sub]
+    orig_regressors = [item for sublist in orig_regressors for item in sublist if '_DUMmY' not in item]
+    #Now have all the actual one-hot columns in dataset
+
+    if not ft_eng:
+        return orig_regressors
+
+    one_regressors = []
+    two_regressors = []
+    if 1 in ft_eng: #Assumes only single-col vals are squared
+        sq_regressors = [col for col in data.columns if '_sq' in col]
+        for r in orig_regressors:
+            for r_sq in sq_regressors:
+                if r in r_sq:
+                    one_regressors.append(r_sq)
+
+    if 2 in ft_eng:
+        x_regressors = [col for col in data.columns if '_x_' in col]
+        for r in [com for com in combinations(orig_regressors, 2) \
+            if (com[0].split('_')[0] != com[1].split('_')[0])]:
+
+            for x_reg in x_regressors:
+                if ((r[0] in x_reg) and (r[1] in x_reg)):
+                    two_regressors.append(x_reg)
+
+    return orig_regressors + one_regressors + two_regressors
 
 def alpha_2_range(alpha):
     ''' Convert encoded alpha values into range to test
@@ -46,7 +85,7 @@ def mean_var_test(x, y):
 #########################################
 def default(d_fname, s_fname, f_fname, env_atts_types, alpha='(0.05)', feateng_type=[], \
             logger_fname='rando.txt', e_stop=True, rawres_fname='rando2.txt', \
-            d_size=-1, bin_env=False, takeout_envs=False, eq_estrat=-1,
+            d_size=-1, bin_env=False, takeout_envs=False, eq_estrat=-1, SEED=100,
             testing=False):
 
     '''
@@ -59,6 +98,8 @@ def default(d_fname, s_fname, f_fname, env_atts_types, alpha='(0.05)', feateng_t
     :param feateng_type: The particular preprocess methodology
     :param logger: filepath to log file
     '''
+    random.seed(SEED)
+
     #Meta-function Accounting
     logging.basicConfig(filename=logger_fname, level=logging.DEBUG)
 
@@ -135,7 +176,7 @@ def default(d_fname, s_fname, f_fname, env_atts_types, alpha='(0.05)', feateng_t
 
         for env in e_ins_store: #Now normalize with min samples
             raw = e_ins_store[env].to_frame(name='vals')
-            chosen_cols = raw[raw['vals'] == True].sample(min(sizes))
+            chosen_cols = raw[raw['vals'] == True].sample(min(sizes), random_state=SEED)
             raw.loc[:,:] = False
             raw.update(chosen_cols)
             e_ins_store[env] = raw.squeeze()
@@ -143,8 +184,8 @@ def default(d_fname, s_fname, f_fname, env_atts_types, alpha='(0.05)', feateng_t
     #Now start enumerating PCPs
 
     with open(rawres_fname, mode='w+') as rawres:
-        for i, subset in enumerate(tqdm(powerset(allowed_datts), desc='pcp_sets',
-                           total=len(list(powerset(allowed_datts))))):  #powerset of PCPs
+        for i, subset in enumerate(tqdm(powerset(allowed_datts.keys()), desc='pcp_sets',
+                           total=len(list(powerset(allowed_datts.keys()))))):  #powerset of PCPs
 
             #Setup raw result logging
             full_res[str(subset)] = {}
@@ -169,9 +210,11 @@ def default(d_fname, s_fname, f_fname, env_atts_types, alpha='(0.05)', feateng_t
 
 
             #Linear regression on all data
-            regressors = [allowed_datts[cat] for cat in subset]
-            regressors = [item for sublist in regressors for item in sublist if '_DUMmY' not in item]
+            regressors = get_data_regressors(allowed_datts, subset, feateng_type, data)
             x_s = data[list(itertools.chain(regressors))]
+
+            print(subset, regressors)
+
             reg = LinearRegression(fit_intercept=False).fit(x_s.values, y_all.values)
 
             #Use the normalized e_ins to compute the residuals + Find p_values for every environment
@@ -271,6 +314,7 @@ if __name__ == '__main__':
     parser.add_argument("-binarize", type=int, required=True)
     parser.add_argument("-takeout_envs", type=int, required=True)
     parser.add_argument("-eq_estrat", type=int, default=-1)
+    parser.add_argument("-seed", type=int, default=100)
     parser.add_argument("--testing", action='store_true')
     args = parser.parse_args()
 
@@ -288,6 +332,7 @@ if __name__ == '__main__':
         print("binarize?:", args.binarize)
         print("takeout_envs?:", args.takeout_envs)
         print("eq_estrat?:", args.eq_estrat)
+        print("seed?:", args.seed)
         print("testing?:", args.testing)
         quit()
 
@@ -296,7 +341,7 @@ if __name__ == '__main__':
             logger_fname=args.log_fname, rawres_fname=args.rawres_fname, \
             e_stop=bool(args.early_stopping), d_size=args.reduce_dsize, \
             bin_env=bool(args.binarize), takeout_envs=args.takeout_envs, \
-            eq_estrat=args.eq_estrat, testing=args.testing)
+            eq_estrat=args.eq_estrat, SEED=args.seed, testing=args.testing)
 
 
 
