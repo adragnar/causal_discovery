@@ -23,6 +23,7 @@ from scipy.stats import ttest_ind
 
 import random
 
+<<<<<<< HEAD
 def get_data_regressors(atts, sub, ft_eng, data):
     '''From a given subset of attributes being predicted on and the attributes
     dictionary with the original columns, extract all coluns to predict on from
@@ -59,6 +60,8 @@ def get_data_regressors(atts, sub, ft_eng, data):
 
     return orig_regressors + one_regressors + two_regressors
 
+=======
+>>>>>>> randoseed
 def alpha_2_range(alpha):
     ''' Convert encoded alpha values into range to test
     :param: alpha of form 'start,end,step' or '(list of alphas)'
