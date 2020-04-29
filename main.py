@@ -23,7 +23,6 @@ from scipy.stats import ttest_ind
 
 import random
 
-<<<<<<< HEAD
 def get_data_regressors(atts, sub, ft_eng, data):
     '''From a given subset of attributes being predicted on and the attributes
     dictionary with the original columns, extract all coluns to predict on from
@@ -60,8 +59,6 @@ def get_data_regressors(atts, sub, ft_eng, data):
 
     return orig_regressors + one_regressors + two_regressors
 
-=======
->>>>>>> randoseed
 def alpha_2_range(alpha):
     ''' Convert encoded alpha values into range to test
     :param: alpha of form 'start,end,step' or '(list of alphas)'
@@ -215,9 +212,6 @@ def default(d_fname, s_fname, f_fname, env_atts_types, alpha='(0.05)', feateng_t
             #Linear regression on all data
             regressors = get_data_regressors(allowed_datts, subset, feateng_type, data)
             x_s = data[list(itertools.chain(regressors))]
-
-            print(subset, regressors)
-
             reg = LinearRegression(fit_intercept=False).fit(x_s.values, y_all.values)
 
             #Use the normalized e_ins to compute the residuals + Find p_values for every environment

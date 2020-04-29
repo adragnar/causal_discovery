@@ -1,23 +1,23 @@
 #!/bin/bash
 
 #Make expieriment directories/files
-expdir="/scratch/gobi1/adragnar/experiments/causal_discovery/$(date +'%s')"
+expdir="/scratch/hdd001/home/adragnar/experiments/causal_discovery/$(date +'%s')"
 mkdir -p $expdir
 cmdfile="$expdir/cmdfile.sh"
 
 #Set cluster parameters
-max_proc=40
+max_proc=60
 
 #Set Experiment Type
 dtype="adult"  #adult, german
 exptype="single"  #all_combos, single
 
 early_stopping=1
-reduce_dsize=-1
-binarize=1
+reduce_dsize=2000
+binarize=1  #0, 1
 takeout_envs=1
-eq_estrat=30
-seeds=(1000 8079 52 147)
+eq_estrat=-1  #-1, #samples_wanted
+seeds=(1000 8079 52 147 256 784 990 587 304 737)
 
 
 #Experiment Hyperparameters
@@ -25,7 +25,7 @@ if [ $dtype == "adult" ]
 then
     data="~/causal_discovery/data/adult.csv"
     alphas="0.000000001-0.000000005-0.00000001-0.00000005-0.0000001-0.0000005-0.000001-0.000005-0.00001-0.00005-0.001-0.001-0.1"  #'list-of-vals' or 'range-start-stop-step'
-    ft_combos=('' '1' '2' '12')
+    ft_combos=('12')
 
     #Only some environments binarized
     if [ $binarize == 0 ]
@@ -47,7 +47,7 @@ then
     #Only some environments binarized
     if [ $binarize == 0 ]
     then
-        env_vars=('Purpose' 'Savings' 'Personal' 'OtherDebtors' 'Property' 'OtherInstallmentPlans' 'Housing' 'Telephone' 'Foreign')
+        env_vars=('Purpose' 'Housing' 'Telephone' 'Property')  # 'OtherInstallmentPlans'  'Foreign' 'Savings' 'Personal' 'OtherDebtors')
     fi
     if [ $binarize == 1 ]
     then
