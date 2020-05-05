@@ -83,7 +83,7 @@ def mean_var_test(x, y):
 
     return 2 * min(pvalue_mean, pvalue_var2)
 #########################################
-def default(d_fname, s_fname, f_fname, env_atts_types, alpha='(0.05)', feateng_type=[], \
+def default(d_fname, env_atts_types, alpha='(0.05)', feateng_type=[], \
             logger_fname='rando.txt', e_stop=True, rawres_fname='rando2.txt', \
             d_size=-1, bin_env=False, takeout_envs=False, eq_estrat=-1, SEED=100,
             testing=False):
@@ -91,8 +91,6 @@ def default(d_fname, s_fname, f_fname, env_atts_types, alpha='(0.05)', feateng_t
     '''
 
     :param d_fname:
-    :param s_fname:
-    :param f_fname:
     :param env_atts:
     :param alpha:
     :param feateng_type: The particular preprocess methodology
@@ -255,24 +253,9 @@ def default(d_fname, s_fname, f_fname, env_atts_types, alpha='(0.05)', feateng_t
                     any_acc = True
             if any_acc:
                 logging.info('Interation_{}'.format(i))
-
-
-        #STEP 2
-        accepted_features = {}
-        for a in accepted_subsets:
-            if len(accepted_subsets[a]):
-                accepted_features[a] = list(set.intersection(*(accepted_subsets[a])))
-            else:
-                accepted_features[a] = []
+        logging.info('Enumerated all steps')
 
         #Save results
-
-        #First the data results
-        for a in accepted_subsets:
-            pickle.dump(accepted_subsets[a], open(s_fname.replace(alpha, str(a)),'wb'))
-            pickle.dump(accepted_features[a], open(f_fname.replace(alpha, str(a)),'wb'))
-
-        #Next the Raw results
         json.dump(full_res, rawres, indent=4, separators=(',',':'))
 
 
@@ -295,10 +278,6 @@ if __name__ == '__main__':
                         help="each digit id of diff feat engineering")
     parser.add_argument("data_fname", type=str,
                         help="filename adult.csv")
-    parser.add_argument("subsets_fname", type=str,
-                        help="filename saving acc_subsets")
-    parser.add_argument("features_fname", type=str,
-                        help="filename saving acc_features")
     parser.add_argument("rawres_fname", type=str, default=None,
                         help="filename saving raw results")
     parser.add_argument("log_fname", type=str, default=None,
@@ -319,8 +298,6 @@ if __name__ == '__main__':
         print("alpha:", args.alpha)
         print("feat_eng:", args.feat_eng)
         print("data:", args.data_fname)
-        print("subsets:", args.subsets_fname)
-        print("feats:", args.features_fname)
         print("rawres:", args.rawres_fname)
         print("log:", args.log_fname)
         print("env_list:", args.env_atts)
@@ -333,17 +310,8 @@ if __name__ == '__main__':
         print("testing?:", args.testing)
         quit()
 
-    default(args.data_fname, args.subsets_fname, args.features_fname,  \
-            args.env_atts, alpha=args.alpha, feateng_type=[int(c) for c in args.feat_eng], \
+    default(args.data_fname, args.env_atts, alpha=args.alpha, feateng_type=[int(c) for c in args.feat_eng], \
             logger_fname=args.log_fname, rawres_fname=args.rawres_fname, \
             e_stop=bool(args.early_stopping), d_size=args.reduce_dsize, \
             bin_env=bool(args.binarize), takeout_envs=args.takeout_envs, \
             eq_estrat=args.eq_estrat, SEED=args.seed, testing=args.testing)
-
-
-
-
-
-
-    # default('data/adult.csv',0,0, \
-    #         ["race", "workclass"], alpha=0.05, feateng_type=[1,2], testing=False)

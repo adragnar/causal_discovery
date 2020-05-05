@@ -24,7 +24,7 @@ seeds=(1000 8079 52 147 256 784 990 587 304 737)
 if [ $dtype == "adult" ]
 then
     data="~/causal_discovery/data/adult.csv"
-    alphas="0.000000001-0.000000005-0.00000001-0.00000005-0.0000001-0.0000005-0.000001-0.000005-0.00001-0.00005-0.001-0.001-0.1"  #'list-of-vals' or 'range-start-stop-step'
+    alphas="100"  #'list-of-vals' or 'range-start-stop-step'
     ft_combos=('12')
 
     #Only some environments binarized
@@ -41,7 +41,7 @@ fi
 if [ $dtype == "german" ]
 then
     data="~/causal_discovery/data/germanCredit.csv"
-    alphas="range-0.5-4.0-0.01"
+    alphas='100'  #"range-0.5-4.0-0.01"
     ft_combos=('' '1' '2' '12')
 
     #Only some environments binarized
