@@ -81,11 +81,12 @@ if __name__ == '__main__':
 
     with open(os.path.join(args.expdir, args.cmdfile), 'a') as f:
         for e in allenvs:
-            uniqueid = '''{alpha}_{feat_eng}_{data}_{seed}_{env_list}'''
+            uniqueid = '''{alpha}_{feat_eng}_{data}_{d_size}_{seed}_{env_list}'''
             uniqueid= uniqueid.format(
                 alpha=args.alpha,
                 feat_eng=args.feat_eng,
                 data=((args.datafname).split('/')[-1]).split('.')[0],  #Note - make all entries camelcase
+                d_size=args.reduce_dsize,
                 seed=args.seed,
                 env_list=list_2_string(e, '--')
             )
