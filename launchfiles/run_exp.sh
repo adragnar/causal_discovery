@@ -15,7 +15,6 @@ exptype="single"  #all_combos, single
 early_stopping=0
 reduce_dsize=(1000 3000 5000 7500 10000 12500 15000 17500 20000)
 binarize=1  #0, 1
-takeout_envs=1
 eq_estrat=-1  #-1, #samples_wanted
 seeds=(1000 8079 52 147 256 784 990 587 304 888)
 
@@ -62,7 +61,7 @@ do
   do
     for f_eng in ${ft_combos[*]}
     do
-        python setup_params.py $alphas $f_eng $data $expdir $cmdfile ${env_vars[@]} -envcombos $exptype -early_stopping $early_stopping -reduce_dsize $red_d -binarize $binarize -takeout_envs $takeout_envs -eq_estrat $eq_estrat -seed $s
+        python setup_params.py $alphas $f_eng $data $expdir $cmdfile ${env_vars[@]} -envcombos $exptype -early_stopping $early_stopping -reduce_dsize $red_d -binarize $binarize -eq_estrat $eq_estrat -seed $s
     done
   done
 done

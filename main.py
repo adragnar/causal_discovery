@@ -83,9 +83,34 @@ def mean_var_test(x, y):
 
     return 2 * min(pvalue_mean, pvalue_var2)
 #########################################
+# def get_environments():
+#     '''Get the  '''
+#     #First, figure out the available individuals in each environment strat
+#     #Compute & store the e_in for each environment
+#     e_ins_store = {}
+#     for env in itertools.product(*env_atts):
+#         dummy_envs = []
+#         live_envs = []
+#         for att in env:
+#             if '_DUMmY' in att:
+#                 dummy_envs = [d for d in d_atts[att.split('_')[0]] if d != att]
+#             else:
+#                 live_envs.append(att)
+#
+#         #Compute e_in without error
+#         if not dummy_envs:
+#             e_in = ((data[live_envs] == 1)).all(1)
+#         elif not live_envs:
+#             e_in = ((data[dummy_envs] == 0)).all(1)
+#         else:
+#             e_in = ((data[live_envs] == 1).all(1) & (data[dummy_envs] == 0).all(1))
+#         e_ins_store[str(env)] = e_in
+
+
+#########################################
 def default(d_fname, env_atts_types, alpha='(0.05)', feateng_type=[], \
             logger_fname='rando.txt', e_stop=True, rawres_fname='rando2.txt', \
-            d_size=-1, bin_env=False, takeout_envs=False, eq_estrat=-1, SEED=100,
+            d_size=-1, bin_env=False, eq_estrat=-1, SEED=100,
             toy_data=[False], testing=False):
 
     '''
@@ -102,39 +127,20 @@ def default(d_fname, env_atts_types, alpha='(0.05)', feateng_type=[], \
     #Meta-function Accounting
     logging.basicConfig(filename=logger_fname, level=logging.DEBUG)
 
-    a_list = alpha_2_range(alpha)
-    accepted_subsets = {a:[] for a in a_list}
 
      #Select correct dataset
     data, y_all, d_atts = dp.data_loader(d_fname, feateng_type, dsize=d_size, \
-                                    bin=bin_env, toy=toy_data, \
-                                    testing=testing)
-    # if 'adult' in d_fname:
-    #     data, y_all, d_atts = dp.adult_dataset_processing(d_fname, \
-    #                           feateng_type, reduce_dsize=d_size, \
-    #                           estrat_red=args.binarize, \
-    #                           testing=testing)
-    #     logging.info('Adult Dataset loaded - size ' + str(data.shape))
-    # elif 'german' in d_fname:
-    #     data, y_all, d_atts = dp.german_credit_dataset_processing(d_fname, \
-    #                           feateng_type, estrat_red=args.binarize, \
-    #                           testing=testing)
-    #     logging.info('German Dataset loaded - size ' + str(data.shape))
+                                    bin=bin_env, toy=toy_data, testing=testing)
     logging.info('{} Dataset loaded - size {}'.format(d_fname.split('/')[-1], \
                 str(data.shape)))
-    
-    # elif toy_data[0]: #Check if my hacked solution to have data pre-generated
-    #     data, y_all, d_atts = toy_data[1], toy_data[2], toy_data[3]
+
+
+    a_list = alpha_2_range(alpha)
+    accepted_subsets = {a:[] for a in a_list}
 
     env_atts = [d_atts[cat] for cat in env_atts_types]  #Note - assuming only split on categorical vars
     #Set whether we iterate through env_atts as PCPs
-    if takeout_envs:
-        allowed_datts = {cat:d_atts[cat] for cat in d_atts.keys() if cat not in env_atts_types}
-    else:
-        allowed_datts = d_atts
-
-    #Clean data to make sure no cases where some environments are too low
-
+    allowed_datts = {cat:d_atts[cat] for cat in d_atts.keys() if cat not in env_atts_types}
 
     logging.info('{} environment attributes'.format(len(env_atts)))
     logging.debug('Environment attributes are ' + str(env_atts))
@@ -147,6 +153,10 @@ def default(d_fname, env_atts_types, alpha='(0.05)', feateng_type=[], \
 
     #First, figure out the available individuals in each environment strat
     #Compute & store the e_in for each environment
+    import pprint
+    pprint.pprint(list(itertools.product(*env_atts)))
+    assert False 
+
     e_ins_store = {}
     for env in itertools.product(*env_atts):
         dummy_envs = []
@@ -300,7 +310,6 @@ if __name__ == '__main__':
     parser.add_argument("-early_stopping", type=int, required=True)
     parser.add_argument("-reduce_dsize", type=int, default=-1)
     parser.add_argument("-binarize", type=int, required=True)
-    parser.add_argument("-takeout_envs", type=int, required=True)
     parser.add_argument("-eq_estrat", type=int, default=-1)
     parser.add_argument("-seed", type=int, default=100)
     parser.add_argument("--testing", action='store_true')
@@ -316,7 +325,6 @@ if __name__ == '__main__':
         print("early_stopping?:", args.early_stopping)
         print("d_size:", args.reduce_dsize)
         print("binarize?:", args.binarize)
-        print("takeout_envs?:", args.takeout_envs)
         print("eq_estrat?:", args.eq_estrat)
         print("seed?:", args.seed)
         print("testing?:", args.testing)
@@ -325,5 +333,5 @@ if __name__ == '__main__':
     default(args.data_fname, args.env_atts, alpha=args.alpha, feateng_type=[int(c) for c in args.feat_eng], \
             logger_fname=args.log_fname, rawres_fname=args.rawres_fname, \
             e_stop=bool(args.early_stopping), d_size=args.reduce_dsize, \
-            bin_env=bool(args.binarize), takeout_envs=args.takeout_envs, \
+            bin_env=bool(args.binarize),  \
             eq_estrat=args.eq_estrat, SEED=args.seed, testing=args.testing)
