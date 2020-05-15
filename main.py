@@ -83,28 +83,65 @@ def mean_var_test(x, y):
 
     return 2 * min(pvalue_mean, pvalue_var2)
 #########################################
-# def get_environments():
-#     '''Get the  '''
-#     #First, figure out the available individuals in each environment strat
-#     #Compute & store the e_in for each environment
-#     e_ins_store = {}
-#     for env in itertools.product(*env_atts):
-#         dummy_envs = []
-#         live_envs = []
-#         for att in env:
-#             if '_DUMmY' in att:
-#                 dummy_envs = [d for d in d_atts[att.split('_')[0]] if d != att]
-#             else:
-#                 live_envs.append(att)
-#
-#         #Compute e_in without error
-#         if not dummy_envs:
-#             e_in = ((data[live_envs] == 1)).all(1)
-#         elif not live_envs:
-#             e_in = ((data[dummy_envs] == 0)).all(1)
-#         else:
-#             e_in = ((data[live_envs] == 1).all(1) & (data[dummy_envs] == 0).all(1))
-#         e_ins_store[str(env)] = e_in
+def get_environments(df, e):
+    '''Compute values of df satisfying each environment in e
+
+    :param df: Pandas df of dataset without labels
+    :param e: Dictionary of {base_cat:[all assoc df columns]} for all speicfied
+              environments. Excludes columns of transformed features
+    :return store: Dict of {env:e_in_values}
+    '''
+
+    store = {}
+    for env in itertools.product(*[e[cat] for cat in e]):
+        #Get the stratification columns associated with env
+        dummy_atts = []
+        live_atts = []
+        for att in env:
+            if '_DUMmY' in att:
+                dummy_atts = [a for a in e[att.split('_')[0]] if '_DUMmY' not in a]
+            else:
+                live_atts.append(att)
+
+        #Compute e_in
+        if not dummy_atts:
+            e_in = ((df[live_atts] == 1)).all(1)
+        elif not live_atts:
+            e_in = ((df[dummy_atts] == 0)).all(1)
+        else:
+            e_in = ((df[live_atts] == 1).all(1) & (df[dummy_atts] == 0).all(1))
+        store[env] = e_in
+    return store
+
+def equalize_strats(store, threshold, dlen, seed):
+    '''Preprocess all e_ins to have the same number of samples_wanted
+    :param store: {env:e_in}, where env is tuple of df cols, e_in is series of
+                  True/False vals for each row of the df's inclusion in env
+    :param threshold: minimum number of samples in each strat
+    :param: length of dataset
+    :return None: Modify store e_in values
+    '''
+
+    #Normalize operation on e_ins
+
+    sizes = []
+    for env in store:
+        sizes.append(store[env].sum())
+
+    if (min(sizes) < threshold) or \
+           (max(sizes) > (dlen - threshold)) : #Check if normalization broken
+        logging.error('Environment Stratification Below Threshold')
+        for env, e_in in store:
+            logging.error('{} : {}'.format(env, store[env].sum()))
+        assert True == False
+
+    for env in store: #Now normalize with min samples
+        raw = store[env].to_frame(name='vals')
+        chosen_cols = raw[raw['vals'] == True].sample(min(sizes), random_state=seed)
+        raw.loc[:,:] = False
+        raw.update(chosen_cols)
+        store[env] = raw.squeeze()
+
 
 
 #########################################
@@ -134,18 +171,28 @@ def default(d_fname, env_atts_types, alpha='(0.05)', feateng_type=[], \
     logging.info('{} Dataset loaded - size {}'.format(d_fname.split('/')[-1], \
                 str(data.shape)))
 
-
-    a_list = alpha_2_range(alpha)
-    accepted_subsets = {a:[] for a in a_list}
-
-    env_atts = [d_atts[cat] for cat in env_atts_types]  #Note - assuming only split on categorical vars
-    #Set whether we iterate through env_atts as PCPs
+    #Set allowable datts as PCPs
     allowed_datts = {cat:d_atts[cat] for cat in d_atts.keys() if cat not in env_atts_types}
 
-    logging.info('{} environment attributes'.format(len(env_atts)))
-    logging.debug('Environment attributes are ' + str(env_atts))
+    #Generate Environments     (assuming only cat vars)
+    e_ins_store = get_environments(data, \
+                                  {cat:d_atts[cat] for cat in env_atts_types})
+    logging.info('{} environment attributes'.format(len(e_ins_store)))
+    logging.debug('Environment attributes are '.format(\
+                                        [str(e) for e in e_ins_store.keys()]))
+
+    #Normalize operation on e_ins
+    if eq_estrat != -1:
+        assert eq_estrat > 0
+        equalize_strats(e_ins_store, eq_estrat, data.shape[0], SEED)
+
+
+
+
+    a_list = alpha_2_range(alpha)
     logging.debug('Alphas tested are ' + str(a_list))
-    #coefficients = torch.zeros(data.shape[1])  #regression vector confidence intervals
+    accepted_subsets = {a:[] for a in a_list}
+
     max_pval = 0
     # Setup rawres
     full_res = {}
@@ -153,52 +200,63 @@ def default(d_fname, env_atts_types, alpha='(0.05)', feateng_type=[], \
 
     #First, figure out the available individuals in each environment strat
     #Compute & store the e_in for each environment
-    import pprint
-    pprint.pprint(list(itertools.product(*env_atts)))
-    assert False 
 
-    e_ins_store = {}
-    for env in itertools.product(*env_atts):
-        dummy_envs = []
-        live_envs = []
-        for att in env:
-            if '_DUMmY' in att:
-                dummy_envs = [d for d in d_atts[att.split('_')[0]] if d != att]
-            else:
-                live_envs.append(att)
+    # e_ins_store = {}
+    # for env in itertools.product(*env_atts):
+    #     dummy_envs = []
+    #     live_envs = []
+    #     for att in env:
+    #         if '_DUMmY' in att:
+    #             dummy_envs = [d for d in d_atts[att.split('_')[0]] if d != att]
+    #         else:
+    #             live_envs.append(att)
+    #
+    #     #Compute e_in without error
+    #     if not dummy_envs:
+    #         e_in = ((data[live_envs] == 1)).all(1)
+    #     elif not live_envs:
+    #         e_in = ((data[dummy_envs] == 0)).all(1)
+    #     else:
+    #         e_in = ((data[live_envs] == 1).all(1) & (data[dummy_envs] == 0).all(1))
+    #     e_ins_store[env] = e_in
+    #
+    # assert len(e_ins_store) == len(e_ins_store_test)
+    # for i in e_ins_store.keys():
+    #     assert e_ins_store[i].equals(e_ins_store_test[i])
+    # assert False
 
-        #Compute e_in without error
-        if not dummy_envs:
-            e_in = ((data[live_envs] == 1)).all(1)
-        elif not live_envs:
-            e_in = ((data[dummy_envs] == 0)).all(1)
-        else:
-            e_in = ((data[live_envs] == 1).all(1) & (data[dummy_envs] == 0).all(1))
-        e_ins_store[str(env)] = e_in
 
-    #Normalize operation on e_ins
-    if eq_estrat != -1:
-        assert eq_estrat > 0
-        sizes = []
-        for env in e_ins_store:
-            sizes.append(e_ins_store[env].sum())
+    #
+    #
+    # if eq_estrat != -1:
+    #     assert eq_estrat > 0
+    #     sizes = []
+    #     for env in e_ins_store:
+    #         sizes.append(e_ins_store[env].sum())
+    #
+    #     if (min(sizes) < eq_estrat) or \
+    #            (max(sizes) > (data.shape[0] - eq_estrat)) : #Check if normalization broken
+    #         logging.error('Environment Stratification Below Threshold')
+    #         for env, e_in in e_ins_store:
+    #             logging.error('{} : {}'.format(env, e_ins_store[env].sum()))
+    #         assert True == False
+    #
+    #     for env in e_ins_store: #Now normalize with min samples
+    #         raw = e_ins_store[env].to_frame(name='vals')
+    #         chosen_cols = raw[raw['vals'] == True].sample(min(sizes), random_state=SEED)
+    #         raw.loc[:,:] = False
+    #         raw.update(chosen_cols)
+    #         e_ins_store[env] = raw.squeeze()
+    #
+    #
+    # assert len(e_ins_store) == len(e_ins_store_test)
+    # for i in e_ins_store.keys():
+    #     assert e_ins_store[i].equals(e_ins_store_test[i])
+    # assert False
 
-        if (min(sizes) < eq_estrat) or \
-               (max(sizes) > (data.shape[0] - eq_estrat)) : #Check if normalization broken
-            logging.error('Environment Stratification Below Threshold')
-            for env, e_in in e_ins_store:
-                logging.error('{} : {}'.format(env, e_ins_store[env].sum()))
-            assert True == False
 
-        for env in e_ins_store: #Now normalize with min samples
-            raw = e_ins_store[env].to_frame(name='vals')
-            chosen_cols = raw[raw['vals'] == True].sample(min(sizes), random_state=SEED)
-            raw.loc[:,:] = False
-            raw.update(chosen_cols)
-            e_ins_store[env] = raw.squeeze()
 
     #Now start enumerating PCPs
-
     with open(rawres_fname, mode='w+') as rawres:
         for i, subset in enumerate(tqdm(powerset(allowed_datts.keys()), desc='pcp_sets',
                            total=len(list(powerset(allowed_datts.keys()))))):  #powerset of PCPs
@@ -231,8 +289,8 @@ def default(d_fname, env_atts_types, alpha='(0.05)', feateng_type=[], \
             reg = LinearRegression(fit_intercept=False).fit(x_s.values, y_all.values)
 
             #Use the normalized e_ins to compute the residuals + Find p_values for every environment
-            for env in itertools.product(*env_atts):
-                e_in = e_ins_store[str(env)]
+            for env in e_ins_store.keys():
+                e_in = e_ins_store[env]
                 e_out = np.logical_not(e_in)
 
                 if (e_in.sum() < 10) or (e_out.sum() < 10) :  #No data from environment
@@ -265,7 +323,7 @@ def default(d_fname, env_atts_types, alpha='(0.05)', feateng_type=[], \
                                                 mean_var_test(res_in, res_out)))
 
             # # TODO: Jonas uses "min(p_values) * len(environments) - 1"
-            full_res[str(subset)]['Final_tstat'] = min([p for p in full_res[str(subset)].values() if type(p) != str]) * len(list(itertools.product(*env_atts)))
+            full_res[str(subset)]['Final_tstat'] = min([p for p in full_res[str(subset)].values() if type(p) != str]) * len(e_ins_store.keys())
 
             any_acc = False
             for a in a_list:
