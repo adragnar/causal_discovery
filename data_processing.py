@@ -15,6 +15,31 @@ from sklearn.model_selection import train_test_split
 
 #import matplotlib.pyplot as plt
 
+def data_loader(fname, fteng, dsize=-1, bin=0, toy=[False], testing=0):
+    '''From dataset name, optional flags, return dataset, labels,
+    and column names
+
+    :param fname - path to dataset (csv)
+    :param fteng - list of ints, dataset transforms
+    :param reduce_size: subsample data -1 for None, val for size of dataset
+    :param bin - binarize environments - 0 for No, 1 for yes
+    :param toy - If not = [False], = [True, data, y_all, d_atts]
+    '''
+    if toy[0] == True:
+        data, y_all, d_atts = toy[1], toy[2], toy[3]
+    elif 'adult' in fname:
+        data, y_all, d_atts = adult_dataset_processing(fname, \
+                              fteng, reduce_dsize=dsize, \
+                              estrat_red=bin, \
+                              testing=testing)
+    elif 'german' in fname:
+        data, y_all, d_atts = german_credit_dataset_processing(fname, \
+                              fteng, estrat_red=bin, \
+                              testing=testing)
+
+    return data, y_all, d_atts
+
+
 def data_conversion(data, categorical_feats, continous_feats, predictor, fteng):
     '''
 

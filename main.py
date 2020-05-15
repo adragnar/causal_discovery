@@ -106,20 +106,25 @@ def default(d_fname, env_atts_types, alpha='(0.05)', feateng_type=[], \
     accepted_subsets = {a:[] for a in a_list}
 
      #Select correct dataset
-    if 'adult' in d_fname:
-        data, y_all, d_atts = dp.adult_dataset_processing(d_fname, \
-                              feateng_type, reduce_dsize=d_size, \
-                              estrat_red=args.binarize, \
-                              testing=testing)
-        logging.info('Adult Dataset loaded - size ' + str(data.shape))
-    elif 'german' in d_fname:
-        data, y_all, d_atts = dp.german_credit_dataset_processing(d_fname, \
-                              feateng_type, estrat_red=args.binarize, \
-                              testing=testing)
-        logging.info('German Dataset loaded - size ' + str(data.shape))
-
-    elif toy_data[0]: #Check if my hacked solution to have data pre-generated
-        data, y_all, d_atts = toy_data[1], toy_data[2], toy_data[3]
+    data, y_all, d_atts = dp.data_loader(d_fname, feateng_type, dsize=d_size, \
+                                    bin=bin_env, toy=toy_data, \
+                                    testing=testing)
+    # if 'adult' in d_fname:
+    #     data, y_all, d_atts = dp.adult_dataset_processing(d_fname, \
+    #                           feateng_type, reduce_dsize=d_size, \
+    #                           estrat_red=args.binarize, \
+    #                           testing=testing)
+    #     logging.info('Adult Dataset loaded - size ' + str(data.shape))
+    # elif 'german' in d_fname:
+    #     data, y_all, d_atts = dp.german_credit_dataset_processing(d_fname, \
+    #                           feateng_type, estrat_red=args.binarize, \
+    #                           testing=testing)
+    #     logging.info('German Dataset loaded - size ' + str(data.shape))
+    logging.info('{} Dataset loaded - size {}'.format(d_fname.split('/')[-1], \
+                str(data.shape)))
+    
+    # elif toy_data[0]: #Check if my hacked solution to have data pre-generated
+    #     data, y_all, d_atts = toy_data[1], toy_data[2], toy_data[3]
 
     env_atts = [d_atts[cat] for cat in env_atts_types]  #Note - assuming only split on categorical vars
     #Set whether we iterate through env_atts as PCPs
