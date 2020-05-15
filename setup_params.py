@@ -33,8 +33,6 @@ def threshold(num):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Params')
-    parser.add_argument('alpha', type=str, \
-                        help='c-interval val')
     parser.add_argument('feat_eng', type=str, \
                         help='c-interval val')
     parser.add_argument('datafname', type=str, \
@@ -47,7 +45,6 @@ if __name__ == '__main__':
                         help="All the environment variables to split on")
 
     parser.add_argument("-envcombos", type=str, required=True)
-    parser.add_argument("-early_stopping", type=int, required=True)
     parser.add_argument("-reduce_dsize", type=int, required=True)
     parser.add_argument("-binarize", type=int, required=True)
     parser.add_argument("-eq_estrat", type=int, default=-1)
@@ -57,7 +54,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.testing:
-        print("alpha:", args.alpha)
         print("feat_eng:", args.feat_eng)
         print("expdir:", args.expdir)
         print("data:", args.datafname)
@@ -66,7 +62,6 @@ if __name__ == '__main__':
         print("envcombo?:", args.envcombos)
         print("d_size:", args.reduce_dsize)
         print("testing?:", args.testing)
-        print("early_stopping?:", args.early_stopping)
         print("binarize?:", args.binarize)
         print("eq_estrat?:", args.eq_estrat)
         print("seed?:", args.seed)
@@ -79,9 +74,8 @@ if __name__ == '__main__':
 
     with open(os.path.join(args.expdir, args.cmdfile), 'a') as f:
         for e in allenvs:
-            uniqueid = '''{alpha}_{feat_eng}_{data}_{d_size}_{seed}_{env_list}'''
+            uniqueid = '''{feat_eng}_{data}_{d_size}_{seed}_{env_list}'''
             uniqueid= uniqueid.format(
-                alpha=args.alpha,
                 feat_eng=args.feat_eng,
                 data=((args.datafname).split('/')[-1]).split('.')[0],  #Note - make all entries camelcase
                 d_size=args.reduce_dsize,
@@ -100,17 +94,15 @@ if __name__ == '__main__':
             spacing = len(list_2_string(e, ' '))
 
             command_str = \
-                '''python main.py {alpha} {feat_eng} {data} {rawres_fname} {log_fname}{e_spacing}{env_list} -early_stopping {e_stop} -reduce_dsize {d_size} -binarize {bin} -eq_estrat {eq} -seed {s}\n'''
+                '''python main.py {feat_eng} {data} {rawres_fname} {log_fname}{e_spacing}{env_list} -reduce_dsize {d_size} -binarize {bin} -eq_estrat {eq} -seed {s}\n'''
 
             command_str = command_str.format(
-                alpha=args.alpha,
                 feat_eng=args.feat_eng,
                 data=args.datafname,
                 rawres_fname=os.path.join(args.expdir, rawres_fname),
                 log_fname=os.path.join(args.expdir, log_fname),
                 e_spacing=(' ' * threshold(len(list_2_string(e, ' ')))),
                 env_list=list_2_string(e, ' '),
-                e_stop=args.early_stopping,
                 d_size=args.reduce_dsize,
                 bin=args.binarize,
                 eq=args.eq_estrat,

@@ -59,20 +59,6 @@ def get_data_regressors(atts, sub, ft_eng, data):
 
     return orig_regressors + one_regressors + two_regressors
 
-def alpha_2_range(alpha):
-    ''' Convert encoded alpha values into range to test
-    :param: alpha of form 'start,end,step' or '(list of alphas)'
-    '''
-    if ('range' in alpha):
-        alpha = [float(a) for a in alpha.split('-')[1:]]
-        a_list = []
-        for i in np.linspace(alpha[0], alpha[1], ((alpha[1] - alpha[0])/alpha[2])):
-            a_list.append(float(i))
-    else:
-        a_list = [float(a) for a in alpha.split('-')]
-    return a_list
-
-
 def mean_var_test(x, y):
     pvalue_mean = ttest_ind(x, y, equal_var=False).pvalue
     pvalue_var1 = 1 - fdist.cdf(np.var(x, ddof=1) / np.var(y, ddof=1),
@@ -145,8 +131,8 @@ def equalize_strats(store, threshold, dlen, seed):
 
 
 #########################################
-def default(d_fname, env_atts_types, alpha='(0.05)', feateng_type=[], \
-            logger_fname='rando.txt', e_stop=True, rawres_fname='rando2.txt', \
+def default(d_fname, env_atts_types, feateng_type=[], \
+            logger_fname='rando.txt', rawres_fname='rando2.txt', \
             d_size=-1, bin_env=False, eq_estrat=-1, SEED=100,
             toy_data=[False], testing=False):
 
@@ -154,7 +140,6 @@ def default(d_fname, env_atts_types, alpha='(0.05)', feateng_type=[], \
 
     :param d_fname:
     :param env_atts:
-    :param alpha:
     :param feateng_type: The particular preprocess methodology
     :param logger: filepath to log file
     '''
@@ -185,17 +170,6 @@ def default(d_fname, env_atts_types, alpha='(0.05)', feateng_type=[], \
     if eq_estrat != -1:
         assert eq_estrat > 0
         equalize_strats(e_ins_store, eq_estrat, data.shape[0], SEED)
-
-
-
-
-    a_list = alpha_2_range(alpha)
-    logging.debug('Alphas tested are ' + str(a_list))
-    accepted_subsets = {a:[] for a in a_list}
-
-    max_pval = 0
-    # Setup rawres
-    full_res = {}
 
 
     #First, figure out the available individuals in each environment strat
@@ -257,6 +231,7 @@ def default(d_fname, env_atts_types, alpha='(0.05)', feateng_type=[], \
 
 
     #Now start enumerating PCPs
+    full_res = {}
     with open(rawres_fname, mode='w+') as rawres:
         for i, subset in enumerate(tqdm(powerset(allowed_datts.keys()), desc='pcp_sets',
                            total=len(list(powerset(allowed_datts.keys()))))):  #powerset of PCPs
@@ -267,20 +242,6 @@ def default(d_fname, env_atts_types, alpha='(0.05)', feateng_type=[], \
             #Check for empty set
             if not subset:
                 continue
-
-            #Check if 2 ME subsets have been accepted
-            if e_stop:
-                if not a_list:  #Check if any remaining alphas
-                    break
-                else:  #See if any ME subsets accepted
-                    del_list = []
-                    for a in a_list:
-                        if (len(accepted_subsets[a]) > 0) and \
-                                (set.intersection(*(accepted_subsets[a])) == set()):
-                            logging.info('Null Hyp accepted from MECE subsets for alpha={}'.format(a))
-                            del_list.append(a)
-                    for a in del_list:
-                        a_list.remove(a)
 
 
             #Linear regression on all data
@@ -325,14 +286,6 @@ def default(d_fname, env_atts_types, alpha='(0.05)', feateng_type=[], \
             # # TODO: Jonas uses "min(p_values) * len(environments) - 1"
             full_res[str(subset)]['Final_tstat'] = min([p for p in full_res[str(subset)].values() if type(p) != str]) * len(e_ins_store.keys())
 
-            any_acc = False
-            for a in a_list:
-                if full_res[str(subset)]['Final_tstat'] > a:
-                    accepted_subsets[a].append(set(subset))
-                    logging.info('Subset Accepted for alpha={}'.format(a))
-                    any_acc = True
-            if any_acc:
-                logging.info('Interation_{}'.format(i))
         logging.info('Enumerated all steps')
 
         #Save results
@@ -352,8 +305,6 @@ def default(d_fname, env_atts_types, alpha='(0.05)', feateng_type=[], \
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Params')
-    parser.add_argument("alpha", type=str, \
-                        help="significance level for PCP acceptance")
     parser.add_argument("feat_eng", type=str, \
                         help="each digit id of diff feat engineering")
     parser.add_argument("data_fname", type=str,
@@ -365,7 +316,6 @@ if __name__ == '__main__':
     parser.add_argument('env_atts', nargs='+',  \
                         help='atts categorical defining envs')
 
-    parser.add_argument("-early_stopping", type=int, required=True)
     parser.add_argument("-reduce_dsize", type=int, default=-1)
     parser.add_argument("-binarize", type=int, required=True)
     parser.add_argument("-eq_estrat", type=int, default=-1)
@@ -374,13 +324,11 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.testing:
-        print("alpha:", args.alpha)
         print("feat_eng:", args.feat_eng)
         print("data:", args.data_fname)
         print("rawres:", args.rawres_fname)
         print("log:", args.log_fname)
         print("env_list:", args.env_atts)
-        print("early_stopping?:", args.early_stopping)
         print("d_size:", args.reduce_dsize)
         print("binarize?:", args.binarize)
         print("eq_estrat?:", args.eq_estrat)
@@ -388,8 +336,8 @@ if __name__ == '__main__':
         print("testing?:", args.testing)
         quit()
 
-    default(args.data_fname, args.env_atts, alpha=args.alpha, feateng_type=[int(c) for c in args.feat_eng], \
+    default(args.data_fname, args.env_atts, feateng_type=[int(c) for c in args.feat_eng], \
             logger_fname=args.log_fname, rawres_fname=args.rawres_fname, \
-            e_stop=bool(args.early_stopping), d_size=args.reduce_dsize, \
+             d_size=args.reduce_dsize, \
             bin_env=bool(args.binarize),  \
             eq_estrat=args.eq_estrat, SEED=args.seed, testing=args.testing)
