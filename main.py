@@ -86,7 +86,7 @@ def mean_var_test(x, y):
 def default(d_fname, env_atts_types, alpha='(0.05)', feateng_type=[], \
             logger_fname='rando.txt', e_stop=True, rawres_fname='rando2.txt', \
             d_size=-1, bin_env=False, takeout_envs=False, eq_estrat=-1, SEED=100,
-            testing=False):
+            toy_data=[False], testing=False):
 
     '''
 
@@ -96,6 +96,7 @@ def default(d_fname, env_atts_types, alpha='(0.05)', feateng_type=[], \
     :param feateng_type: The particular preprocess methodology
     :param logger: filepath to log file
     '''
+
     random.seed(SEED)
 
     #Meta-function Accounting
@@ -117,6 +118,8 @@ def default(d_fname, env_atts_types, alpha='(0.05)', feateng_type=[], \
                               testing=testing)
         logging.info('German Dataset loaded - size ' + str(data.shape))
 
+    elif toy_data[0]: #Check if my hacked solution to have data pre-generated
+        data, y_all, d_atts = toy_data[1], toy_data[2], toy_data[3]
 
     env_atts = [d_atts[cat] for cat in env_atts_types]  #Note - assuming only split on categorical vars
     #Set whether we iterate through env_atts as PCPs
@@ -240,7 +243,11 @@ def default(d_fname, env_atts_types, alpha='(0.05)', feateng_type=[], \
                 else:
                     full_res[str(subset)][str(env)] = mean_var_test(res_in,
                                                                     res_out)
-
+                print(subset)
+                if ('E' in subset) and ('R' not in subset):
+                    logging.warning('{}, {}, {}'.format(str(res_in.sum()), \
+                                                str(res_out.sum()),
+                                                mean_var_test(res_in, res_out)))
 
             # # TODO: Jonas uses "min(p_values) * len(environments) - 1"
             full_res[str(subset)]['Final_tstat'] = min([p for p in full_res[str(subset)].values() if type(p) != str]) * len(list(itertools.product(*env_atts)))
