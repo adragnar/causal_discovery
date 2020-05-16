@@ -108,8 +108,6 @@ def equalize_strats(store, threshold, dlen, seed):
     :return None: Modify store e_in values
     '''
 
-    #Normalize operation on e_ins
-
     sizes = []
     for env in store:
         sizes.append(store[env].sum())
@@ -131,14 +129,14 @@ def equalize_strats(store, threshold, dlen, seed):
 
 
 #########################################
-def default(d_fname, env_atts_types, feateng_type=[], \
+def default(dataset_fname, env_atts_types, feateng_type=[], \
             logger_fname='rando.txt', rawres_fname='rando2.txt', \
             d_size=-1, bin_env=False, eq_estrat=-1, SEED=100,
             toy_data=[False], testing=False):
 
     '''
 
-    :param d_fname:
+    :param dataset_fname:
     :param env_atts:
     :param feateng_type: The particular preprocess methodology
     :param logger: filepath to log file
@@ -151,9 +149,9 @@ def default(d_fname, env_atts_types, feateng_type=[], \
 
 
      #Select correct dataset
-    data, y_all, d_atts = dp.data_loader(d_fname, feateng_type, dsize=d_size, \
+    data, y_all, d_atts = dp.data_loader(dataset_fname, feateng_type, dsize=d_size, \
                                     bin=bin_env, toy=toy_data, testing=testing)
-    logging.info('{} Dataset loaded - size {}'.format(d_fname.split('/')[-1], \
+    logging.info('{} Dataset loaded - size {}'.format(dataset_fname.split('/')[-1], \
                 str(data.shape)))
 
     #Set allowable datts as PCPs
@@ -170,64 +168,6 @@ def default(d_fname, env_atts_types, feateng_type=[], \
     if eq_estrat != -1:
         assert eq_estrat > 0
         equalize_strats(e_ins_store, eq_estrat, data.shape[0], SEED)
-
-
-    #First, figure out the available individuals in each environment strat
-    #Compute & store the e_in for each environment
-
-    # e_ins_store = {}
-    # for env in itertools.product(*env_atts):
-    #     dummy_envs = []
-    #     live_envs = []
-    #     for att in env:
-    #         if '_DUMmY' in att:
-    #             dummy_envs = [d for d in d_atts[att.split('_')[0]] if d != att]
-    #         else:
-    #             live_envs.append(att)
-    #
-    #     #Compute e_in without error
-    #     if not dummy_envs:
-    #         e_in = ((data[live_envs] == 1)).all(1)
-    #     elif not live_envs:
-    #         e_in = ((data[dummy_envs] == 0)).all(1)
-    #     else:
-    #         e_in = ((data[live_envs] == 1).all(1) & (data[dummy_envs] == 0).all(1))
-    #     e_ins_store[env] = e_in
-    #
-    # assert len(e_ins_store) == len(e_ins_store_test)
-    # for i in e_ins_store.keys():
-    #     assert e_ins_store[i].equals(e_ins_store_test[i])
-    # assert False
-
-
-    #
-    #
-    # if eq_estrat != -1:
-    #     assert eq_estrat > 0
-    #     sizes = []
-    #     for env in e_ins_store:
-    #         sizes.append(e_ins_store[env].sum())
-    #
-    #     if (min(sizes) < eq_estrat) or \
-    #            (max(sizes) > (data.shape[0] - eq_estrat)) : #Check if normalization broken
-    #         logging.error('Environment Stratification Below Threshold')
-    #         for env, e_in in e_ins_store:
-    #             logging.error('{} : {}'.format(env, e_ins_store[env].sum()))
-    #         assert True == False
-    #
-    #     for env in e_ins_store: #Now normalize with min samples
-    #         raw = e_ins_store[env].to_frame(name='vals')
-    #         chosen_cols = raw[raw['vals'] == True].sample(min(sizes), random_state=SEED)
-    #         raw.loc[:,:] = False
-    #         raw.update(chosen_cols)
-    #         e_ins_store[env] = raw.squeeze()
-    #
-    #
-    # assert len(e_ins_store) == len(e_ins_store_test)
-    # for i in e_ins_store.keys():
-    #     assert e_ins_store[i].equals(e_ins_store_test[i])
-    # assert False
-
 
 
     #Now start enumerating PCPs
@@ -269,19 +209,9 @@ def default(d_fname, env_atts_types, feateng_type=[], \
                 if (mean_var_test(res_in, res_out) is np.nan) or \
                 (mean_var_test(res_in, res_out) != mean_var_test(res_in, res_out)):
                     full_res[str(subset)][str(env)] = 'NaN'
-                    continue
-                    # print(env)
-                    # pickle.dump(res_in, open('res_in.txt', 'wb'))
-                    # pickle.dump(res_out, open('res_out.txt', 'wb'))
-                    # quit()
                 else:
                     full_res[str(subset)][str(env)] = mean_var_test(res_in,
                                                                     res_out)
-                print(subset)
-                if ('E' in subset) and ('R' not in subset):
-                    logging.warning('{}, {}, {}'.format(str(res_in.sum()), \
-                                                str(res_out.sum()),
-                                                mean_var_test(res_in, res_out)))
 
             # # TODO: Jonas uses "min(p_values) * len(environments) - 1"
             full_res[str(subset)]['Final_tstat'] = min([p for p in full_res[str(subset)].values() if type(p) != str]) * len(e_ins_store.keys())
@@ -291,17 +221,6 @@ def default(d_fname, env_atts_types, feateng_type=[], \
         #Save results
         json.dump(full_res, rawres, indent=4, separators=(',',':'))
 
-
-    # if args["verbose"]:
-    #     print("Intersection:", accepted_features)
-    # coefficients = np.zeros(data.shape[1])
-    #
-    # if len(accepted_features):
-    #     x_s = x_all[:, list(accepted_features)]
-    #     reg = LinearRegression(fit_intercept=False).fit(x_s, y_all)
-    #     self.coefficients[list(accepted_features)] = reg.coef_
-    #
-    # self.coefficients = torch.Tensor(self.coefficients)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Params')
