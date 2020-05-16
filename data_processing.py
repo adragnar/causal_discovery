@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 from sklearn.model_selection import train_test_split
+from utils import dname_from_fpath
 
 # from model import MultiLayerPerceptron
 # from dataset import AdultDataset
@@ -27,12 +28,12 @@ def data_loader(fname, fteng, dsize=-1, bin=0, toy=[False], testing=0):
     '''
     if toy[0] == True:
         data, y_all, d_atts = toy[1], toy[2], toy[3]
-    elif 'adult' in fname:
+    elif dname_from_fpath(fname) == 'adult':
         data, y_all, d_atts = adult_dataset_processing(fname, \
                               fteng, reduce_dsize=dsize, \
                               estrat_red=bin, \
                               testing=testing)
-    elif 'german' in fname:
+    elif dname_from_fpath(fname) == 'german':
         data, y_all, d_atts = german_credit_dataset_processing(fname, \
                               fteng, estrat_red=bin, \
                               testing=testing)

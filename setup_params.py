@@ -82,8 +82,6 @@ if __name__ == '__main__':
                 seed=args.seed,
                 env_list=list_2_string(e, '--')
             )
-            rawres_fname = 'rawres_{}.json'.format(uniqueid)
-            log_fname = 'log_{}.txt'.format(uniqueid)
 
             if args.testing:
                 print(uniqueid)
@@ -94,13 +92,12 @@ if __name__ == '__main__':
             spacing = len(list_2_string(e, ' '))
 
             command_str = \
-                '''python main.py {feat_eng} {data} {rawres_fname} {log_fname}{e_spacing}{env_list} -reduce_dsize {d_size} -binarize {bin} -eq_estrat {eq} -seed {s}\n'''
+                '''python main.py {feat_eng} {data} {expdir}{e_spacing}{env_list} -reduce_dsize {d_size} -binarize {bin} -eq_estrat {eq} -seed {s}\n'''
 
             command_str = command_str.format(
                 feat_eng=args.feat_eng,
                 data=args.datafname,
-                rawres_fname=os.path.join(args.expdir, rawres_fname),
-                log_fname=os.path.join(args.expdir, log_fname),
+                expdir=args.expdir,
                 e_spacing=(' ' * threshold(len(list_2_string(e, ' ')))),
                 env_list=list_2_string(e, ' '),
                 d_size=args.reduce_dsize,

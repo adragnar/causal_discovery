@@ -4,13 +4,14 @@ import pickle
 import itertools
 import json
 import logging
+import os
 from sklearn.linear_model import LinearRegression
 import warnings
 import pandas as pd
 from tqdm import tqdm
 from itertools import combinations
 
-from utils import powerset
+from utils import powerset, dname_from_fpath
 import data_processing as dp
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
@@ -129,8 +130,7 @@ def equalize_strats(store, threshold, dlen, seed):
 
 
 #########################################
-def default(dataset_fname, env_atts_types, feateng_type=[], \
-            logger_fname='rando.txt', rawres_fname='rando2.txt', \
+def default(dataset_fname, expdir, env_atts_types, feateng_type=[], \
             d_size=-1, bin_env=False, eq_estrat=-1, SEED=100,
             toy_data=[False], testing=False):
 
@@ -145,6 +145,15 @@ def default(dataset_fname, env_atts_types, feateng_type=[], \
     random.seed(SEED)
 
     #Meta-function Accounting
+    unid = '''{}_{}_{}_{}_{}'''.format(''.join([str(f) for f in feateng_type]),\
+                                       dname_from_fpath(dataset_fname), \
+                                       str(d_size), \
+                                       str(SEED), \
+                                       ''.join([str(f) for f in env_atts_types])
+                                       )
+    logger_fname = os.path.join(expdir, 'log_{}.txt'.format(unid))
+    rawres_fname = os.path.join(expdir, 'rawres_{}.json'.format(unid))
+
     logging.basicConfig(filename=logger_fname, level=logging.DEBUG)
 
 
@@ -161,8 +170,8 @@ def default(dataset_fname, env_atts_types, feateng_type=[], \
     e_ins_store = get_environments(data, \
                                   {cat:d_atts[cat] for cat in env_atts_types})
     logging.info('{} environment attributes'.format(len(e_ins_store)))
-    logging.debug('Environment attributes are '.format(\
-                                        [str(e) for e in e_ins_store.keys()]))
+    logging.debug('Environment attributes are {}'.format( \
+                                        str([str(e) for e in e_ins_store.keys()])))
 
     #Normalize operation on e_ins
     if eq_estrat != -1:
@@ -173,7 +182,7 @@ def default(dataset_fname, env_atts_types, feateng_type=[], \
     #Now start enumerating PCPs
     full_res = {}
     with open(rawres_fname, mode='w+') as rawres:
-        for i, subset in enumerate(tqdm(powerset(allowed_datts.keys()), desc='pcp_sets',
+        for i, subset in enumerate(tqdm(powerset(allowed_datts.keys())[:10], desc='pcp_sets',
                            total=len(list(powerset(allowed_datts.keys()))))):  #powerset of PCPs
 
             #Setup raw result logging
@@ -228,10 +237,8 @@ if __name__ == '__main__':
                         help="each digit id of diff feat engineering")
     parser.add_argument("data_fname", type=str,
                         help="filename adult.csv")
-    parser.add_argument("rawres_fname", type=str, default=None,
-                        help="filename saving raw results")
-    parser.add_argument("log_fname", type=str, default=None,
-                        help="filename saving log")
+    parser.add_argument("expdir", type=str, default=None,
+                        help="path to location to save files")
     parser.add_argument('env_atts', nargs='+',  \
                         help='atts categorical defining envs')
 
@@ -245,8 +252,7 @@ if __name__ == '__main__':
     if args.testing:
         print("feat_eng:", args.feat_eng)
         print("data:", args.data_fname)
-        print("rawres:", args.rawres_fname)
-        print("log:", args.log_fname)
+        print("expdir:", args.expdir)
         print("env_list:", args.env_atts)
         print("d_size:", args.reduce_dsize)
         print("binarize?:", args.binarize)
@@ -255,8 +261,7 @@ if __name__ == '__main__':
         print("testing?:", args.testing)
         quit()
 
-    default(args.data_fname, args.env_atts, feateng_type=[int(c) for c in args.feat_eng], \
-            logger_fname=args.log_fname, rawres_fname=args.rawres_fname, \
-             d_size=args.reduce_dsize, \
+    default(args.data_fname, args.expdir, args.env_atts, feateng_type=[int(c) for c in args.feat_eng], \
+            d_size=args.reduce_dsize, \
             bin_env=bool(args.binarize),  \
             eq_estrat=args.eq_estrat, SEED=args.seed, testing=args.testing)
