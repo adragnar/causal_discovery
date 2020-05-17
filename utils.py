@@ -14,3 +14,7 @@ def dname_from_fpath(fpath):
         return 'germanCredit'
 
     raise Exception('Dataset Not Included')
+
+def pretty(vector):
+    vlist = vector.view(-1).tolist()
+    return "[" + ", ".join("{:+.4f}".format(vi) for vi in vlist) + "]"

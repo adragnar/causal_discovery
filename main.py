@@ -23,7 +23,7 @@ from scipy.stats import f as fdist
 from scipy.stats import ttest_ind
 
 import random
-from models import InvariantCausalPrediction
+import models
 
 def default(dataset_fname, expdir, env_atts_types, feateng_type=[], \
             d_size=-1, bin_env=False, eq_estrat=-1, SEED=100,
@@ -56,8 +56,11 @@ def default(dataset_fname, expdir, env_atts_types, feateng_type=[], \
     logging.info('{} Dataset loaded - size {}'.format(dataset_fname.split('/')[-1], \
                 str(data.shape)))
 
-    icp = InvariantCausalPrediction()
-    icp.run(data, y_all, d_atts, unid, expdir, feateng_type, SEED, env_atts_types, eq_estrat)
+    # icp = models.InvariantCausalPrediction()
+    # icp.run(data, y_all, d_atts, unid, expdir, feateng_type, SEED, env_atts_types, eq_estrat)
+
+    irm = models.InvariantRiskMinimization()
+    irm.run(data, y_all, d_atts, unid, expdir, SEED, env_atts_types, eq_estrat)
 
 
 if __name__ == '__main__':
