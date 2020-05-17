@@ -153,7 +153,7 @@ class InvariantRiskMinimization(InvarianceBase):
             self.equalize_strats(e_ins_store, eq_estrat, data.shape[0], seed)
 
         #Now start with IRM itself
-        reg = [0]  #, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1]
+        reg = [0, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1]
         val_env = random.sample(set(e_ins_store.keys()), 1)[0]
         val_ein = e_ins_store.pop(val_env)
         val_data = torch.from_numpy(data.loc[val_ein].values).float()

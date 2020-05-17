@@ -3,8 +3,30 @@ commands with all combinations of argument inputs '''
 
 import argparse
 import itertools
+import pandas as pd
 import os
 import utils
+
+def unid_from_algo(id, a=None, data=None, env=None):
+    '''Generate name of experiment filename descriptor
+    :param id: Unique numerical identiifer
+    :param a: Name of algo used (String)
+    :param feat: Feature modifications on dset (string)
+    :param data: Filepath to dataset (string)
+    :param env: The env names to be included (list)
+    '''
+
+    if (a == 'icp') or (a == 'irm'):
+        uniqueid = '''{id}_{algo}_{data}_{env_list}'''
+        uniqueid= uniqueid.format(
+            id=id,
+            algo=a,
+            data=utils.dname_from_fpath(data),
+            env_list=list_2_string(e, '--')
+        )
+    else:
+        raise Exception('Unimplemented Dataset')
+    return uniqueid
 
 def list_2_string(elems, bchar):
     '''
@@ -33,6 +55,10 @@ def threshold(num):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Params')
+    parser.add_argument('id', type=str, \
+                        help='unique id of exp')
+    parser.add_argument('algo', type=str, \
+                        help='prediciton algo used')
     parser.add_argument('feat_eng', type=str, \
                         help='c-interval val')
     parser.add_argument('datafname', type=str, \
@@ -41,6 +67,8 @@ if __name__ == '__main__':
                         help='where dir is')
     parser.add_argument("cmdfile", type=str, \
                        help="filename to write all commands")
+    parser.add_argument("paramfile", type=str, \
+                       help="filename of pickled padas df storing hyperparams")
     parser.add_argument("env_list", nargs='+', \
                         help="All the environment variables to split on")
 
@@ -54,10 +82,13 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.testing:
+        print("id:", args.id)
+        print("algo:", args.algo)
         print("feat_eng:", args.feat_eng)
         print("expdir:", args.expdir)
         print("data:", args.datafname)
         print("cmdfile:", args.cmdfile)
+        print("paramfile:", args.paramfile)
         print("env_list:", args.env_list)
         print("envcombo?:", args.envcombos)
         print("d_size:", args.reduce_dsize)
@@ -72,25 +103,19 @@ if __name__ == '__main__':
     elif args.envcombos == 'single':
         allenvs = [[a] for a in args.env_list]
 
-    with open(os.path.join(args.expdir, args.cmdfile), 'a') as f:
-        for e in allenvs:
-            uniqueid = '''{feat_eng}_{data}_{d_size}_{seed}_{env_list}'''
-            uniqueid= uniqueid.format(
-                feat_eng=args.feat_eng,
-                data=((args.datafname).split('/')[-1]).split('.')[0],  #Note - make all entries camelcase
-                d_size=args.reduce_dsize,
-                seed=args.seed,
-                env_list=list_2_string(e, '--')
-            )
+    for i, e in enumerate(allenvs):
+        id = str(int(args.id) + i)
+        uniqueid = unid_from_algo(id, a=args.algo, \
+                                  data=args.datafname, env=e)
 
-            if args.testing:
-                print(uniqueid)
-                print(((args.datafname).split('/')[-1]))
-                quit()
+        if args.testing:
+            print(uniqueid)
+            print(((args.datafname).split('/')[-1]))
+            quit()
 
-
+        #Write Exp Command to commandfile
+        with open(args.cmdfile, 'a') as f:
             spacing = len(list_2_string(e, ' '))
-
             command_str = \
                 '''python main.py {feat_eng} {data} {expdir}{e_spacing}{env_list} -reduce_dsize {d_size} -binarize {bin} -eq_estrat {eq} -seed {s}\n'''
 
@@ -105,122 +130,30 @@ if __name__ == '__main__':
                 eq=args.eq_estrat,
                 s=args.seed
             )
-
-
             f.write(command_str)
 
+        #Log Parameters in Datafame
+        addnxt = pd.DataFrame([id, args.algo, args.feat_eng, \
+        utils.dname_from_fpath(args.datafname), args.seed, args.reduce_dsize, \
+        args.binarize, args.eq_estrat, list_2_string(e, ' ')]).T
+        if i == 0:
+            add = addnxt
+        else:
+             add = add.append(addnxt)
 
+    #Save parameters in dataframe
+    try:
+        param_df = pd.read_pickle(args.paramfile)
+        add.columns = param_df.columns
+        param_df = param_df.append(add)
+        pd.to_pickle(param_df, args.paramfile)
 
-
-
-
-
-
-    # with open(os.path.join(args.expdir, args.cmdfile), 'w+') as cmdf:
-    #     command_str = \
-    #         '''
-    #         python {script}
-    #           --logdir {logdir}
-    #         '''
-    #
-    #     print(command_str.format(
-    #         script='my_script.py',
-    #         logdir=random.random()
-    #     ))
-
-
-    # parser = argparse.ArgumentParser(description='Params')
-    # parser.add_argument('alpha', type=float, \
-    #                     help='c-interval val')
-    # parser.add_argument('feat_eng', type=str, \
-    #                     help='c-interval val')
-    # parser.add_argument('datafname', type=str, \
-    #                     help='adult.csv')
-    # parser.add_argument('subsetfname', type=str, \
-    #                     help='fname to write subsets')
-    # parser.add_argument('featurefname', type=str, \
-    #                     help='fname to write features')
-    # parser.add_argument("cmdfile", type=str, \
-    #                    help="filename to write all commands")
-    # parser.add_argument('log_fname', type=str, \
-    #                     help='fname to write log')
-    # parser.add_argument("p_list", nargs='+', \
-    #                     help="All the environment variables to split on")
-    #
-    #
-    # args = parser.parse_args()
-    #
-    # with open(args.cmdfile, 'w+') as f:
-    #     for combolength in range(0, len(args.p_list) + 1):
-    #         for subset in itertools.combinations(args.p_list, combolength):
-    #             #First set up the env attribute args
-    #             e_args = ' '
-    #             for elem in subset:
-    #                 e_args = e_args + str(elem) + ' '
-    #             e_args = e_args[:-1]  # CANNOT be trailing ws for xargs
-    #
-    #             #Now set up the proper result filenames for different env_vars
-    #             new_subsetfname = args.subsetfname.split('.txt')[0] + \
-    #                               e_args.replace(' ', '_') \
-    #                               + '.txt'
-    #
-    #             new_featurefname = args.featurefname.split('.txt')[0] + \
-    #                               e_args.replace(' ', '_') \
-    #                               + '.txt'
-    #
-    #
-    #             cmd = 'python main.py ' + ' ' \
-    #                   + str(args.alpha) + ' ' \
-    #                   + str(args.feat_eng) + ' ' \
-    #                   + args.datafname + ' ' \
-    #                   + new_subsetfname + ' ' \
-    #                   + new_featurefname + ' ' \
-    #                   + args.log_fname + ' ' \
-    #                   + e_args + '\n'  #Note - no space ever allowed before \n
-    #
-    #             #Deal with optiona arguments
-    #             # if args.log_fname is not None:
-    #             #     cmd = cmd[:-1] + ' --log_fname' + ' ' + args.log_fname + '\n'
-    #
-    #             f.write(cmd)
-    #     f.close()
-
-
-        # #Consturct + write each command
-    # with open(args.cmdfile, 'w+') as f:
-    #     for combolength in range(0, len(args.p_list) + 1):
-    #         #First set up the env attribute args
-    #         e_args = ' '
-    #         for elem in args.p_list:
-    #             e_args = e_args + str(elem) + ' '
-    #         e_args = e_args[:-1]  # CANNOT be trailing ws for xargs
-    #
-    #         #Now set up the proper result filenames
-    #         new_subsetfname = args.subsetfname.split('.txt')[0] + \
-    #                           e_args.replace(' ', '_') \
-    #                           + '.txt'
-    #
-    #         new_featurefname = args.featurefname.split('.txt')[0] + \
-    #                           e_args.replace(' ', '_') \
-    #                           + '.txt'
-    #         # new_featurefname = args.featurefname.split('.txt')[0] + str(
-    #         #     args.p_list) \
-    #         #     .replace(' ', '').replace("'", '').replace(",", "_").replace(
-    #         #     '[', '_') \
-    #         #     .replace(']', '_') + '.txt'
-    #
-    #
-    #         #Now set up the rest
-    #         for subset in itertools.combinations(args.p_list, combolength):
-    #             cmd = 'python main.py ' + ' ' \
-    #                   + str(args.alpha) + ' ' \
-    #                   + args.datafname + ' ' \
-    #                   + new_subsetfname + ' ' \
-    #                   + new_featurefname + ' ' \
-    #                   + e_args \
-    #                   + '\n'
-    #
-    #
-    #
-    #             f.write(cmd)
-    #     f.close()
+    except:  #Df not yet initialized
+        if (args.algo == 'icp') or (args.algo == 'irm'):
+            param_df = add
+            param_df.columns = ['Id', 'Algo', 'Fteng', 'Dataset', \
+                                'Seed', 'ReduceDsize', 'Bin', 'Eq_Estrat', \
+                                'Envs']
+            pd.to_pickle(param_df, args.paramfile)
+        else:
+            raise Exception('Algorithm not yet implemented')
