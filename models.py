@@ -257,7 +257,7 @@ class InvariantCausalPrediction(InvarianceBase):
         #Now start enumerating PCPs
         full_res = {}
         with open(rawres_fname, mode='w+') as rawres:
-            for i, subset in enumerate(tqdm(powerset(allowed_datts.keys())[:10], desc='pcp_sets',
+            for i, subset in enumerate(tqdm(powerset(allowed_datts.keys()), desc='pcp_sets',
                                total=len(list(powerset(allowed_datts.keys()))))):  #powerset of PCPs
 
                 #Setup raw result logging

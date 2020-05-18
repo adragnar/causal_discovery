@@ -117,9 +117,11 @@ if __name__ == '__main__':
         with open(args.cmdfile, 'a') as f:
             spacing = len(list_2_string(e, ' '))
             command_str = \
-                '''python main.py {feat_eng} {data} {expdir}{e_spacing}{env_list} -reduce_dsize {d_size} -binarize {bin} -eq_estrat {eq} -seed {s}\n'''
+                '''python main.py {id} {algo} {feat_eng} {data} {expdir}{e_spacing}{env_list} -reduce_dsize {d_size} -binarize {bin} -eq_estrat {eq} -seed {s}\n'''
 
             command_str = command_str.format(
+                id=id,
+                algo=args.algo,
                 feat_eng=args.feat_eng,
                 data=args.datafname,
                 expdir=args.expdir,

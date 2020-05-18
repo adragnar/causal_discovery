@@ -25,7 +25,7 @@ from scipy.stats import ttest_ind
 import random
 import models
 
-def default(dataset_fname, expdir, env_atts_types, feateng_type=[], \
+def default(id, algo, dataset_fname, expdir, env_atts_types, feateng_type=[], \
             d_size=-1, bin_env=False, eq_estrat=-1, SEED=100,
             toy_data=[False], testing=False):
 
@@ -40,7 +40,7 @@ def default(dataset_fname, expdir, env_atts_types, feateng_type=[], \
     random.seed(SEED)
 
     #Meta-function Accounting
-    unid = '''{}_{}_{}_{}_{}'''.format(''.join([str(f) for f in feateng_type]),\
+    unid = '''{}_{}_{}_{}_{}_{}'''.format(id, ''.join([str(f) for f in feateng_type]),\
                                        dname_from_fpath(dataset_fname), \
                                        str(d_size), \
                                        str(SEED), \
@@ -56,15 +56,21 @@ def default(dataset_fname, expdir, env_atts_types, feateng_type=[], \
     logging.info('{} Dataset loaded - size {}'.format(dataset_fname.split('/')[-1], \
                 str(data.shape)))
 
-    # icp = models.InvariantCausalPrediction()
-    # icp.run(data, y_all, d_atts, unid, expdir, feateng_type, SEED, env_atts_types, eq_estrat)
-
-    irm = models.InvariantRiskMinimization()
-    irm.run(data, y_all, d_atts, unid, expdir, SEED, env_atts_types, eq_estrat)
-
+    if algo == 'icp':
+        icp = models.InvariantCausalPrediction()
+        icp.run(data, y_all, d_atts, unid, expdir, feateng_type, SEED, env_atts_types, eq_estrat)
+    elif algo == 'irm':
+        irm = models.InvariantRiskMinimization()
+        irm.run(data, y_all, d_atts, unid, expdir, SEED, env_atts_types, eq_estrat)
+    else:
+        raise Exception('Algorithm not Implemented')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Params')
+    parser.add_argument('id', type=str, \
+                        help='unique id of exp')
+    parser.add_argument('algo', type=str, \
+                        help='prediciton algo used')
     parser.add_argument("feat_eng", type=str, \
                         help="each digit id of diff feat engineering")
     parser.add_argument("data_fname", type=str,
@@ -82,6 +88,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.testing:
+        print("id:", args.id)
+        print("algo:", args.algo)
         print("feat_eng:", args.feat_eng)
         print("data:", args.data_fname)
         print("expdir:", args.expdir)
@@ -93,7 +101,7 @@ if __name__ == '__main__':
         print("testing?:", args.testing)
         quit()
 
-    default(args.data_fname, args.expdir, args.env_atts, feateng_type=[int(c) for c in args.feat_eng], \
+    default(args.id, args.algo, args.data_fname, args.expdir, args.env_atts, feateng_type=[int(c) for c in args.feat_eng], \
             d_size=args.reduce_dsize, \
             bin_env=bool(args.binarize),  \
             eq_estrat=args.eq_estrat, SEED=args.seed, testing=args.testing)
