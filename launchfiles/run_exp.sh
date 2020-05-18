@@ -4,13 +4,13 @@
 expdir="/scratch/hdd001/home/adragnar/experiments/causal_discovery/$(date +'%s')"
 mkdir -p $expdir
 cmdfile="$expdir/cmdfile.sh"
-paramfile="$expdir/paramfile.pkl"
 
 #Set cluster parameters
 max_proc=50
 
 #Set Misc Experiment Parameters
-invariance_algos=("icp" "irm")
+algo="icp" #  "irm"
+paramfile="$expdir/$(algo)_paramfile.pkl"
 
 #Set Dataset Parameters
 dtype="adult"  #adult, german
@@ -18,7 +18,7 @@ reduce_dsize=(-1)
 binarize=1  #0, 1
 seeds=(1000)  # 8079 52 147 256 784 990 587 304 888)
 
-ft_combos=('1' '12')
+ft_combos=('1')
 if [ $dtype == "adult" ]
 then
     data="~/causal_discovery/data/adult.csv"
@@ -40,7 +40,7 @@ then
     fi
     if [ $binarize == 1 ]
     then
-        env_vars=("workclass" "native-country" "occupation" "marital-status" "relationship")
+        env_vars=("workclass")   #"native-country" "occupation" "marital-status" "relationship")
     fi
 fi
 
@@ -58,20 +58,18 @@ fi
 
 #Generate the commandfile
 id=0
-for algo in ${invariance_algos[*]}
+for red_d in ${reduce_dsize[*]}
 do
-  for red_d in ${reduce_dsize[*]}
+  for s in ${seeds[*]}
   do
-    for s in ${seeds[*]}
+    for f_eng in ${ft_combos[*]}
     do
-      for f_eng in ${ft_combos[*]}
-      do
-          python setup_params.py $id $algo $f_eng $data $expdir $cmdfile $paramfile ${env_vars[@]} -envcombos $envplur -reduce_dsize $red_d -binarize $binarize -eq_estrat $eq_estrat -seed $s
-          id=$(($id + ${#env_vars[@]}))
-      done
+        python setup_params.py $id $algo $f_eng $data $expdir $cmdfile $paramfile ${env_vars[@]} -envcombos $envplur -reduce_dsize $red_d -binarize $binarize -eq_estrat $eq_estrat -seed $s
+        id=$(($id + ${#env_vars[@]}))
     done
   done
 done
+
 #Run evaluation on cluster
 num_cmds=`wc -l $cmdfile | cut -d' ' -f1`
 echo "Wrote $num_cmds commands to $cmdfile"
