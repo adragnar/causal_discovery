@@ -236,6 +236,33 @@ class InvariantCausalPrediction(InvarianceBase):
 
         return 2 * min(pvalue_mean, pvalue_var2)
 
+    def get_coeffs(self, causal_ps, data, y_all, env_datts={}, eq_estrat=-1, seed=None):
+        '''Generate the average coefficients for certain causal predictor set
+        :param causal_ps: List of dset variables to predict on list(str)
+        :param data: Dataset (pandas df)
+        :param y_all: labels (pandas series)
+        :param env_datts: {original_env_name:onehot_env_names}
+        :param eq_estrat: -1 if no, min num samples if yes (int)
+
+        '''
+        # e_ins_store = self.get_environments(data, env_datts)
+        #
+        # #Normalize operation on e_ins
+        # if eq_estrat != -1:
+        #     assert eq_estrat > 0
+        #     self.equalize_strats(e_ins_store, eq_estrat, data.shape[0], seed)
+
+        if len(causal_ps) > 0:
+            x_s = data[causal_ps]
+            reg = LinearRegression(fit_intercept=False).fit(x_s.values, y_all.values).coef_[0]
+            n = list(x_s.columns)
+        else:
+            return None
+
+        coeffs = sorted(zip(reg, n), reverse=True, key=lambda x: abs(x[0]))
+        coeffs = pd.DataFrame(coeffs, columns=['coeff', 'predictor'])
+        return coeffs
+
     def run(self, data, y_all, d_atts, unid, expdir, feateng_type, seed, env_atts_types, eq_estrat):
         rawres_fname = os.path.join(expdir, 'rawres_{}.json'.format(unid))
         #Set allowable datts as PCPs
