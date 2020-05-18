@@ -146,8 +146,10 @@ if __name__ == '__main__':
     #Save parameters in dataframe
     try:
         param_df = pd.read_pickle(args.paramfile)
-        add.columns = param_df.columns
+        add.columns = [param_df.index.name] + list(param_df.columns)
+        add = add.set_index('Id')
         param_df = param_df.append(add)
+        print(param_df.shape)
         pd.to_pickle(param_df, args.paramfile)
 
     except:  #Df not yet initialized
@@ -156,6 +158,7 @@ if __name__ == '__main__':
             param_df.columns = ['Id', 'Algo', 'Fteng', 'Dataset', \
                                 'Seed', 'ReduceDsize', 'Bin', 'Eq_Estrat', \
                                 'Envs']
+            param_df.set_index('Id', inplace=True)
             pd.to_pickle(param_df, args.paramfile)
         else:
             raise Exception('Algorithm not yet implemented')
