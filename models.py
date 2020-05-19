@@ -257,7 +257,7 @@ class InvariantCausalPrediction(InvarianceBase):
             reg = LinearRegression(fit_intercept=False).fit(x_s.values, y_all.values).coef_[0]
             n = list(x_s.columns)
         else:
-            return None
+            return pd.DataFrame()
 
         coeffs = sorted(zip(reg, n), reverse=True, key=lambda x: abs(x[0]))
         coeffs = pd.DataFrame(coeffs, columns=['coeff', 'predictor'])
