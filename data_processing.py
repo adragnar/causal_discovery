@@ -140,7 +140,7 @@ def adult_dataset_processing(fname, fteng, reduce_dsize=-1, estrat_red=False, te
     #NOTE - These lists aren't MECE
     #cat_feat:{acceptable stratifications:orig_cols corresponding}
     cat_feats = {'workclass':{'selfWork':['Private', 'Self-emp-not-inc', 'Self-emp-inc'], \
-                              'govWork':['Federal-gov', ' Local-gov', 'State-gov']}, \
+                              'govWork':['Federal-gov', 'Local-gov', 'State-gov']}, \
                  'education':{}, \
                  'marital-status':{'married':['Married-civ-spouse', 'Married-spouse-absent', 'Married-AF-spouse', 'Widowed'],\
                                    'divorced':['Divorced', 'Separated'], \
@@ -175,6 +175,7 @@ def adult_dataset_processing(fname, fteng, reduce_dsize=-1, estrat_red=False, te
 
     #Custom binarize the stratification categories
     if estrat_red:
+        print('hi')
         for ft in cat_feats:
             for agg_ft in cat_feats[ft]:
                 data[ft] = data[ft].apply(lambda val: agg_ft if val in cat_feats[ft][agg_ft] else val)
