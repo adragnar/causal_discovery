@@ -94,7 +94,7 @@ class InvariantRiskMinimization(InvarianceBase):
 
     def __init__(self):
         self.args = {'lr':0.001, \
-                     'n_iterations': 2, \
+                     'n_iterations': 2000, \
                      'verbose':False}
 
     def train(self, data, y_all, environments, args, reg=0):
@@ -262,6 +262,14 @@ class InvariantCausalPrediction(InvarianceBase):
         coeffs = sorted(zip(reg, n), reverse=True, key=lambda x: abs(x[0]))
         coeffs = pd.DataFrame(coeffs, columns=['coeff', 'predictor'])
         return coeffs
+
+    def predict(self, data, coeffs):
+        #Order dataframe by coefficients column
+        assert set(list(coeffs['predictor'].values)).issubset(set(list(data.columns)))
+        data = data[list(coeffs['predictor'].values)]  #make sure cols align
+
+        return pd.DataFrame(data.values @ coeffs['coeff'].values)
+
 
     def run(self, data, y_all, d_atts, unid, expdir, feateng_type, seed, env_atts_types, eq_estrat):
         rawres_fname = os.path.join(expdir, 'rawres_{}.json'.format(unid))
