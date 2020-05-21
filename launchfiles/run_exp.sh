@@ -10,7 +10,7 @@ max_proc=50
 
 #Set Misc Experiment Parameters
 algo="icp" #  "irm"
-paramfile="$expdir/$(algo)_paramfile.pkl"
+paramfile="$expdir/$algo_paramfile.pkl"
 
 #Set Dataset Parameters
 dtype="adult"  #adult, german

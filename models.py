@@ -93,8 +93,8 @@ class InvariantRiskMinimization(InvarianceBase):
     """Object Wrapper around IRM"""
 
     def __init__(self):
-        self.args = {'lr':0.001, \
-                     'n_iterations': 2000, \
+        self.args = {'lr':0.01, \
+                     'n_iterations': 5000, \
                      'verbose':False}
 
     def train(self, data, y_all, environments, args, reg=0):
@@ -183,6 +183,10 @@ class InvariantRiskMinimization(InvarianceBase):
     def solution(self):
         return self.phi @ self.w
 
+    def predict(self, data, phi, w):
+        '''
+        :param data: the dataset (nparray)'''
+        return pd.DataFrame((torch.from_numpy(data).float() @ phi @ w).detach().numpy())
 
 class InvariantCausalPrediction(InvarianceBase):
     """Object Wrapper around ICP"""
@@ -265,6 +269,8 @@ class InvariantCausalPrediction(InvarianceBase):
 
     def predict(self, data, coeffs):
         #Order dataframe by coefficients column
+        if coeffs.empty:
+            return pd.DataFrame()
         assert set(list(coeffs['predictor'].values)).issubset(set(list(data.columns)))
         data = data[list(coeffs['predictor'].values)]  #make sure cols align
 

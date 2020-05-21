@@ -20,6 +20,9 @@ import data_processing as dp
 def get_id_from_fname(f):
     return f.split('_')[1]
 
+def get_ftype_from_fname(f):
+    return f.split('_')[0]
+
 def open_pvals(filename):
     try:
         pvals = json.load(open(filename, 'rb'))
@@ -251,7 +254,7 @@ def icp_process(res_dir, dset_dir, NUM_POINTS=100, MIN_ALPHA=1e-4):
         accepted = pvals[pvals['Final_tstat'] > params.loc[id, 'max_alpha']]
         accepted_sets = [str_2_pcp(a) for a in list(accepted.index)]
         causal_preds = set.intersection(*accepted_sets)
-        
+
         icp = models.InvariantCausalPrediction()
         causal_preds = icp.get_data_regressors(d_atts, causal_preds, \
                                 [int(c) for c in params.loc[id, 'Fteng']], data)
@@ -265,16 +268,42 @@ def icp_process(res_dir, dset_dir, NUM_POINTS=100, MIN_ALPHA=1e-4):
         pd.to_pickle(res, coeffs_fname)
         params.loc[id, 'coeffs'] = coeffs_fname
 
-
     pd.to_pickle(params, paramfile)
 
+def irm_process(res_dir, dset_dir):
+    expdir = os.path.join(res_dir, 'causal_discovery')
+    paramfile = os.path.join(res_dir, 'irm_paramfile.pkl')
+    params = pd.read_pickle(paramfile)
 
+    savedir = os.path.join(res_dir, 'processed_results')
+    if os.path.exists(savedir):
+        shutil.rmtree(savedir)
+    os.mkdir(savedir)
 
+    #Load IRM Parameters into dataframe
+    params['phi'] = np.NaN
+    params['w'] = np.NaN
+
+    for fname in os.listdir(expdir):
+        id = get_id_from_fname(fname)
+        ftype = get_ftype_from_fname(fname)
+        if ftype == 'phi':
+            params.loc[id, 'phi'] = os.path.join(expdir, fname)
+        elif ftype == 'w':
+            params.loc[id, 'w'] = os.path.join(expdir, fname)
+
+    pd.to_pickle(params, paramfile)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Filename Parameters')
     parser.add_argument("resdir", type=str, help="dirname of results")
     parser.add_argument("dsetdir", type=str, help="dirname of datasets")
+    parser.add_argument("algo", type=str, help="algo used")
     args = parser.parse_args()
 
-    icp_process(args.resdir, args.dsetdir)
+    if args.algo == 'icp':
+        icp_process(args.resdir, args.dsetdir)
+    elif args.algo == 'irm':
+        irm_process(args.resdir, args.dsetdir)
+    else:
+        raise Exception('algo not implemented')
