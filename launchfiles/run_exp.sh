@@ -9,8 +9,8 @@ cmdfile="$expdir/cmdfile.sh"
 max_proc=50
 
 #Set Misc Experiment Parameters
-algo="icp" #  "irm"
-paramfile="$expdir/$algo_paramfile.pkl"
+algo="irm" #  "irm"
+paramfile="$expdir/${algo}_paramfile.pkl"
 
 #Set Dataset Parameters
 dtype="adult"  #adult, german
@@ -40,7 +40,7 @@ then
     fi
     if [ $binarize == 1 ]
     then
-        env_vars=("workclass")   #"native-country" "occupation" "marital-status" "relationship")
+        env_vars=("workclass" "native-country")   #"occupation" "marital-status" "relationship")
     fi
 fi
 
