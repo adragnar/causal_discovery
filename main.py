@@ -48,9 +48,15 @@ def default(id, algo, dataset_fname, expdir, env_atts_types, feateng_type=[], \
                                        )
     logger_fname = os.path.join(expdir, 'log_{}.txt'.format(unid))
     logging.basicConfig(filename=logger_fname, level=logging.DEBUG)
+    logging.info('id: {}'.format(id))
+    logging.info('dataset: {}'.format(dname_from_fpath(dataset_fname)))
+    logging.info('env_atts: {}'.format(str(env_atts_types)))
+    logging.info('dataset size: {}'.format(str(d_size)))
+    logging.info('binarize envs: {}'.format(str(bin_env)))
+    logging.info('equalize envs: {}'.format(str(eq_estrat)))
+    logging.info('seed: {}'.format(str(SEED)))
 
-
-     #Select correct dataset
+    #Select correct dataset
     data, y_all, d_atts = dp.data_loader(dataset_fname, feateng_type, dsize=d_size, \
                                     bin=bin_env, toy=toy_data, testing=testing)
     logging.info('{} Dataset loaded - size {}'.format(dataset_fname.split('/')[-1], \

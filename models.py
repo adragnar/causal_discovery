@@ -95,10 +95,14 @@ class InvariantRiskMinimization(InvarianceBase):
     def __init__(self):
         self.args = {'lr':0.01, \
                      'n_iterations': 5000, \
-                     'verbose':False}
+                     'verbose':True}
 
     def train(self, data, y_all, environments, args, reg=0):
         dim_x = data.shape[1]
+
+        self.errors = []
+        self.penalties = []
+        self.losses = []
 
         self.phi = torch.nn.Parameter(torch.eye(dim_x, dim_x))
         self.w = torch.ones(dim_x, 1)
@@ -106,14 +110,13 @@ class InvariantRiskMinimization(InvarianceBase):
 
         opt = torch.optim.Adam([self.phi], lr=self.args["lr"])
         loss = torch.nn.MSELoss()
+        logging.info('Using Adam optimizer, LR = {}'.format(args["lr"]))
+        logging.info('Loss function MSE')
 
         for iteration in range(self.args["n_iterations"]):
             penalty = 0
             error = 0
             for e, e_in in environments.items():
-                # print(((torch.from_numpy(data.loc[e_in].values)).float()).type(), self.phi.type(), self.w.type())
-                # print((torch.from_numpy(data.loc[e_in].values) @ self.phi @ self.w).shape)
-                # print((torch.tensor(y_all.loc[e_in].values, dtype=torch.long).shape))
                 error_e = loss(torch.from_numpy(data.loc[e_in].values).float() \
                                @ self.phi @ self.w, \
                                torch.from_numpy(y_all.loc[e_in].values).float())
@@ -125,17 +128,25 @@ class InvariantRiskMinimization(InvarianceBase):
             (reg * error + (1 - reg) * penalty).backward()
             opt.step()
 
-            if self.args["verbose"] and iteration % 1000 == 0:
-                w_str = pretty(self.solution())
-                print("{:05d} | {:.5f} | {:.5f} | {:.5f} | {}".format(iteration,
+            if self.args["verbose"] and iteration % 250 == 0:
+                # w_str = pretty(self.solution())
+                logging.info("{:05d} | {:.5f} | {:.5f} | {:.5f}".format(iteration,
                                                                       reg,
                                                                       error,
-                                                                      penalty,
-                                                                      w_str))
+                                                                      penalty))
+            #Store Losses for Plotting
+            self.errors.append(error.detach().numpy())
+            self.penalties.append(penalty.detach().numpy())
+            self.losses.append((reg * error + (1 - reg) * penalty).detach().numpy())
+
+
 
     def run(self, data, y_all, d_atts, unid, expdir, seed, env_atts_types, eq_estrat):
         phi_fname = os.path.join(expdir, 'phi_{}.pt'.format(unid))
         w_fname = os.path.join(expdir, 'w_{}.pt'.format(unid))
+        errors_fname = os.path.join(expdir, 'errors_{}.npy'.format(unid))
+        penalties_fname = os.path.join(expdir, 'penalties_{}.npy'.format(unid))
+        losses_fname = os.path.join(expdir, 'losses_{}.npy'.format(unid))
 
         #Set allowable datts as PCPs
         allowed_datts = {cat:d_atts[cat] for cat in d_atts.keys() if cat not in env_atts_types}
@@ -152,9 +163,17 @@ class InvariantRiskMinimization(InvarianceBase):
             assert eq_estrat > 0
             self.equalize_strats(e_ins_store, eq_estrat, data.shape[0], seed)
 
+        #Setup Loss plotting
+        errors = []
+        penalties = []
+        losses = []
+
         #Now start with IRM itself
         reg = [0, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1]
         val_env = random.sample(set(e_ins_store.keys()), 1)[0]
+        logging.info('possible regularization vals are {}'.format(str(reg)))
+        logging.info('validation environment: {}'.format(val_env))
+
         val_ein = e_ins_store.pop(val_env)
         val_data = torch.from_numpy(data.loc[val_ein].values).float()
         val_labels = torch.from_numpy(y_all.loc[val_ein].values).float()
@@ -165,9 +184,11 @@ class InvariantRiskMinimization(InvarianceBase):
             self.train(data, y_all, e_ins_store, self.args, reg=r)
             err = (val_data @ self.solution() - val_labels).pow(2).mean().item()
 
-            if self.args["verbose"]:
-                print("IRM (reg={:.3f}) has {:.3f} validation error.".format(
-                    r, err))
+            logging.info("IRM reg={:.3f}) has {:.3f} validation error.".format(
+                r, err))
+            errors.append(self.errors)
+            penalties.append(self.penalties)
+            losses.append(self.losses)
 
             if err < best_err:
                 best_err = err
@@ -175,10 +196,16 @@ class InvariantRiskMinimization(InvarianceBase):
                 best_phi = self.phi.clone()
                 best_w = self.w.clone()
 
+        logging.info("best reg={:.3f}) has {:.3f} validation error.".format(    \
+            best_reg, best_err))
         self.phi = best_phi
         self.w = best_w
         torch.save(self.phi, phi_fname)
         torch.save(self.w, w_fname)
+        np.save(errors_fname, np.array(errors))
+        np.save(penalties_fname, np.array(penalties))
+        np.save(losses_fname, np.array(losses))
+
 
     def solution(self):
         return self.phi @ self.w
