@@ -239,7 +239,7 @@ def icp_process(res_dir, dset_dir, NUM_POINTS=100, MIN_ALPHA=1e-4):
         data, y_all, d_atts = dp.adult_dataset_processing(dataset_fname, \
                             [int(c) for c in params.loc[id, 'Fteng']], \
                             reduce_dsize=int(params.loc[id, 'ReduceDsize']), \
-                            estrat_red=int(params.loc[id, 'Bin']), \
+                            bin=int(params.loc[id, 'Bin']), \
                             testing=0)
 
         # env_datts = {e:d_atts[e]}

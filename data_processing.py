@@ -16,7 +16,7 @@ from utils import dname_from_fpath
 
 #import matplotlib.pyplot as plt
 
-def data_loader(fname, fteng, dsize=-1, bin=0, toy=[False], testing=0):
+def data_loader(fname, fteng, dsize=-1, bin=0, toy=[False], seed=1000, testing=0):
     '''From dataset name, optional flags, return dataset, labels,
     and column names
 
@@ -31,11 +31,12 @@ def data_loader(fname, fteng, dsize=-1, bin=0, toy=[False], testing=0):
     elif dname_from_fpath(fname) == 'adult':
         data, y_all, d_atts = adult_dataset_processing(fname, \
                               fteng, reduce_dsize=dsize, \
-                              estrat_red=bin, \
+                              bin=bin, seed=seed, \
                               testing=testing)
     elif dname_from_fpath(fname) == 'german':
+        assert (seed==1000)
         data, y_all, d_atts = german_credit_dataset_processing(fname, \
-                              fteng, estrat_red=bin, \
+                              fteng, bin=bin, \
                               testing=testing)
 
     return data, y_all, d_atts
@@ -88,7 +89,7 @@ def data_conversion(data, categorical_feats, continous_feats, predictor, fteng):
     print(data.shape)
     return data, labels, all_cats
 
-def adult_dataset_processing(fname, fteng, reduce_dsize=-1, estrat_red=False, testing=False):
+def adult_dataset_processing(fname, fteng, reduce_dsize=-1, bin=False, seed=1000, testing=False):
     '''Process the adult dataset from csv. Return the dataframe, as well as a
         list of columns that must be treated as one block during the enumeration of plausible causal predictors
 
@@ -127,7 +128,7 @@ def adult_dataset_processing(fname, fteng, reduce_dsize=-1, estrat_red=False, te
     #Deal with the external forced dataset size reduction
     if reduce_dsize != -1:
         assert reduce_dsize > 0
-        data = data.sample(n=reduce_dsize)
+        data = data.sample(n=reduce_dsize, random_state=seed)
 
     #Get rid of unwanted columns before making feat lists
     data.drop('educational-num', axis=1, inplace=True)
@@ -174,7 +175,7 @@ def adult_dataset_processing(fname, fteng, reduce_dsize=-1, estrat_red=False, te
     pred_feats = 'income'
 
     #Custom binarize the stratification categories
-    if estrat_red:
+    if bin:
         print('hi')
         for ft in cat_feats:
             for agg_ft in cat_feats[ft]:
@@ -195,7 +196,7 @@ def adult_dataset_processing(fname, fteng, reduce_dsize=-1, estrat_red=False, te
     #     quit()
 
 
-def german_credit_dataset_processing(fname, fteng=[], estrat_red=False, testing=False):
+def german_credit_dataset_processing(fname, fteng=[], bin=False, testing=False):
     data = pd.read_csv(fname)
 
     #Get rid of unwanted stuff before making feat lists

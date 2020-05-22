@@ -18,3 +18,9 @@ def dname_from_fpath(fpath):
 def pretty(vector):
     vlist = vector.view(-1).tolist()
     return "[" + ", ".join("{:+.4f}".format(vi) for vi in vlist) + "]"
+
+def merge_exps(newdir, e1, e2):
+    '''Given paths to two fully formatted folders, merge them into one'''
+    #Make new folder
+    # join()
+    pass
