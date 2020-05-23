@@ -12,6 +12,7 @@ import pandas as pd
 from tqdm import tqdm
 from itertools import combinations
 from torch.autograd import grad
+from torch import nn
 
 from utils import powerset, dname_from_fpath, pretty
 import data_processing as dp
@@ -89,12 +90,30 @@ class InvarianceBase(object):
             raw.update(chosen_cols)
             store[env] = raw.squeeze()
 
+class MLP(nn.Module):
+    def __init__(self, isize, osize, hidden_dim):
+        super(MLP, self).__init__()
+
+        lin1 = nn.Linear(isize, hidden_dim)
+        lin2 = nn.Linear(hidden_dim, hidden_dim)
+        lin3 = nn.Linear(hidden_dim, isize)
+        for lin in [lin1, lin2, lin3]:
+            nn.init.xavier_uniform_(lin.weight)
+            nn.init.zeros_(lin.bias)
+        self._main = nn.Sequential(lin1, nn.ReLU(True), lin2, nn.ReLU(True), lin3)
+
+    def forward(self, input):
+        out = input
+        out = self._main(out)
+        return out
+
+
 class InvariantRiskMinimization(InvarianceBase):
     """Object Wrapper around IRM"""
 
     def __init__(self):
-        self.args = {'lr':0.01, \
-                     'n_iterations': 5000, \
+        self.args = {'lr':0.000001, \
+                     'n_iterations':5000, \
                      'verbose':True}
 
     def train(self, data, y_all, environments, args, reg=0):
@@ -104,8 +123,8 @@ class InvariantRiskMinimization(InvarianceBase):
         self.penalties = []
         self.losses = []
 
-        self.phi = torch.nn.Parameter(torch.eye(dim_x, dim_x))
-        self.w = torch.ones(dim_x, 1)
+        self.phi = torch.nn.Parameter(torch.ones(dim_x, dim_x))  #MLP(dim_x, dim_x, 100)
+        self.w = torch.ones(dim_x, 1)  #torch.ones(dim_x)
         self.w.requires_grad = True
 
         opt = torch.optim.Adam([self.phi], lr=self.args["lr"])
@@ -123,9 +142,10 @@ class InvariantRiskMinimization(InvarianceBase):
                 penalty += grad(error_e, self.w,
                                 create_graph=True)[0].pow(2).mean()
                 error += error_e
+            total = (reg * error + (1 - reg) * penalty)
 
             opt.zero_grad()
-            (reg * error + (1 - reg) * penalty).backward()
+            total.backward()
             opt.step()
 
             if self.args["verbose"] and iteration % 250 == 0:
@@ -134,10 +154,30 @@ class InvariantRiskMinimization(InvarianceBase):
                                                                       reg,
                                                                       error,
                                                                       penalty))
+                # print(self.phi)
+                # print(self.phi.grad)
+                # print(torch.from_numpy(y_all.loc[e_in].values).float().data)
+                # print((torch.from_numpy(data.loc[e_in].values).float() \
+                #                @ self.phi @ self.w).data)
+                # print((self.phi).grad_fn)
+                # print((self.w).grad_fn)
+                # z = torch.ones(45, 1, requires_grad=True)
+                # a = torch.from_numpy(y_all.loc[e_in].values).float()
+                # b = torch.ones(6435, 45, requires_grad=False)@ self.phi @ z                #torch.ones(torch.ones(38651, 45), 1, requires_grad=True)
+                # print((self.phi).shape)
+                # print(a.shape)
+                # print(b.shape)
+                # c = loss(a, b)
+                # opt.zero_grad()
+                # c.backward()
+                # print(b.grad)
+                # print(self.phi.grad)
+                # assert False
+
             #Store Losses for Plotting
             self.errors.append(error.detach().numpy())
             self.penalties.append(penalty.detach().numpy())
-            self.losses.append((reg * error + (1 - reg) * penalty).detach().numpy())
+            self.losses.append(total.detach().numpy())
 
 
 
