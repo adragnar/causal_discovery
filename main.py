@@ -24,6 +24,7 @@ from scipy.stats import ttest_ind
 
 import random
 import models
+import utils
 
 def default(id, algo, dataset_fname, expdir, env_atts_types, feateng_type=[], \
             d_size=-1, bin_env=False, eq_estrat=-1, SEED=100,
@@ -77,37 +78,40 @@ if __name__ == '__main__':
                         help='unique id of exp')
     parser.add_argument('algo', type=str, \
                         help='prediciton algo used')
-    parser.add_argument("feat_eng", type=str, \
-                        help="each digit id of diff feat engineering")
+
     parser.add_argument("data_fname", type=str,
                         help="filename adult.csv")
     parser.add_argument("expdir", type=str, default=None,
                         help="path to location to save files")
-    parser.add_argument('env_atts', nargs='+',  \
-                        help='atts categorical defining envs')
 
+
+    parser.add_argument("-fteng", type=str, \
+                        help="each digit id of diff feat engineering")
     parser.add_argument("-reduce_dsize", type=int, default=-1)
     parser.add_argument("-binarize", type=int, required=True)
     parser.add_argument("-eq_estrat", type=int, default=-1)
     parser.add_argument("-seed", type=int, default=100)
+    parser.add_argument('-env_atts', type=str, default='[]', \
+                        help='atts categorical defining envs')
     parser.add_argument("--testing", action='store_true')
+
     args = parser.parse_args()
 
     if args.testing:
         print("id:", args.id)
         print("algo:", args.algo)
-        print("feat_eng:", args.feat_eng)
         print("data:", args.data_fname)
         print("expdir:", args.expdir)
-        print("env_list:", args.env_atts)
+        print("feat_eng:", args.fteng)
         print("d_size:", args.reduce_dsize)
         print("binarize?:", args.binarize)
         print("eq_estrat?:", args.eq_estrat)
         print("seed?:", args.seed)
+        print("env_list:", args.env_atts)
         print("testing?:", args.testing)
         quit()
 
-    default(args.id, args.algo, args.data_fname, args.expdir, args.env_atts, feateng_type=[int(c) for c in args.feat_eng], \
-            d_size=args.reduce_dsize, \
+    default(args.id, args.algo, args.data_fname, args.expdir, utils.env_parser(args.env_atts), \
+           feateng_type=[int(c) for c in args.fteng], d_size=args.reduce_dsize, \
             bin_env=bool(args.binarize),  \
             eq_estrat=args.eq_estrat, SEED=args.seed, testing=args.testing)

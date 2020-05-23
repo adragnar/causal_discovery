@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #Make expieriment directories/files
-expdir="/scratch/hdd001/home/adragnar/experiments/causal_discovery/$(date +'%s')"
+expdir="test_expdir"   #"/scratch/hdd001/home/adragnar/experiments/causal_discovery/$(date +'%s')"
 mkdir -p $expdir
 cmdfile="$expdir/cmdfile.sh"
 
@@ -9,7 +9,7 @@ cmdfile="$expdir/cmdfile.sh"
 max_proc=50
 
 #Set Misc Experiment Parameters
-algo="irm" #  "irm"
+algo="linreg" #  "icp" "linreg"
 paramfile="$expdir/${algo}_paramfile.pkl"
 
 #Set Dataset Parameters
@@ -36,11 +36,13 @@ if [ $dtype == "adult" ]
 then
     if [ $binarize == 0 ]
     then
-        env_vars=("workclass" "native-country" "occupation" "marital-status" "relationship")
+        length_envvars=5
+        env_vars="[workclass,native-country,occupation,marital-status,relationship]"
     fi
     if [ $binarize == 1 ]
     then
-        env_vars=("workclass" "native-country")   #"occupation" "marital-status" "relationship")
+        length_envvars=2
+        env_vars="[workclass,native-country]"   #"occupation" "marital-status" "relationship")
     fi
 fi
 
@@ -48,11 +50,13 @@ if [ $dtype == "german" ]
 then
     if [ $binarize == 0 ]
     then
-        env_vars=('Purpose' 'Housing' 'Telephone' 'Property')  # 'OtherInstallmentPlans'  'Foreign' 'Savings' 'Personal' 'OtherDebtors')
+        length_envvars=4
+        env_vars="[Purpose,Housing,Telephone,Property]"  # 'OtherInstallmentPlans'  'Foreign' 'Savings' 'Personal' 'OtherDebtors')
     fi
     if [ $binarize == 1 ]
     then
-        env_vars=('Purpose' 'Telephone' 'Housing' 'Property')
+       length_envvars=4
+        env_vars="[Purpose,Housing,Telephone,Property]"
     fi
 fi
 
@@ -64,19 +68,26 @@ do
   do
     for f_eng in ${ft_combos[*]}
     do
-        python setup_params.py $id $algo $f_eng $data $expdir $cmdfile $paramfile ${env_vars[@]} -envcombos $envplur -reduce_dsize $red_d -binarize $binarize -eq_estrat $eq_estrat -seed $s
-        id=$(($id + ${#env_vars[@]}))
+        if [ $algo == "icp"  -o  $algo == "irm" ]
+        then
+            python setup_params.py $id $algo $data $expdir $cmdfile $paramfile -env_list $env_vars -envcombos $envplur -fteng $f_eng -reduce_dsize $red_d -binarize $binarize -eq_estrat $eq_estrat -seed $s
+            id=$(($id + $length_envvars))
+        else
+            python setup_params.py $id $algo $data $expdir $cmdfile $paramfile -fteng $f_eng -reduce_dsize $red_d -binarize $binarize -seed $s 
+            id=$(($id + 1))
+        fi
+
     done
   done
 done
 
-#Run evaluation on cluster
-num_cmds=`wc -l $cmdfile | cut -d' ' -f1`
-echo "Wrote $num_cmds commands to $cmdfile"
-
-cmd=( $cmd )
-num_tokens=${#cmd[@]}
-xargs -L 1 -P $max_proc srun --mem=16G -p cpu < $cmdfile
+# #Run evaluation on cluster
+# num_cmds=`wc -l $cmdfile | cut -d' ' -f1`
+# echo "Wrote $num_cmds commands to $cmdfile"
+#
+# cmd=( $cmd )
+# num_tokens=${#cmd[@]}
+# xargs -L 1 -P $max_proc srun --mem=16G -p cpu < $cmdfile
 
 
 

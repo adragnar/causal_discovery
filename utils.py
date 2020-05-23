@@ -19,6 +19,13 @@ def pretty(vector):
     vlist = vector.view(-1).tolist()
     return "[" + ", ".join("{:+.4f}".format(vi) for vi in vlist) + "]"
 
+def env_parser(envs):
+    '''Convert a string of a list of strings without spaces into a list'''
+    ret = envs.strip('[').strip(']').split(',')
+    if (len(ret) == 1) and ('' in ret):
+        return []
+    return ret
+
 def merge_exps(newdir, e1, e2):
     '''Given paths to two fully formatted folders, merge them into one'''
     #Make new folder

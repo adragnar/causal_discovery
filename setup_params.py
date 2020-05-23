@@ -7,6 +7,7 @@ import pandas as pd
 import os
 import utils
 
+
 def unid_from_algo(id, a=None, data=None, env=None):
     '''Generate name of experiment filename descriptor
     :param id: Unique numerical identiifer
@@ -23,6 +24,13 @@ def unid_from_algo(id, a=None, data=None, env=None):
             algo=a,
             data=utils.dname_from_fpath(data),
             env_list=list_2_string(e, '--')
+        )
+    elif (a == 'linreg'):
+        uniqueid = '''{id}_{algo}_{data}'''
+        uniqueid= uniqueid.format(
+            id=id,
+            algo=a,
+            data=utils.dname_from_fpath(data),
         )
     else:
         raise Exception('Unimplemented Dataset')
@@ -59,8 +67,6 @@ if __name__ == '__main__':
                         help='unique id of exp')
     parser.add_argument('algo', type=str, \
                         help='prediciton algo used')
-    parser.add_argument('feat_eng', type=str, \
-                        help='c-interval val')
     parser.add_argument('datafname', type=str, \
                         help='data.csv')
     parser.add_argument('expdir', type=str, \
@@ -69,12 +75,13 @@ if __name__ == '__main__':
                        help="filename to write all commands")
     parser.add_argument("paramfile", type=str, \
                        help="filename of pickled padas df storing hyperparams")
-    parser.add_argument("env_list", nargs='+', \
-                        help="All the environment variables to split on")
 
-    parser.add_argument("-envcombos", type=str, required=True)
-    parser.add_argument("-reduce_dsize", type=int, required=True)
-    parser.add_argument("-binarize", type=int, required=True)
+    parser.add_argument("-env_list", type=str, default='[]', \
+                        help="All the environment variables to split on")
+    parser.add_argument("-envcombos", type=str, default='single')
+    parser.add_argument("-reduce_dsize", type=int, default=-1)
+    parser.add_argument('-fteng', type=str, help='c-interval val', default='1')
+    parser.add_argument("-binarize", type=int, default=0)
     parser.add_argument("-eq_estrat", type=int, default=-1)
     parser.add_argument("-seed", type=int, default=100)
     parser.add_argument("--testing", action='store_true')
@@ -84,64 +91,94 @@ if __name__ == '__main__':
     if args.testing:
         print("id:", args.id)
         print("algo:", args.algo)
-        print("feat_eng:", args.feat_eng)
         print("expdir:", args.expdir)
         print("data:", args.datafname)
         print("cmdfile:", args.cmdfile)
         print("paramfile:", args.paramfile)
         print("env_list:", args.env_list)
         print("envcombo?:", args.envcombos)
+        print("feat_eng:", args.fteng)
         print("d_size:", args.reduce_dsize)
         print("testing?:", args.testing)
         print("binarize?:", args.binarize)
         print("eq_estrat?:", args.eq_estrat)
         print("seed?:", args.seed)
         quit()
+    assert args.envcombos == 'single'
+    e_list = utils.env_parser(args.env_list)
 
-    if args.envcombos == 'all_combos':
-        allenvs = utils.powerset(args.env_list)
-    elif args.envcombos == 'single':
-        allenvs = [[a] for a in args.env_list]
+    if len(e_list) > 0:
+        if args.envcombos == 'all_combos':
+            allenvs = utils.powerset(e_list)
+        elif args.envcombos == 'single':
+            allenvs = [[a] for a in e_list]
 
-    for i, e in enumerate(allenvs):
-        id = str(int(args.id) + i)
+        for i, e in enumerate(allenvs):
+            id = str(int(args.id) + i)
+            uniqueid = unid_from_algo(id, a=args.algo, \
+                                      data=args.datafname, env=e)
+
+            #Write Exp Command to commandfile
+            with open(args.cmdfile, 'a') as f:
+                command_str = \
+                    '''python main.py {id} {algo} {data} {expdir} -fteng {feat_eng} -reduce_dsize {d_size} -binarize {bin} -eq_estrat {eq} -seed {s} -env_atts {env_list}\n'''
+
+                command_str = command_str.format(
+                    id=id,
+                    algo=args.algo,
+                    data=args.datafname,
+                    expdir=args.expdir,
+                    feat_eng=args.fteng,
+                    d_size=args.reduce_dsize,
+                    bin=args.binarize,
+                    eq=args.eq_estrat,
+                    s=args.seed,
+                    env_list=e
+                )
+                f.write(command_str)
+
+            #Log Parameters in Datafame
+            addnxt = pd.DataFrame([id, args.algo, args.fteng, \
+            utils.dname_from_fpath(args.datafname), args.seed, args.reduce_dsize, \
+            args.binarize, args.eq_estrat, list_2_string(e, ' ')]).T
+            if i == 0:
+                add = addnxt
+            else:
+                 add = add.append(addnxt)
+
+        parameter_cols = ['Id', 'Algo', 'Fteng', 'Dataset', \
+                            'Seed', 'ReduceDsize', 'Bin', 'Eq_Estrat', \
+                            'Envs']
+
+    else:
+        id = str(int(args.id) + 1)
         uniqueid = unid_from_algo(id, a=args.algo, \
-                                  data=args.datafname, env=e)
-
-        if args.testing:
-            print(uniqueid)
-            print(((args.datafname).split('/')[-1]))
-            quit()
+                                  data=args.datafname)
 
         #Write Exp Command to commandfile
         with open(args.cmdfile, 'a') as f:
-            spacing = len(list_2_string(e, ' '))
             command_str = \
-                '''python main.py {id} {algo} {feat_eng} {data} {expdir}{e_spacing}{env_list} -reduce_dsize {d_size} -binarize {bin} -eq_estrat {eq} -seed {s}\n'''
+                '''python main.py {id} {algo} {data} {expdir} -fteng {feat_eng} -reduce_dsize {d_size} -binarize {bin} -seed {s} \n'''
 
             command_str = command_str.format(
                 id=id,
                 algo=args.algo,
-                feat_eng=args.feat_eng,
                 data=args.datafname,
                 expdir=args.expdir,
-                e_spacing=(' ' * threshold(len(list_2_string(e, ' ')))),
-                env_list=list_2_string(e, ' '),
+                feat_eng=args.fteng,
                 d_size=args.reduce_dsize,
                 bin=args.binarize,
-                eq=args.eq_estrat,
                 s=args.seed
             )
             f.write(command_str)
 
         #Log Parameters in Datafame
-        addnxt = pd.DataFrame([id, args.algo, args.feat_eng, \
-        utils.dname_from_fpath(args.datafname), args.seed, args.reduce_dsize, \
-        args.binarize, args.eq_estrat, list_2_string(e, ' ')]).T
-        if i == 0:
-            add = addnxt
-        else:
-             add = add.append(addnxt)
+        add = pd.DataFrame([id, args.algo, args.fteng, \
+                            utils.dname_from_fpath(args.datafname), args.seed, \
+                             args.reduce_dsize, args.binarize]).T
+
+        parameter_cols = ['Id', 'Algo', 'Fteng', 'Dataset', 'Seed', 'ReduceDsize', 'Bin']
+
 
     #Save parameters in dataframe
     try:
@@ -153,12 +190,7 @@ if __name__ == '__main__':
         pd.to_pickle(param_df, args.paramfile)
 
     except:  #Df not yet initialized
-        if (args.algo == 'icp') or (args.algo == 'irm'):
-            param_df = add
-            param_df.columns = ['Id', 'Algo', 'Fteng', 'Dataset', \
-                                'Seed', 'ReduceDsize', 'Bin', 'Eq_Estrat', \
-                                'Envs']
-            param_df.set_index('Id', inplace=True)
-            pd.to_pickle(param_df, args.paramfile)
-        else:
-            raise Exception('Algorithm not yet implemented')
+        param_df = add
+        param_df.columns = parameter_cols
+        param_df.set_index('Id', inplace=True)
+        pd.to_pickle(param_df, args.paramfile)
