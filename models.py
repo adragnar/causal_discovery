@@ -412,3 +412,24 @@ class InvariantCausalPrediction(InvarianceBase):
 
             #Save results
             json.dump(full_res, rawres, indent=4, separators=(',',':'))
+
+class Linear():
+
+    def __init__(self):
+        pass
+
+    def run(self, data, y_all, unid, expdir):
+        reg_fname = os.path.join(expdir, 'regs_{}.pkl'.format(unid))
+        reg = LinearRegression(fit_intercept=False).fit(data.values, y_all.values).coef_[0]
+        coeffs = sorted(zip(reg, data.columns), reverse=True, key=lambda x: abs(x[0]))
+        coeffs = pd.DataFrame(coeffs, columns=['coeff', 'predictor'])
+        pd.to_pickle(coeffs, reg_fname)
+
+    def predict(self, data, coeffs):
+        #Order dataframe by coefficients column
+        if coeffs.empty:
+            return pd.DataFrame()
+        assert set(list(coeffs['predictor'].values)).issubset(set(list(data.columns)))
+        data = data[list(coeffs['predictor'].values)]  #make sure cols align
+
+        return pd.DataFrame(data.values @ coeffs['coeff'].values)

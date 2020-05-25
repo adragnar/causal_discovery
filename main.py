@@ -69,6 +69,9 @@ def default(id, algo, dataset_fname, expdir, env_atts_types, feateng_type=[], \
     elif algo == 'irm':
         irm = models.InvariantRiskMinimization()
         irm.run(data, y_all, d_atts, unid, expdir, SEED, env_atts_types, eq_estrat)
+    elif algo == 'linreg':
+        linreg = models.Linear()
+        linreg.run(data, y_all, unid, expdir)
     else:
         raise Exception('Algorithm not Implemented')
 
