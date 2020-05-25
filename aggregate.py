@@ -191,7 +191,7 @@ def max_alpha(pVals, arange, eps=1000):
     return -1
 
 
-def icp_process(res_dir, dset_dir, NUM_POINTS=100, MIN_ALPHA=1e-4):
+def icp_process(res_dir, dset_dir, NUM_POINTS=100, MIN_ALPHA=1e-10):
     ''''''
     expdir = os.path.join(res_dir, 'causal_discovery')
     paramfile = os.path.join(res_dir, 'icp_paramfile.pkl')

@@ -158,7 +158,7 @@ if __name__ == '__main__':
         #Write Exp Command to commandfile
         with open(args.cmdfile, 'a') as f:
             command_str = \
-                '''python main.py {id} {algo} {data} {expdir} -fteng {feat_eng} -reduce_dsize {d_size} -binarize {bin} -seed {s} \n'''
+                '''python main.py {id} {algo} {data} {expdir} -fteng {feat_eng} -reduce_dsize {d_size} -binarize {bin} -seed {s}\n'''
 
             command_str = command_str.format(
                 id=id,
