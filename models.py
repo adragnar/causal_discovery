@@ -16,6 +16,7 @@ from torch import nn
 
 from utils import powerset, dname_from_fpath, pretty
 import data_processing as dp
+import time
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 warnings.simplefilter(action='ignore', category=RuntimeWarning)
@@ -112,7 +113,7 @@ class InvariantRiskMinimization(InvarianceBase):
     """Object Wrapper around IRM"""
 
     def __init__(self):
-        self.args = {'lr':0.000001, \
+        self.args = {'lr':1e-5, \
                      'n_iterations':5000, \
                      'verbose':True}
 
@@ -123,16 +124,17 @@ class InvariantRiskMinimization(InvarianceBase):
         self.penalties = []
         self.losses = []
 
-        self.phi = torch.nn.Parameter(torch.ones(dim_x, dim_x))  #MLP(dim_x, dim_x, 100)
+        self.phi = torch.nn.Parameter(torch.eye(dim_x, dim_x))  #MLP(dim_x, dim_x, 100)
         self.w = torch.ones(dim_x, 1)  #torch.ones(dim_x)
         self.w.requires_grad = True
 
-        opt = torch.optim.Adam([self.phi], lr=self.args["lr"])
+        # opt = torch.optim.Adam([self.phi], lr=self.args["lr"])
         loss = torch.nn.MSELoss()
         logging.info('Using Adam optimizer, LR = {}'.format(args["lr"]))
         logging.info('Loss function MSE')
 
         for iteration in range(self.args["n_iterations"]):
+            # opt.zero_grad()
             penalty = 0
             error = 0
             for e, e_in in environments.items():
@@ -142,11 +144,30 @@ class InvariantRiskMinimization(InvarianceBase):
                 penalty += grad(error_e, self.w,
                                 create_graph=True)[0].pow(2).mean()
                 error += error_e
-            total = (reg * error + (1 - reg) * penalty)
 
-            opt.zero_grad()
+                if iteration % 250 == 0:
+                    print(torch.from_numpy(data.loc[e_in].values).float() \
+                                   @ self.phi @ self.w)
+                    print(torch.from_numpy(y_all.loc[e_in].values).float())
+
+            total = error    #(reg * error + (1 - reg) * penalty)
+
+            # print(self.phi.grad)
+            # print('######')
             total.backward()
-            opt.step()
+            print(self.phi.grad)
+            print('######')
+            with torch.no_grad():
+                # print(self.phi.grad)
+                self.phi.sub_(self.args['lr'] * self.phi.grad)
+                print(self.phi)
+                # print('######')
+            self.phi.grad.zero_()
+            time.sleep(5)
+            # print(self.phi.grad)
+            # print('######')
+
+            # opt.step()
 
             if self.args["verbose"] and iteration % 250 == 0:
                 # w_str = pretty(self.solution())
@@ -154,6 +175,9 @@ class InvariantRiskMinimization(InvarianceBase):
                                                                       reg,
                                                                       error,
                                                                       penalty))
+
+
+
                 # print(self.phi)
                 # print(self.phi.grad)
                 # print(torch.from_numpy(y_all.loc[e_in].values).float().data)

@@ -26,6 +26,9 @@ def data_loader(fname, fteng, dsize=-1, bin=0, toy=[False], seed=1000, testing=0
     :param bin - binarize environments - 0 for No, 1 for yes
     :param toy - If not = [False], = [True, data, y_all, d_atts]
     '''
+    if 1000 in fteng:
+        fteng = []
+
     if toy[0] == True:
         data, y_all, d_atts = toy[1], toy[2], toy[3]
     elif dname_from_fpath(fname) == 'adult':
