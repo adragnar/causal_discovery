@@ -3,7 +3,6 @@ import pickle
 from time import time
 
 from itertools import combinations
-import scipy.signal as sig
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder

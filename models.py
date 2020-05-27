@@ -11,10 +11,10 @@ import warnings
 import pandas as pd
 from tqdm import tqdm
 from itertools import combinations
-from torch.autograd import grad
+import torch.autograd as autograd
 from torch import nn
 
-from utils import powerset, dname_from_fpath, pretty
+from utils import powerset, dname_from_fpath, make_tensor
 import data_processing as dp
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
@@ -91,93 +91,109 @@ class InvarianceBase(object):
             store[env] = raw.squeeze()
 
 class MLP(nn.Module):
-    def __init__(self, isize, osize, hidden_dim):
+    def __init__(self, d, hid_dim):
         super(MLP, self).__init__()
-
-        lin1 = nn.Linear(isize, hidden_dim)
-        lin2 = nn.Linear(hidden_dim, hidden_dim)
-        lin3 = nn.Linear(hidden_dim, isize)
+        lin1 = nn.Linear(d, hid_dim)
+        lin2 = nn.Linear(hid_dim, hid_dim)
+        lin3 = nn.Linear(hid_dim, 1)
         for lin in [lin1, lin2, lin3]:
             nn.init.xavier_uniform_(lin.weight)
             nn.init.zeros_(lin.bias)
         self._main = nn.Sequential(lin1, nn.ReLU(True), lin2, nn.ReLU(True), lin3)
 
     def forward(self, input):
-        out = input
-        out = self._main(out)
+        out = self._main(input)
         return out
-
 
 class InvariantRiskMinimization(InvarianceBase):
     """Object Wrapper around IRM"""
 
     def __init__(self):
-        self.args = {'lr':0.000001, \
+        self.args = {'lr':0.001, \
                      'n_iterations':5000, \
+                     'penalty_anneal_iters':100, \
+                     'l2_reg':0.001, \
                      'verbose':True}
 
-    def train(self, data, y_all, environments, args, reg=0):
+    def mean_nll(self, logits, y):
+        return nn.functional.binary_cross_entropy_with_logits(logits, y)
+
+    def mean_accuracy(self, logits, y):
+        preds = (logits > 0.).float()
+        return ((preds - y).abs() < 1e-2).float().mean()
+
+    def penalty(self, logits, y):
+        scale = torch.tensor(1.).requires_grad_()
+        loss = self.mean_nll(logits * scale, y)
+        grad = autograd.grad(loss, [scale], create_graph=True)[0]
+        return torch.sum(grad**2)
+
+    def train(self, data, y_all, environments, args, hid_layers=100, reg=0):
         dim_x = data.shape[1]
 
         self.errors = []
         self.penalties = []
         self.losses = []
 
-        self.phi = torch.nn.Parameter(torch.ones(dim_x, dim_x))  #MLP(dim_x, dim_x, 100)
-        self.w = torch.ones(dim_x, 1)  #torch.ones(dim_x)
-        self.w.requires_grad = True
+        self.phi = MLP(dim_x, hid_layers)
+        optimizer = torch.optim.Adam(self.phi.parameters(), lr=args['lr'])
 
-        opt = torch.optim.Adam([self.phi], lr=self.args["lr"])
-        loss = torch.nn.MSELoss()
-        logging.info('Using Adam optimizer, LR = {}'.format(args["lr"]))
-        logging.info('Loss function MSE')
+        logging.info('step', 'train nll', 'train acc', 'train penalty', 'test acc')
 
-        for iteration in range(self.args["n_iterations"]):
-            penalty = 0
-            error = 0
+        #Start the training loop
+        for step in range(args['n_iterations']):
+            e_comp = {}
             for e, e_in in environments.items():
-                error_e = loss(torch.from_numpy(data.loc[e_in].values).float() \
-                               @ self.phi @ self.w, \
-                               torch.from_numpy(y_all.loc[e_in].values).float())
-                penalty += grad(error_e, self.w,
-                                create_graph=True)[0].pow(2).mean()
-                error += error_e
-            total = (reg * error + (1 - reg) * penalty)
+                e_comp[e] = {}
+                # import pdb; pdb.set_trace()
+                # d = make_tensor(data.loc[e_in].values)
+                logits = self.phi(make_tensor(data.loc[e_in].values))
+                labels = make_tensor(y_all.loc[e_in].values)
+                e_comp[e]['nll'] = self.mean_nll(logits, labels)
+                e_comp[e]['acc'] = self.mean_accuracy(logits, labels)
+                e_comp[e]['penalty'] = self.penalty(logits, labels)
 
-            opt.zero_grad()
-            total.backward()
-            opt.step()
+            train_nll = torch.stack([e_comp[e]['nll'] for e in e_comp.keys()]).mean()
+            train_acc = torch.stack([e_comp[e]['acc'] for e in e_comp.keys()]).mean()
+            train_penalty = torch.stack([e_comp[e]['penalty'] for e in e_comp.keys()]).mean()
+            loss = train_nll.clone()
 
-            if self.args["verbose"] and iteration % 250 == 0:
-                # w_str = pretty(self.solution())
-                logging.info("{:05d} | {:.5f} | {:.5f} | {:.5f}".format(iteration,
-                                                                      reg,
-                                                                      error,
-                                                                      penalty))
-                # print(self.phi)
-                # print(self.phi.grad)
-                # print(torch.from_numpy(y_all.loc[e_in].values).float().data)
-                # print((torch.from_numpy(data.loc[e_in].values).float() \
-                #                @ self.phi @ self.w).data)
-                # print((self.phi).grad_fn)
-                # print((self.w).grad_fn)
-                # z = torch.ones(45, 1, requires_grad=True)
-                # a = torch.from_numpy(y_all.loc[e_in].values).float()
-                # b = torch.ones(6435, 45, requires_grad=False)@ self.phi @ z                #torch.ones(torch.ones(38651, 45), 1, requires_grad=True)
-                # print((self.phi).shape)
-                # print(a.shape)
-                # print(b.shape)
-                # c = loss(a, b)
-                # opt.zero_grad()
-                # c.backward()
-                # print(b.grad)
-                # print(self.phi.grad)
-                # assert False
+            #Regularize the weights
+            weight_norm = torch.tensor(0.)
+            for w in self.phi.parameters():
+                weight_norm += w.norm().pow(2)
+            loss += args['l2_reg'] * weight_norm
 
-            #Store Losses for Plotting
-            self.errors.append(error.detach().numpy())
-            self.penalties.append(penalty.detach().numpy())
-            self.losses.append(total.detach().numpy())
+            #Regularize the weights
+            weight_norm = torch.tensor(0.)
+            for w in self.phi.parameters():
+                weight_norm += w.norm().pow(2)
+            loss += args['l2_reg'] * weight_norm
+
+            #Add the invariance penalty
+            penalty_weight = (reg
+                if step >= args['penalty_anneal_iters'] else 1.0)
+            loss += penalty_weight * train_penalty
+            if penalty_weight > 1.0: # Rescale big loss
+                loss /= penalty_weight
+
+            #Do the backprop
+            loss.backward()
+            optimizer.step()
+            optimizer.zero_grad()
+
+            #Printing and Logging
+            if step % 1000 == 0:
+                logging.info([np.int32(step),
+                              train_nll.detach().cpu().numpy(),
+                              train_acc.detach().cpu().numpy(),
+                              train_penalty.detach().cpu().numpy()]
+                             )
+
+
+            self.errors.append(train_nll.detach().numpy())
+            self.penalties.append(train_penalty.detach().numpy())
+            self.losses.append(loss.detach().numpy())
 
 
 
@@ -209,7 +225,7 @@ class InvariantRiskMinimization(InvarianceBase):
         losses = []
 
         #Now start with IRM itself
-        reg = [0, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1]
+        reg = [100, 10000]
         val_env = random.sample(set(e_ins_store.keys()), 1)[0]
         logging.info('possible regularization vals are {}'.format(str(reg)))
         logging.info('validation environment: {}'.format(val_env))
