@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #Make expieriment directories/files
-expdir=test_expdir  #"/scratch/gobi1/adragnar/experiments/causal_discovery/$(date +'%s')"      #"/scratch/hdd001/home/adragnar/experiments/causal_discovery/$(date +'%s')"
+expdir="/scratch/gobi1/adragnar/experiments/causal_discovery/$(date +'%s')"      #"/scratch/hdd001/home/adragnar/experiments/causal_discovery/$(date +'%s')"
 mkdir -p $expdir
 cmdfile="$expdir/cmdfile.sh"
 
@@ -80,13 +80,13 @@ do
   done
 done
 
-# #Run evaluation on cluster
-# num_cmds=`wc -l $cmdfile | cut -d' ' -f1`
-# echo "Wrote $num_cmds commands to $cmdfile"
-#
-# cmd=( $cmd )
-# num_tokens=${#cmd[@]}
-# xargs -L 1 -P $max_proc srun --mem=16G -p cpu < $cmdfile
+#Run evaluation on cluster
+num_cmds=`wc -l $cmdfile | cut -d' ' -f1`
+echo "Wrote $num_cmds commands to $cmdfile"
+
+cmd=( $cmd )
+num_tokens=${#cmd[@]}
+xargs -L 1 -P $max_proc srun --mem=16G -p cpu < $cmdfile
 
 
 

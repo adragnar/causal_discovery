@@ -131,7 +131,7 @@ class InvariantRiskMinimization(InvarianceBase):
     def train(self, data, y_all, environments, args, hid_layers=100, reg=0):
         dim_x = data.shape[1]
 
-        self.errors = [] 
+        self.errors = []
         self.penalties = []
         self.losses = []
 
@@ -231,14 +231,14 @@ class InvariantRiskMinimization(InvarianceBase):
         logging.info('validation environment: {}'.format(val_env))
 
         val_ein = e_ins_store.pop(val_env)
-        val_data = torch.from_numpy(data.loc[val_ein].values).float()
-        val_labels = torch.from_numpy(y_all.loc[val_ein].values).float()
+        val_data = utils.make_tensor(data.loc[val_ein].values)
+        val_labels = utils.make_tensor(y_all.loc[val_ein].values)
 
         best_reg = 0
         best_err = 1e50
         for r in reg:
             self.train(data, y_all, e_ins_store, self.args, reg=r)
-            err = (val_data @ self.solution() - val_labels).pow(2).mean().item()
+            err = np.float(self.mean_nll(self.phi(val_data), val_labels).detach().numpy())
 
             logging.info("IRM reg={:.3f}) has {:.3f} validation error.".format(
                 r, err))
@@ -261,10 +261,6 @@ class InvariantRiskMinimization(InvarianceBase):
         np.save(errors_fname, np.array(errors))
         np.save(penalties_fname, np.array(penalties))
         np.save(losses_fname, np.array(losses))
-
-
-    def solution(self):
-        return self.phi @ self.w
 
     def predict(self, data, phi, w):
         '''
