@@ -15,6 +15,12 @@ def dname_from_fpath(fpath):
 
     raise Exception('Dataset Not Included')
 
+def proc_fteng(ft):
+    '''Convert the fteng string into appropiate list of modifications to make'''
+    if ft == '-1':
+        return []
+    else:
+        return [int(c) for c in ft]
 
 def env_parser(envs):
     '''Convert a string of a list of strings without spaces into a list'''

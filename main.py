@@ -115,6 +115,6 @@ if __name__ == '__main__':
         quit()
 
     default(args.id, args.algo, args.data_fname, args.expdir, utils.env_parser(args.env_atts), \
-           feateng_type=[int(c) for c in args.fteng], d_size=args.reduce_dsize, \
+           feateng_type=utils.proc_fteng(args.fteng), d_size=args.reduce_dsize, \
             bin_env=bool(args.binarize),  \
             eq_estrat=args.eq_estrat, SEED=args.seed, testing=args.testing)
