@@ -131,7 +131,7 @@ class InvariantRiskMinimization(InvarianceBase):
     def train(self, data, y_all, environments, args, hid_layers=100, reg=0):
         dim_x = data.shape[1]
 
-        self.errors = []
+        self.errors = [] 
         self.penalties = []
         self.losses = []
 
@@ -141,7 +141,7 @@ class InvariantRiskMinimization(InvarianceBase):
         logging.info('step', 'train nll', 'train acc', 'train penalty', 'test acc')
 
         #Start the training loop
-        for step in range(args['n_iterations']):
+        for step in tqdm(range(args['n_iterations'])):
             e_comp = {}
             for e, e_in in environments.items():
                 e_comp[e] = {}
