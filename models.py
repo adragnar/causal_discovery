@@ -229,10 +229,13 @@ class InvariantRiskMinimization(InvarianceBase):
         np.save(penalties_fname, self.penalties)
         np.save(losses_fname, self.losses)
 
-    def predict(self, data, phi, w):
+    def predict(self, data, phi_params):
         '''
-        :param data: the dataset (nparray)'''
-        return pd.DataFrame((torch.from_numpy(data).float() @ phi @ w).detach().numpy())
+        :param data: the dataset (nparray)
+        :param phi_params: The state dict of the MLP'''
+        phi = MLP(data.shape[1], 100)
+        phi.load_state_dict(phi_params)
+        return pd.DataFrame(phi(make_tensor(data)).detach().numpy())
 
 class InvariantCausalPrediction(InvarianceBase):
     """Object Wrapper around ICP"""

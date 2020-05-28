@@ -282,15 +282,15 @@ def irm_process(res_dir, dset_dir):
 
     #Load IRM Parameters into dataframe
     params['phi'] = np.NaN
-    params['w'] = np.NaN
+    # params['w'] = np.NaN
 
     for fname in os.listdir(expdir):
         id = get_id_from_fname(fname)
         ftype = get_ftype_from_fname(fname)
         if ftype == 'phi':
             params.loc[id, 'phi'] = os.path.join(expdir, fname)
-        elif ftype == 'w':
-            params.loc[id, 'w'] = os.path.join(expdir, fname)
+        # elif ftype == 'w':
+        #     params.loc[id, 'w'] = os.path.join(expdir, fname)
 
     pd.to_pickle(params, paramfile)
 
