@@ -34,7 +34,19 @@ def make_tensor(arr):
     return torch.from_numpy(arr).float()
 
 def merge_exps(newdir, e1, e2):
-    '''Given paths to two fully formatted folders, merge them into one'''
-    #Make new folder
-    # join()
+    # '''Given paths to two unaggregated folders, merge them into one'''
+    # #Make new folder
+    # # join()
+    #
+    # #renumber the indicies and join paramfiles
+    # e1_params = pd.read_pickle(e1_paramfile)
+    # e2_params = pd.read_pickle(e2_paramfile)
+    # new_params = e1_params.append(e2_params, ignore_index=True)
+    # new_params.index.name = 'Id'
+    # new_params.index = new_params.index.map(str)
+    #
+    # #Renumber the files
+    # lastnum = int(e1_params.index.to_list()[-1])
+    # for
+
     pass

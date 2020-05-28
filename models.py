@@ -138,7 +138,7 @@ class InvariantRiskMinimization(InvarianceBase):
         self.phi = MLP(dim_x, hid_layers)
         optimizer = torch.optim.Adam(self.phi.parameters(), lr=args['lr'])
 
-        logging.info('step', 'train nll', 'train acc', 'train penalty', 'test acc')
+        logging.info('[step, train nll, train acc, train penalty, test acc]')
 
         #Start the training loop
         for step in tqdm(range(args['n_iterations'])):
@@ -199,7 +199,6 @@ class InvariantRiskMinimization(InvarianceBase):
 
     def run(self, data, y_all, d_atts, unid, expdir, seed, env_atts_types, eq_estrat):
         phi_fname = os.path.join(expdir, 'phi_{}.pt'.format(unid))
-        w_fname = os.path.join(expdir, 'w_{}.pt'.format(unid))
         errors_fname = os.path.join(expdir, 'errors_{}.npy'.format(unid))
         penalties_fname = os.path.join(expdir, 'penalties_{}.npy'.format(unid))
         losses_fname = os.path.join(expdir, 'losses_{}.npy'.format(unid))
@@ -219,48 +218,16 @@ class InvariantRiskMinimization(InvarianceBase):
             assert eq_estrat > 0
             self.equalize_strats(e_ins_store, eq_estrat, data.shape[0], seed)
 
-        #Setup Loss plotting
-        errors = []
-        penalties = []
-        losses = []
 
         #Now start with IRM itself
-        reg = [100, 10000]
-        val_env = random.sample(set(e_ins_store.keys()), 1)[0]
-        logging.info('possible regularization vals are {}'.format(str(reg)))
-        logging.info('validation environment: {}'.format(val_env))
+        reg = 10000
+        self.train(data, y_all, e_ins_store, self.args, reg=reg)
 
-        val_ein = e_ins_store.pop(val_env)
-        val_data = utils.make_tensor(data.loc[val_ein].values)
-        val_labels = utils.make_tensor(y_all.loc[val_ein].values)
-
-        best_reg = 0
-        best_err = 1e50
-        for r in reg:
-            self.train(data, y_all, e_ins_store, self.args, reg=r)
-            err = np.float(self.mean_nll(self.phi(val_data), val_labels).detach().numpy())
-
-            logging.info("IRM reg={:.3f}) has {:.3f} validation error.".format(
-                r, err))
-            errors.append(self.errors)
-            penalties.append(self.penalties)
-            losses.append(self.losses)
-
-            if err < best_err:
-                best_err = err
-                best_reg = r
-                best_phi = self.phi.clone()
-                best_w = self.w.clone()
-
-        logging.info("best reg={:.3f}) has {:.3f} validation error.".format(    \
-            best_reg, best_err))
-        self.phi = best_phi
-        self.w = best_w
-        torch.save(self.phi, phi_fname)
-        torch.save(self.w, w_fname)
-        np.save(errors_fname, np.array(errors))
-        np.save(penalties_fname, np.array(penalties))
-        np.save(losses_fname, np.array(losses))
+        #Save Results
+        torch.save(self.phi.state_dict(), phi_fname)
+        np.save(errors_fname, self.errors)
+        np.save(penalties_fname, self.penalties)
+        np.save(losses_fname, self.losses)
 
     def predict(self, data, phi, w):
         '''
