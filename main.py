@@ -26,7 +26,7 @@ import random
 import models
 import utils
 
-def default(id, algo, dataset_fname, expdir, env_atts_types, feateng_type=[], \
+def default(id, algo, dataset_fname, expdir, env_atts_types, feateng_type='-1', \
             d_size=-1, bin_env=False, eq_estrat=-1, SEED=100,
             toy_data=[False], testing=False):
 
@@ -41,7 +41,7 @@ def default(id, algo, dataset_fname, expdir, env_atts_types, feateng_type=[], \
     random.seed(SEED)
 
     #Meta-function Accounting
-    unid = '''{}_{}_{}_{}_{}_{}'''.format(id, ''.join([str(f) for f in feateng_type]),\
+    unid = '''{}_{}_{}_{}_{}_{}'''.format(id, feateng_type,\
                                        dname_from_fpath(dataset_fname), \
                                        str(d_size), \
                                        str(SEED), \
@@ -50,6 +50,7 @@ def default(id, algo, dataset_fname, expdir, env_atts_types, feateng_type=[], \
     logger_fname = os.path.join(expdir, 'log_{}.txt'.format(unid))
     logging.basicConfig(filename=logger_fname, level=logging.DEBUG)
     logging.info('id: {}'.format(id))
+    logging.info('fteng: {}'.format(feateng_type))
     logging.info('dataset: {}'.format(dname_from_fpath(dataset_fname)))
     logging.info('env_atts: {}'.format(str(env_atts_types)))
     logging.info('dataset size: {}'.format(str(d_size)))
@@ -115,6 +116,6 @@ if __name__ == '__main__':
         quit()
 
     default(args.id, args.algo, args.data_fname, args.expdir, utils.env_parser(args.env_atts), \
-           feateng_type=utils.proc_fteng(args.fteng), d_size=args.reduce_dsize, \
+           feateng_type=args.fteng, d_size=args.reduce_dsize, \
             bin_env=bool(args.binarize),  \
             eq_estrat=args.eq_estrat, SEED=args.seed, testing=args.testing)
