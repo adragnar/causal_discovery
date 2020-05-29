@@ -11,7 +11,7 @@ def dname_from_fpath(fpath):
     if 'adult' in fpath:
         return 'adult'
     if 'german' in fpath:
-        return 'germanCredit'
+        return 'german'
 
     raise Exception('Dataset Not Included')
 

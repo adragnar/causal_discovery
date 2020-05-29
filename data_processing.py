@@ -20,22 +20,23 @@ def data_loader(fname, fteng, dsize=-1, bin=0, toy=[False], seed=1000, testing=0
     and column names
 
     :param fname - path to dataset (csv)
-    :param fteng - string of ints, dataset transforms
+    :param fteng - list of ints, dataset transforms
     :param reduce_size: subsample data -1 for None, val for size of dataset
     :param bin - binarize environments - 0 for No, 1 for yes
     :param toy - If not = [False], = [True, data, y_all, d_atts]
     '''
+
     if toy[0] == True:
         data, y_all, d_atts = toy[1], toy[2], toy[3]
     elif dname_from_fpath(fname) == 'adult':
         data, y_all, d_atts = adult_dataset_processing(fname, \
-                              utils.proc_fteng(fteng), reduce_dsize=dsize, \
+                              fteng, reduce_dsize=dsize, \
                               bin=bin, seed=seed, \
                               testing=testing)
     elif dname_from_fpath(fname) == 'german':
         assert (seed==1000)
         data, y_all, d_atts = german_credit_dataset_processing(fname, \
-                              utils.proc_fteng(fteng), bin=bin, \
+                              fteng, bin=bin, \
                               testing=testing)
 
     return data, y_all, d_atts
@@ -234,7 +235,7 @@ def german_credit_dataset_processing(fname, fteng=[], bin=False, testing=False):
     data.columns = in_order
 
     #Custom binarize the stratification categories
-    if estrat_red:
+    if bin:
         for ft in cat_feats:
             for agg_ft in cat_feats[ft]:
                 data[ft] = data[ft].apply(lambda val: agg_ft if val in cat_feats[ft][agg_ft] else val)

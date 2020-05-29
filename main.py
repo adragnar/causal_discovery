@@ -11,7 +11,7 @@ import pandas as pd
 from tqdm import tqdm
 from itertools import combinations
 
-from utils import powerset, dname_from_fpath
+from utils import powerset, dname_from_fpath, proc_fteng
 import data_processing as dp
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
@@ -59,14 +59,15 @@ def default(id, algo, dataset_fname, expdir, env_atts_types, feateng_type='-1', 
     logging.info('seed: {}'.format(str(SEED)))
 
     #Select correct dataset
-    data, y_all, d_atts = dp.data_loader(dataset_fname, feateng_type, dsize=d_size, \
+    data, y_all, d_atts = dp.data_loader(dataset_fname, proc_fteng(feateng_type), dsize=d_size, \
                                     bin=bin_env, toy=toy_data, testing=testing)
     logging.info('{} Dataset loaded - size {}'.format(dataset_fname.split('/')[-1], \
                 str(data.shape)))
 
     if algo == 'icp':
         icp = models.InvariantCausalPrediction()
-        icp.run(data, y_all, d_atts, unid, expdir, feateng_type, SEED, env_atts_types, eq_estrat)
+        icp.run(data, y_all, d_atts, unid, expdir, proc_fteng(feateng_type), \
+                SEED, env_atts_types, eq_estrat)
     elif algo == 'irm':
         irm = models.InvariantRiskMinimization()
         irm.run(data, y_all, d_atts, unid, expdir, SEED, env_atts_types, eq_estrat)
