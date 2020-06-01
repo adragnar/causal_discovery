@@ -16,6 +16,7 @@ import pprint
 
 import models
 import data_processing as dp
+import utils
 
 def get_id_from_fname(f):
     return f.split('_')[1]
@@ -236,9 +237,9 @@ def icp_process(res_dir, dset_dir, NUM_POINTS=100, MIN_ALPHA=1e-10):
         else:
             raise Exception('Dataset not imlemented')
 
-        data, y_all, d_atts = dp.adult_dataset_processing(dataset_fname, \
-                            [int(c) for c in params.loc[id, 'Fteng']], \
-                            reduce_dsize=int(params.loc[id, 'ReduceDsize']), \
+        data, y_all, d_atts = dp.data_loader(dataset_fname, \
+                            utils.proc_fteng(params.loc[id, 'Fteng']), \
+                            dsize=int(params.loc[id, 'ReduceDsize']), \
                             bin=int(params.loc[id, 'Bin']), \
                             testing=0)
 
@@ -257,7 +258,7 @@ def icp_process(res_dir, dset_dir, NUM_POINTS=100, MIN_ALPHA=1e-10):
 
         icp = models.InvariantCausalPrediction()
         causal_preds = icp.get_data_regressors(d_atts, causal_preds, \
-                                [int(c) for c in params.loc[id, 'Fteng']], data)
+                                utils.proc_fteng(params.loc[id, 'Fteng']), data)
 
 
         ##Get the Coefficients of the Predictor
