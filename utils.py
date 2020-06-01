@@ -22,7 +22,7 @@ def proc_fteng(ft):
     else:
         return [int(c) for c in ft]
 
-def env_parser(envs):
+def str_2_strlist_parser(envs):
     '''Convert a string of a list of strings without spaces into a list'''
     ret = envs.strip('[').strip(']').split(',')
     if (len(ret) == 1) and ('' in ret):

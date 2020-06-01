@@ -38,11 +38,13 @@ then
     then
         length_envvars=5
         env_vars="[workclass,native-country,occupation,marital-status,relationship]"
+        val_info="[workclass_DUMmY,native-country_DUMmY,occupation_DUMmY,marital-status_DUMmY,relationship_DUMmY]"
     fi
     if [ $binarize == 1 ]
     then
         length_envvars=2
         env_vars="[workclass,native-country]"   #"occupation" "marital-status" "relationship")
+        val_info="[workclass_DUMmY,native-country_DUMmY]"
     fi
 fi
 
@@ -52,14 +54,20 @@ then
     then
         length_envvars=4
         env_vars="[Purpose,Housing,Telephone,Property]"  # 'OtherInstallmentPlans'  'Foreign' 'Savings' 'Personal' 'OtherDebtors')
+        val_info="[Purpose_DUMmY,Housing_DUMmY,Telephone_DUMmY,Property_DUMmY]"
     fi
     if [ $binarize == 1 ]
     then
        length_envvars=4
         env_vars="[Purpose,Housing,Telephone,Property]"
+        val_info="[Purpose_DUMmY,Housing_DUMmY,Telephone_DUMmY,Property_DUMmY]"
     fi
 fi
 
+if [ $algo == "linreg" ]
+then
+    val_info="20"
+fi
 #Generate the commandfile
 id=0
 for red_d in ${reduce_dsize[*]}
@@ -70,10 +78,10 @@ do
     do
         if [ $algo == "icp"  -o  $algo == "irm" ]
         then
-            python setup_params.py $id $algo $data $expdir $cmdfile $paramfile -env_list $env_vars -envcombos $envplur -fteng $f_eng -reduce_dsize $red_d -binarize $binarize -eq_estrat $eq_estrat -seed $s
+            python setup_params.py $id $algo $data $expdir $cmdfile $paramfile -env_list $env_vars -envcombos $envplur -fteng $f_eng -reduce_dsize $red_d -binarize $binarize -eq_estrat $eq_estrat -seed $s -val $val_info
             id=$(($id + $length_envvars))
         else
-            python setup_params.py $id $algo $data $expdir $cmdfile $paramfile -fteng $f_eng -reduce_dsize $red_d -binarize $binarize -seed $s
+            python setup_params.py $id $algo $data $expdir $cmdfile $paramfile -fteng $f_eng -reduce_dsize $red_d -binarize $binarize -seed $s -val $val_info
             id=$(($id + 1))
         fi
     done
