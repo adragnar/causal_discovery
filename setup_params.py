@@ -84,7 +84,7 @@ if __name__ == '__main__':
     parser.add_argument("-binarize", type=int, default=0)
     parser.add_argument("-eq_estrat", type=int, default=-1)
     parser.add_argument("-seed", type=int, default=100)
-    parser.add_argument("-val_info", type=str, default='-1')
+    parser.add_argument("-val_info", type=str, default=['-1'])
     parser.add_argument("--testing", action='store_true')
 
     args = parser.parse_args()
@@ -110,16 +110,23 @@ if __name__ == '__main__':
     e_list = utils.str_2_strlist_parser(args.env_list)
 
     if len(e_list) > 0:
-        val_e_list = utils.str_2_strlist_parser(args.val_info)
-        assert len(val_e_list) == len(e_list)
-
+        #Set up evironment combos
         if args.envcombos == 'all_combos':
             allenvs = utils.powerset(e_list)
-            allvalenvs = utils.powerset(val_e_list)
         elif args.envcombos == 'single':
             allenvs = [[a] for a in e_list]
-            allvalenvs = [[a] for a in val_e_list]
 
+        #Set up considerations around validation
+        if args.val_info != '[-1]':
+            val_e_list = utils.str_2_strlist_parser(args.val_info)
+            assert len(val_e_list) == len(e_list)
+
+            if args.envcombos == 'all_combos':
+                allvalenvs = utils.powerset(val_e_list)
+            elif args.envcombos == 'single':
+                allvalenvs = [[a] for a in val_e_list]
+        else:
+            allvalenvs = ['[-1]']*len(e_list)
 
         for i, _ in enumerate(allenvs):
             id = str(int(args.id) + i)
@@ -162,10 +169,13 @@ if __name__ == '__main__':
                             'Envs', 'Val']
 
     else:
-        assert (args.val_info == '-1') or (args.val_info.isdigit())
+
         id = str(int(args.id) + 1)
         uniqueid = unid_from_algo(id, a=args.algo, \
                                   data=args.datafname)
+
+        #Deal with validation
+        assert ('-1' in args.val_info) or (args.val_info.strip('[').strip(']').strip('-').isdigit())
 
         #Write Exp Command to commandfile
         with open(args.cmdfile, 'a') as f:
