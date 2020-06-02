@@ -9,17 +9,17 @@ cmdfile="$expdir/cmdfile.sh"
 max_proc=50
 
 #Set Misc Experiment Parameters
-use_val=0
-algo="icp" #  "icp" "linreg"
+use_val=1
+algo="linreg" #  "icp" "linreg"
 paramfile="$expdir/${algo}_paramfile.pkl"
 
 #Set Dataset Parameters
 dtype="german"  #adult, german
 reduce_dsize=(-1)
-binarize=1  #0, 1
+binarize=0  #0, 1
 seeds=(1000)  # 1000 8079 52 147 256 784 990 587 304 888)
 
-ft_combos=('12')   #'1' '12')
+ft_combos=('-1' '12')   #'1' '12')
 if [ $dtype == "adult" ]
 then
     data="~/causal_discovery/data/adult.csv"
@@ -67,7 +67,7 @@ fi
 
 if [ $algo == "linreg" ]
 then
-    val_info="[20]"
+    val_info="[0.2]"
 fi
 
 #Set up validation info

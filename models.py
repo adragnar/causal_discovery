@@ -33,16 +33,19 @@ class InvarianceBase(object):
     def __init__(self):
         pass
 
-    def get_environments(self, df, e):
+    def get_environments(self, df, e, val=['-1']):
         '''Compute values of df satisfying each environment in e
 
         :param df: Pandas df of dataset without labels
         :param e: Dictionary of {base_cat:[all assoc df columns]} for all speicfied
                   environments. Excludes columns of transformed features
         :return store: Dict of {env:e_in_values}
+        :return val_store: Dict of {env:e_in_values} for the validation envs
         '''
+        assert type(val[0]) == str
 
         store = {}
+        val_store = None
         for env in itertools.product(*[e[cat] for cat in e]):
             #Get the stratification columns associated with env
             dummy_atts = []
@@ -60,8 +63,13 @@ class InvarianceBase(object):
                 e_in = ((df[dummy_atts] == 0)).all(1)
             else:
                 e_in = ((df[live_atts] == 1).all(1) & (df[dummy_atts] == 0).all(1))
-            store[env] = e_in
-        return store
+
+            if set(env) != set(val):  #Compute only validation data
+                store[env] = e_in
+            else:
+                val_store = e_in
+
+        return store, val_store
 
     def equalize_strats(self, store, threshold, dlen, seed):
         '''Preprocess all e_ins to have the same number of samples_wanted
@@ -197,7 +205,7 @@ class InvariantRiskMinimization(InvarianceBase):
 
 
 
-    def run(self, data, y_all, d_atts, unid, expdir, seed, env_atts_types, eq_estrat):
+    def run(self, data, y_all, d_atts, unid, expdir, seed, env_atts_types, eq_estrat, val=['-1']):
         phi_fname = os.path.join(expdir, 'phi_{}.pt'.format(unid))
         errors_fname = os.path.join(expdir, 'errors_{}.npy'.format(unid))
         penalties_fname = os.path.join(expdir, 'penalties_{}.npy'.format(unid))
@@ -207,11 +215,22 @@ class InvariantRiskMinimization(InvarianceBase):
         allowed_datts = {cat:d_atts[cat] for cat in d_atts.keys() if cat not in env_atts_types}
 
         #Generate Environments     (assuming only cat vars)
-        e_ins_store = self.get_environments(data, \
-                                      {cat:d_atts[cat] for cat in env_atts_types})
+        e_ins_store, val_ein = self.get_environments(data, \
+                                {cat:d_atts[cat] for cat in env_atts_types}, \
+                                 val=val)
+
+        #Remove Val Data
+        if val != ['-1']:
+            data = data[np.logical_not(val_ein.values)]
+            y_all = y_all[np.logical_not(val_ein.values)]
+        else:
+            assert val_ein is None
+
+
         logging.info('{} environment attributes'.format(len(e_ins_store)))
         logging.debug('Environment attributes are {}'.format( \
                                             str([str(e) for e in e_ins_store.keys()])))
+        logging.info('Validation Parameters are {}'.format(val))
 
         #Normalize operation on e_ins
         if eq_estrat != -1:
@@ -326,23 +345,26 @@ class InvariantCausalPrediction(InvarianceBase):
         return pd.DataFrame(data.values @ coeffs['coeff'].values)
 
 
-    def run(self, data, y_all, d_atts, unid, expdir, feateng_type, seed, env_atts_types, eq_estrat):
+    def run(self, data, y_all, d_atts, unid, expdir, feateng_type, seed, env_atts_types, eq_estrat, val=['-1']):
         rawres_fname = os.path.join(expdir, 'rawres_{}.json'.format(unid))
         #Set allowable datts as PCPs
         allowed_datts = {cat:d_atts[cat] for cat in d_atts.keys() if cat not in env_atts_types}
 
         #Generate Environments     (assuming only cat vars)
-        e_ins_store = self.get_environments(data, \
-                                      {cat:d_atts[cat] for cat in env_atts_types})
+        e_ins_store, val_ein = self.get_environments(data, \
+                                      {cat:d_atts[cat] for cat in env_atts_types}, \
+                                      val=val)
+        #Remove Val Data
+        if val != ['-1']:
+            data = data[np.logical_not(val_ein.values)]
+            y_all = y_all[np.logical_not(val_ein.values)]
+        else:
+            assert val_ein is None
+
         logging.info('{} environment attributes'.format(len(e_ins_store)))
         logging.debug('Environment attributes are {}'.format( \
                                             str([str(e) for e in e_ins_store.keys()])))
-
-        #Normalize operation on e_ins
-        if eq_estrat != -1:
-            assert eq_estrat > 0
-            self.equalize_strats(e_ins_store, eq_estrat, data.shape[0], seed)
-
+        logging.info('Validation Parameters are {}'.format(val))
 
         #Now start enumerating PCPs
         full_res = {}
@@ -400,8 +422,16 @@ class Linear():
     def __init__(self):
         pass
 
-    def run(self, data, y_all, unid, expdir):
+    def run(self, data, y_all, unid, expdir, seed=1000, val=['-1']):
         reg_fname = os.path.join(expdir, 'regs_{}.pkl'.format(unid))
+
+        #Deal with validation
+
+        if val != ['-1']:
+            assert 0.0 < float(val[0]) < 1.0
+            data = data.sample(frac=(1-float(val[0])), random_state=seed)
+            y_all = y_all.sample(frac=(1-float(val[0])), random_state=seed)
+
         reg = LinearRegression(fit_intercept=False).fit(data.values, y_all.values).coef_[0]
         coeffs = sorted(zip(reg, data.columns), reverse=True, key=lambda x: abs(x[0]))
         coeffs = pd.DataFrame(coeffs, columns=['coeff', 'predictor'])

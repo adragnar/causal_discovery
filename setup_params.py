@@ -175,7 +175,10 @@ if __name__ == '__main__':
                                   data=args.datafname)
 
         #Deal with validation
-        assert ('-1' in args.val_info) or (args.val_info.strip('[').strip(']').strip('-').isdigit())
+        try:
+            float(args.val_info.strip('[').strip(']'))
+        except:
+            raise Exception('Wrong format for val_info')
 
         #Write Exp Command to commandfile
         with open(args.cmdfile, 'a') as f:

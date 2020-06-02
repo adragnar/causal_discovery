@@ -27,7 +27,7 @@ import models
 import utils
 
 def default(id, algo, dataset_fname, expdir, env_atts_types, feateng_type='-1', \
-            d_size=-1, bin_env=False, eq_estrat=-1, SEED=100,
+            d_size=-1, bin_env=False, eq_estrat=-1, SEED=100, val_info=['-1'],
             toy_data=[False], testing=False):
 
     '''
@@ -57,6 +57,7 @@ def default(id, algo, dataset_fname, expdir, env_atts_types, feateng_type='-1', 
     logging.info('binarize envs: {}'.format(str(bin_env)))
     logging.info('equalize envs: {}'.format(str(eq_estrat)))
     logging.info('seed: {}'.format(str(SEED)))
+    logging.info('val_info: {}'.format(val_info))
 
     #Select correct dataset
     data, y_all, d_atts = dp.data_loader(dataset_fname, proc_fteng(feateng_type), dsize=d_size, \
@@ -67,13 +68,13 @@ def default(id, algo, dataset_fname, expdir, env_atts_types, feateng_type='-1', 
     if algo == 'icp':
         icp = models.InvariantCausalPrediction()
         icp.run(data, y_all, d_atts, unid, expdir, proc_fteng(feateng_type), \
-                SEED, env_atts_types, eq_estrat)
+                SEED, env_atts_types, eq_estrat, val=val_info)
     elif algo == 'irm':
         irm = models.InvariantRiskMinimization()
-        irm.run(data, y_all, d_atts, unid, expdir, SEED, env_atts_types, eq_estrat)
+        irm.run(data, y_all, d_atts, unid, expdir, SEED, env_atts_types, eq_estrat, val=val_info)
     elif algo == 'linreg':
         linreg = models.Linear()
-        linreg.run(data, y_all, unid, expdir)
+        linreg.run(data, y_all, unid, expdir, val=val_info)
     else:
         raise Exception('Algorithm not Implemented')
 
@@ -98,6 +99,8 @@ if __name__ == '__main__':
     parser.add_argument("-seed", type=int, default=100)
     parser.add_argument('-env_atts', type=str, default='[]', \
                         help='atts categorical defining envs')
+    parser.add_argument('-val_info', type=str, default='[]', \
+                        help='validation envs per environment')
     parser.add_argument("--testing", action='store_true')
 
     args = parser.parse_args()
@@ -113,10 +116,11 @@ if __name__ == '__main__':
         print("eq_estrat?:", args.eq_estrat)
         print("seed?:", args.seed)
         print("env_list:", args.env_atts)
+        print("val_info:", args.val_info)
         print("testing?:", args.testing)
         quit()
 
-    default(args.id, args.algo, args.data_fname, args.expdir, utils.env_parser(args.env_atts), \
+    default(args.id, args.algo, args.data_fname, args.expdir, utils.str_2_strlist_parser(args.env_atts), \
            feateng_type=args.fteng, d_size=args.reduce_dsize, \
-            bin_env=bool(args.binarize),  \
-            eq_estrat=args.eq_estrat, SEED=args.seed, testing=args.testing)
+            bin_env=bool(args.binarize), eq_estrat=args.eq_estrat, SEED=args.seed, \
+            val_info=utils.str_2_strlist_parser(args.val_info), testing=args.testing)

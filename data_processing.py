@@ -89,7 +89,8 @@ def data_conversion(data, categorical_feats, continous_feats, predictor, fteng):
     print(data.shape)
     return data, labels, all_cats
 
-def adult_dataset_processing(fname, fteng, reduce_dsize=-1, bin=False, seed=1000, testing=False):
+def adult_dataset_processing(fname, fteng, reduce_dsize=-1, bin=False, \
+                             seed=1000, testing=False):
     '''Process the adult dataset from csv. Return the dataframe, as well as a
         list of columns that must be treated as one block during the enumeration of plausible causal predictors
 
