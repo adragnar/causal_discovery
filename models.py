@@ -205,6 +205,10 @@ class InvariantRiskMinimization(InvarianceBase):
         '''
         :param data: the dataset (nparray)
         :param phi_params: The state dict of the MLP'''
+        #Handle case of no data
+        if data.shape[0] == 0:
+            return pd.DataFrame()
+
         phi = MLP(data.shape[1], 100)
         phi.load_state_dict(phi_params)
         return pd.DataFrame(phi(make_tensor(data)).detach().numpy())
@@ -289,6 +293,10 @@ class InvariantCausalPrediction(InvarianceBase):
         return coeffs
 
     def predict(self, data, coeffs):
+        #Handle case of no data
+        if data.shape[0] == 0:
+            return pd.DataFrame()
+
         #Order dataframe by coefficients column
         if coeffs.empty:
             return pd.DataFrame()
@@ -377,6 +385,10 @@ class Linear():
         pd.to_pickle(coeffs, reg_fname)
 
     def predict(self, data, coeffs):
+        #Handle case of no data
+        if data.shape[0] == 0:
+            return pd.DataFrame()
+
         #Order dataframe by coefficients column
         if coeffs.empty:
             return pd.DataFrame()
