@@ -16,6 +16,7 @@ from torch import nn
 
 from utils import powerset, dname_from_fpath, make_tensor
 import data_processing as dp
+import environment_processing as eproc
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 warnings.simplefilter(action='ignore', category=RuntimeWarning)
@@ -32,44 +33,6 @@ class InvarianceBase(object):
 
     def __init__(self):
         pass
-
-    def get_environments(self, df, e, val=['-1']):
-        '''Compute values of df satisfying each environment in e
-
-        :param df: Pandas df of dataset without labels
-        :param e: Dictionary of {base_cat:[all assoc df columns]} for all speicfied
-                  environments. Excludes columns of transformed features
-        :return store: Dict of {env:e_in_values}
-        :return val_store: Dict of {env:e_in_values} for the validation envs
-        '''
-        assert type(val[0]) == str
-
-        store = {}
-        val_store = None
-        for env in itertools.product(*[e[cat] for cat in e]):
-            #Get the stratification columns associated with env
-            dummy_atts = []
-            live_atts = []
-            for att in env:
-                if '_DUMmY' in att:
-                    dummy_atts = [a for a in e[att.split('_')[0]] if '_DUMmY' not in a]
-                else:
-                    live_atts.append(att)
-
-            #Compute e_in
-            if not dummy_atts:
-                e_in = ((df[live_atts] == 1)).all(1)
-            elif not live_atts:
-                e_in = ((df[dummy_atts] == 0)).all(1)
-            else:
-                e_in = ((df[live_atts] == 1).all(1) & (df[dummy_atts] == 0).all(1))
-
-            if set(env) != set(val):  #Compute only validation data
-                store[env] = e_in
-            else:
-                val_store = e_in
-
-        return store, val_store
 
     def equalize_strats(self, store, threshold, dlen, seed):
         '''Preprocess all e_ins to have the same number of samples_wanted
@@ -215,16 +178,15 @@ class InvariantRiskMinimization(InvarianceBase):
         allowed_datts = {cat:d_atts[cat] for cat in d_atts.keys() if cat not in env_atts_types}
 
         #Generate Environments     (assuming only cat vars)
-        e_ins_store, val_ein = self.get_environments(data, \
-                                {cat:d_atts[cat] for cat in env_atts_types}, \
-                                 val=val)
+        e_ins_store = eproc.get_environments(data, \
+                                {cat:d_atts[cat] for cat in env_atts_types})
 
         #Remove Val Data
         if val != ['-1']:
-            data = data[np.logical_not(val_ein.values)]
-            y_all = y_all[np.logical_not(val_ein.values)]
-        else:
-            assert val_ein is None
+            val_ein = e_ins_store.pop(tuple([val[0]]))
+            e_ins_store = {e:e_ins_store[e][np.logical_not(val_ein.values)] \
+                           for e in e_ins_store.keys()}
+            data, y_all = data[np.logical_not(val_ein.values)], y_all[np.logical_not(val_ein.values)]
 
 
         logging.info('{} environment attributes'.format(len(e_ins_store)))
@@ -351,15 +313,15 @@ class InvariantCausalPrediction(InvarianceBase):
         allowed_datts = {cat:d_atts[cat] for cat in d_atts.keys() if cat not in env_atts_types}
 
         #Generate Environments     (assuming only cat vars)
-        e_ins_store, val_ein = self.get_environments(data, \
-                                      {cat:d_atts[cat] for cat in env_atts_types}, \
-                                      val=val)
+        e_ins_store = eproc.get_environments(data, \
+                                {cat:d_atts[cat] for cat in env_atts_types})
+
         #Remove Val Data
         if val != ['-1']:
-            data = data[np.logical_not(val_ein.values)]
-            y_all = y_all[np.logical_not(val_ein.values)]
-        else:
-            assert val_ein is None
+            val_ein = e_ins_store.pop(tuple([val[0]]))
+            e_ins_store = {e:e_ins_store[e][np.logical_not(val_ein.values)] \
+                           for e in e_ins_store.keys()}
+            data, y_all = data[np.logical_not(val_ein.values)], y_all[np.logical_not(val_ein.values)]
 
         logging.info('{} environment attributes'.format(len(e_ins_store)))
         logging.debug('Environment attributes are {}'.format( \
@@ -386,13 +348,13 @@ class InvariantCausalPrediction(InvarianceBase):
                 reg = LinearRegression(fit_intercept=False).fit(x_s.values, y_all.values)
 
                 #Use the normalized e_ins to compute the residuals + Find p_values for every environment
+                assert len(e_ins_store.keys()) > 1   #For validation performance
                 for env in e_ins_store.keys():
                     e_in = e_ins_store[env]
                     e_out = np.logical_not(e_in)
 
-                    if (e_in.sum() < 10) or (e_out.sum() < 10) :  #No data from environment
-                        full_res[str(subset)][str(env)] = 'EnvNA'
-                        continue
+                    if (e_in.sum() < 2) or (e_out.sum() < 2) :  #No data from environment
+                        raise Exception('Not enough data in environment to do the computation')
 
                     res_in = (
                     y_all.loc[e_in].values - reg.predict(\
@@ -410,8 +372,10 @@ class InvariantCausalPrediction(InvarianceBase):
                                                                         res_out)
 
                 # # TODO: Jonas uses "min(p_values) * len(environments) - 1"
-                full_res[str(subset)]['Final_tstat'] = min([p for p in full_res[str(subset)].values() if type(p) != str]) * len(e_ins_store.keys())
-
+                try:
+                    full_res[str(subset)]['Final_tstat'] = min([p for p in full_res[str(subset)].values() if type(p) != str]) * len(e_ins_store.keys())
+                except:
+                    import pdb; pdb.set_trace()
             logging.info('Enumerated all steps')
 
             #Save results
