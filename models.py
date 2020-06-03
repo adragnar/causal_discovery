@@ -181,18 +181,9 @@ class InvariantRiskMinimization(InvarianceBase):
         e_ins_store = eproc.get_environments(data, \
                                 {cat:d_atts[cat] for cat in env_atts_types})
 
-        #Remove Val Data
-        if val != ['-1']:
-            val_ein = e_ins_store.pop(tuple([val[0]]))
-            e_ins_store = {e:e_ins_store[e][np.logical_not(val_ein.values)] \
-                           for e in e_ins_store.keys()}
-            data, y_all = data[np.logical_not(val_ein.values)], y_all[np.logical_not(val_ein.values)]
-
-
         logging.info('{} environment attributes'.format(len(e_ins_store)))
         logging.debug('Environment attributes are {}'.format( \
                                             str([str(e) for e in e_ins_store.keys()])))
-        logging.info('Validation Parameters are {}'.format(val))
 
         #Normalize operation on e_ins
         if eq_estrat != -1:
@@ -316,13 +307,6 @@ class InvariantCausalPrediction(InvarianceBase):
         e_ins_store = eproc.get_environments(data, \
                                 {cat:d_atts[cat] for cat in env_atts_types})
 
-        #Remove Val Data
-        if val != ['-1']:
-            val_ein = e_ins_store.pop(tuple([val[0]]))
-            e_ins_store = {e:e_ins_store[e][np.logical_not(val_ein.values)] \
-                           for e in e_ins_store.keys()}
-            data, y_all = data[np.logical_not(val_ein.values)], y_all[np.logical_not(val_ein.values)]
-
         logging.info('{} environment attributes'.format(len(e_ins_store)))
         logging.debug('Environment attributes are {}'.format( \
                                             str([str(e) for e in e_ins_store.keys()])))
@@ -353,7 +337,7 @@ class InvariantCausalPrediction(InvarianceBase):
                     e_in = e_ins_store[env]
                     e_out = np.logical_not(e_in)
 
-                    if (e_in.sum() < 2) or (e_out.sum() < 2) :  #No data from environment
+                    if (e_in.sum() < 2) or (len(e_out) - e_out.sum() < 2) :  #No data from environment
                         raise Exception('Not enough data in environment to do the computation')
 
                     res_in = (
@@ -372,10 +356,9 @@ class InvariantCausalPrediction(InvarianceBase):
                                                                         res_out)
 
                 # # TODO: Jonas uses "min(p_values) * len(environments) - 1"
-                try:
-                    full_res[str(subset)]['Final_tstat'] = min([p for p in full_res[str(subset)].values() if type(p) != str]) * len(e_ins_store.keys())
-                except:
-                    import pdb; pdb.set_trace()
+                full_res[str(subset)]['Final_tstat'] = min([p for p in full_res[str(subset)].values() if type(p) != str]) * len(e_ins_store.keys())
+
+
             logging.info('Enumerated all steps')
 
             #Save results
@@ -388,14 +371,6 @@ class Linear():
 
     def run(self, data, y_all, unid, expdir, seed=1000, val=['-1']):
         reg_fname = os.path.join(expdir, 'regs_{}.pkl'.format(unid))
-
-        #Deal with validation
-
-        if val != ['-1']:
-            assert 0.0 < float(val[0]) < 1.0
-            data = data.sample(frac=(1-float(val[0])), random_state=seed)
-            y_all = y_all.sample(frac=(1-float(val[0])), random_state=seed)
-
         reg = LinearRegression(fit_intercept=False).fit(data.values, y_all.values).coef_[0]
         coeffs = sorted(zip(reg, data.columns), reverse=True, key=lambda x: abs(x[0]))
         coeffs = pd.DataFrame(coeffs, columns=['coeff', 'predictor'])

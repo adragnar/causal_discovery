@@ -173,12 +173,6 @@ if __name__ == '__main__':
         uniqueid = unid_from_algo(id, a=args.algo, \
                                   data=args.datafname)
 
-        #Deal with validation
-        try:
-            float(args.val_info.strip('[').strip(']'))
-        except:
-            raise Exception('Wrong format for val_info')
-
         #Write Exp Command to commandfile
         with open(args.cmdfile, 'a') as f:
             command_str = \

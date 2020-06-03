@@ -67,7 +67,7 @@ fi
 
 if [ $algo == "linreg" ]
 then
-    val_info="[0.2]"
+    val_info="[Purpose_DUMmY]"
 fi
 
 #Set up validation info

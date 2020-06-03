@@ -13,6 +13,7 @@ from itertools import combinations
 
 from utils import powerset, dname_from_fpath, proc_fteng
 import data_processing as dp
+import environment_processing as eproc
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 warnings.simplefilter(action='ignore', category=RuntimeWarning)
@@ -64,6 +65,16 @@ def default(id, algo, dataset_fname, expdir, env_atts_types, feateng_type='-1', 
                                     bin=bin_env, toy=toy_data, testing=testing)
     logging.info('{} Dataset loaded - size {}'.format(dataset_fname.split('/')[-1], \
                 str(data.shape)))
+
+    #Remove Val Data
+    if val_info != ['-1']:
+        assert (len(val_info) == 1) and (len(val_info[0].split('_')) == 2)
+        evar = val_info[0].split('_')[0]
+        e_ins_store = eproc.get_environments(data, {evar:d_atts[evar]})
+        val_ein = e_ins_store.pop(tuple([val_info[0]]))
+        data, y_all = data[np.logical_not(val_ein.values)], y_all[np.logical_not(val_ein.values)]
+        d_atts[evar].remove(val_info[0])
+        logging.info('Validation Environment Removed - Dataset size {}'.format(str(data.shape)))
 
     if algo == 'icp':
         icp = models.InvariantCausalPrediction()
