@@ -140,9 +140,9 @@ def adult_dataset_processing(fname, fteng, reduce_dsize=-1, bin=False, \
     data = data[(data['occupation'] != 'Armed-Forces')] #small num-_entries (14)
 
     #NOTE - These lists aren't MECE
-    #cat_feat:{acceptable stratifications:orig_cols corresponding}
-    cat_feats = {'workclass':{'selfWork':['Private', 'Self-emp-not-inc', 'Self-emp-inc'], \
-                              'govWork':['Federal-gov', 'Local-gov', 'State-gov']}, \
+    cat_feats = {'workclass':{'selfWork':['Self-emp-not-inc', 'Self-emp-inc'], \
+                              'govWork':['Federal-gov', 'Local-gov', 'State-gov'], \
+                              'privateWork':['Private']}, \
                  'education':{}, \
                  'marital-status':{'married':['Married-civ-spouse', 'Married-spouse-absent', 'Married-AF-spouse', 'Widowed'],\
                                    'divorced':['Divorced', 'Separated'], \
@@ -202,6 +202,10 @@ def german_credit_dataset_processing(fname, fteng=[], bin=False, testing=False):
 
     #Get rid of unwanted stuff before making feat lists
     data = data[data['Purpose'] != 10]
+    data.drop('Telephone', axis=1, inplace=True)
+    data.drop('Foreign Worker', axis=1, inplace=True)
+    data.drop('Duration in Current address', axis=1, inplace=True)
+
 
     # NOTE - These dictionary partitions are MECE over all possible att vals
     cat_feats = {'Purpose':{'investment':[6, 8, 9], \
@@ -218,19 +222,17 @@ def german_credit_dataset_processing(fname, fteng=[], bin=False, testing=False):
                  'Housing':{'1':[1],
                             '2':[2],
                             '3':[3]}, \
-                 'Telephone':{'none':[1], 'registered':[2]}, \
-                 'Foreign':{}  #No balance for env-split
                  }
 
-    cont_feats = ['CreditAmount', 'InstallmentDisposable', 'PresRes', \
+    cont_feats = ['CreditAmount', 'InstallmentDisposable', \
                        'NumExistCredits', 'CheqAccountStatus', 'Duration', 'CreditHistory', \
                      'PresentEmployment', 'Age', 'Job', 'Deps']
     pred_feats = 'Labels'
     in_order = ['Labels', 'CheqAccountStatus', 'Duration', 'CreditHistory', 'Purpose', \
                 'CreditAmount', 'Savings', 'PresentEmployment', \
-                'InstallmentDisposable', 'Personal', 'OtherDebtors', 'PresRes', \
+                'InstallmentDisposable', 'Personal', 'OtherDebtors', \
                 'Property', 'Age', 'OtherInstallmentPlans', 'Housing', \
-                'NumExistCredits', 'Job', 'Deps', 'Telephone', 'Foreign']
+                'NumExistCredits', 'Job', 'Deps']
 
     # Note - for knowing which column is which, might be good to associate numbers with labels
     data.columns = in_order

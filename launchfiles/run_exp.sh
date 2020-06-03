@@ -54,14 +54,14 @@ then
     if [ $binarize == 0 ]
     then
         length_envvars=4
-        env_vars="[Purpose,Housing,Telephone,Property]"  # 'OtherInstallmentPlans'  'Foreign' 'Savings' 'Personal' 'OtherDebtors')
-        val_info="[Purpose_DUMmY,Housing_DUMmY,Telephone_DUMmY,Property_DUMmY]"
+        env_vars="[Purpose,Housing,Property]"  # 'OtherInstallmentPlans'  'Foreign' 'Savings' 'Personal' 'OtherDebtors')
+        val_info="[Purpose_DUMmY,Housing_DUMmY,Property_DUMmY]"
     fi
     if [ $binarize == 1 ]
     then
        length_envvars=4
-        env_vars="[Purpose,Housing,Telephone,Property]"
-        val_info="[Purpose_DUMmY,Housing_DUMmY,Telephone_DUMmY,Property_DUMmY]"
+        env_vars="[Purpose,Housing,Property]"
+        val_info="[Purpose_DUMmY,Housing_DUMmY,Property_DUMmY]"
     fi
 fi
 
