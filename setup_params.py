@@ -151,7 +151,7 @@ if __name__ == '__main__':
                             'Envs']
 
     else:
-        id = str(int(args.id) + 1)
+        id = args.id
         uniqueid = unid_from_algo(id, a=args.algo, \
                                   data=args.datafname)
 
