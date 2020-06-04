@@ -315,6 +315,17 @@ def linreg_process(res_dir, dset_dir):
 
     pd.to_pickle(params, paramfile)
 
+def aggregate_loader(resdir, dsetdir, algo):
+    if algo == 'icp':
+        icp_process(resdir, dsetdir)
+    elif algo == 'irm':
+        irm_process(resdir, dsetdir)
+    elif algo == 'linreg':
+        linreg_process(resdir, dsetdir)
+    else:
+        raise Exception('algo not implemented')
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Filename Parameters')
     parser.add_argument("resdir", type=str, help="dirname of results")
@@ -322,11 +333,4 @@ if __name__ == '__main__':
     parser.add_argument("algo", type=str, help="algo used")
     args = parser.parse_args()
 
-    if args.algo == 'icp':
-        icp_process(args.resdir, args.dsetdir)
-    elif args.algo == 'irm':
-        irm_process(args.resdir, args.dsetdir)
-    elif args.algo == 'linreg':
-        linreg_process(args.resdir, args.dsetdir)
-    else:
-        raise Exception('algo not implemented')
+    aggregate_loader(args.resdir, args.dsetdir, args.algo)

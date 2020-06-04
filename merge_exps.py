@@ -4,6 +4,53 @@ import os
 from os.path import join
 import pandas as pd
 
+import aggregate as agg
+
+def format_experiments(resdir):
+    '''Given experiment folders pulled raw from server, combine into new directory)'''
+    def iterate_dirs(d):
+        return [r for r in os.listdir(d) if not r.startswith('.')]
+    def iterate_files(d):
+        return [r for r in os.listdir(d) if ((not r.startswith('.')) and ('.' in r))]
+
+    algo_dict = {}
+    for edir in iterate_dirs(resdir):
+        expdir = join(resdir, edir)
+        cd = join(expdir, 'causal_discovery')
+        if not os.path.exists(cd):
+            os.mkdir(cd)
+            
+        for fname in iterate_files(expdir):
+
+            #Copy everything into relevant internal folder
+            if (fname != 'cmdfile.sh') and ('paramfile' not in fname):
+                shutil.move(join(expdir, fname), join(cd, fname))
+
+            #Associate algos with folders
+            if ('paramfile' in fname):
+                a_name = fname.split('_')[0]
+                try:
+                    algo_dict[a_name].append(expdir)
+                except:
+                    algo_dict[a_name] = [expdir]
+
+    #Merge Experiments
+    old_names = []
+    for a, exp_list in algo_dict.items():
+        assert len(exp_list) == 2
+        merge_exps(join(resdir, a), *exp_list)
+        old_names += exp_list
+
+    #Clean up and aggregate
+    for edir in iterate_dirs(resdir):
+        expdir = join(resdir, edir)
+        if expdir in old_names:
+            shutil.rmtree(expdir)  #Delete old folders
+        else:
+            agg.aggregate_loader(expdir, 'data', edir)  #Aggregate remaining ones
+
+
+
 def merge_exps(newdir, e1, e2):
     '''Given paths to two unaggregated folders, merge them into one
     Assumes indexing for both dataframes starts at 0
@@ -67,8 +114,11 @@ def merge_exps(newdir, e1, e2):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Params')
-    parser.add_argument("e1_dir", type=str)
-    parser.add_argument("e2_dir", type=str)
-    parser.add_argument("newdir", type=str)
+    # parser.add_argument("e1_dir", type=str)
+    # parser.add_argument("e2_dir", type=str)
+    # parser.add_argument("newdir", type=str)
+    # args = parser.parse_args()
+    # merge_exps(args.newdir, args.e1_dir, args.e2_dir)
+    parser.add_argument("r_dir", type=str)
     args = parser.parse_args()
-    merge_exps(args.newdir, args.e1_dir, args.e2_dir)
+    format_experiments(args.r_dir)
