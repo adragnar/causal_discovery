@@ -168,7 +168,7 @@ class InvariantRiskMinimization(InvarianceBase):
 
 
 
-    def run(self, data, y_all, d_atts, unid, expdir, seed, env_atts_types, eq_estrat, val=['-1']):
+    def run(self, data, y_all, d_atts, unid, expdir, seed, env_atts_types, eq_estrat):
         phi_fname = os.path.join(expdir, 'phi_{}.pt'.format(unid))
         errors_fname = os.path.join(expdir, 'errors_{}.npy'.format(unid))
         penalties_fname = os.path.join(expdir, 'penalties_{}.npy'.format(unid))
@@ -306,7 +306,7 @@ class InvariantCausalPrediction(InvarianceBase):
         return pd.DataFrame(data.values @ coeffs['coeff'].values)
 
 
-    def run(self, data, y_all, d_atts, unid, expdir, feateng_type, seed, env_atts_types, eq_estrat, val=['-1']):
+    def run(self, data, y_all, d_atts, unid, expdir, feateng_type, seed, env_atts_types, eq_estrat):
         rawres_fname = os.path.join(expdir, 'rawres_{}.json'.format(unid))
         #Set allowable datts as PCPs
         allowed_datts = {cat:d_atts[cat] for cat in d_atts.keys() if cat not in env_atts_types}
@@ -318,7 +318,6 @@ class InvariantCausalPrediction(InvarianceBase):
         logging.info('{} environment attributes'.format(len(e_ins_store)))
         logging.debug('Environment attributes are {}'.format( \
                                             str([str(e) for e in e_ins_store.keys()])))
-        logging.info('Validation Parameters are {}'.format(val))
 
         #Now start enumerating PCPs
         full_res = {}
@@ -377,7 +376,7 @@ class Linear():
     def __init__(self):
         pass
 
-    def run(self, data, y_all, unid, expdir, seed=1000, val=['-1']):
+    def run(self, data, y_all, unid, expdir, seed=1000):
         reg_fname = os.path.join(expdir, 'regs_{}.pkl'.format(unid))
         reg = LinearRegression(fit_intercept=False).fit(data.values, y_all.values).coef_[0]
         coeffs = sorted(zip(reg, data.columns), reverse=True, key=lambda x: abs(x[0]))

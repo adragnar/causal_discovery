@@ -76,9 +76,8 @@ if __name__ == '__main__':
     parser.add_argument("paramfile", type=str, \
                        help="filename of pickled padas df storing hyperparams")
 
-    parser.add_argument("-env_list", type=str, default='[]', \
-                        help="All the environment variables to split on")
-    parser.add_argument("-envcombos", type=str, default='single')
+    parser.add_argument("-env_att", type=str, default='-1', \
+                        help="List of environment vairables to split on")
     parser.add_argument("-reduce_dsize", type=int, default=-1)
     parser.add_argument('-fteng', type=str, help='c-interval val', default='1')
     parser.add_argument("-binarize", type=int, default=0)
@@ -96,8 +95,7 @@ if __name__ == '__main__':
         print("data:", args.datafname)
         print("cmdfile:", args.cmdfile)
         print("paramfile:", args.paramfile)
-        print("env_list:", args.env_list)
-        print("envcombo?:", args.envcombos)
+        print("env_att:", args.env_att)
         print("feat_eng:", args.fteng)
         print("d_size:", args.reduce_dsize)
         print("testing?:", args.testing)
@@ -106,63 +104,58 @@ if __name__ == '__main__':
         print("seed?:", args.seed)
         print("val_info?:", args.val_info)
         quit()
-    assert args.envcombos == 'single'
-    e_list = utils.str_2_strlist_parser(args.env_list)
 
-    if len(e_list) > 0:
-        #Set up evironment combos
-        if args.envcombos == 'all_combos':
-            allenvs = utils.powerset(e_list)
-        elif args.envcombos == 'single':
-            allenvs = [[a] for a in e_list]
+    if args.env_att != '-1':
+
+        # #Set up evironment combos
+        # if args.envcombos == 'all_combos':
+        #     allenvs = utils.powerset(e_list)
+        # elif args.envcombos == 'single':
+        #     allenvs = [[a] for a in e_list]
+        # all_envs = [args.env_att]
 
         #Set up considerations around validation
-        if args.val_info != '[-1]':
-            val_e_list = utils.str_2_strlist_parser(args.val_info)
-            assert len(val_e_list) == len(e_list)
+        # if args.val_info != '[-1]':
+            # val_e_list = utils.str_2_strlist_parser(args.val_info)
+            # assert len(val_e_list) == len(e_list)
+            #
+            # if args.envcombos == 'all_combos':
+            #     allvalenvs = utils.powerset(val_e_list)
+            # elif args.envcombos == 'single':
+            #     allvalenvs = [[a] for a in val_e_list]
+        #     allvalenvs = [args.val_info]
+        # else:
+        #     allvalenvs = ['[-1]']
 
-            if args.envcombos == 'all_combos':
-                allvalenvs = utils.powerset(val_e_list)
-            elif args.envcombos == 'single':
-                allvalenvs = [[a] for a in val_e_list]
-        else:
-            allvalenvs = ['[-1]']*len(e_list)
+        # for i, _ in enumerate(allenvs):
+        id = args.id
+        uniqueid = unid_from_algo(id, a=args.algo, \
+                                  data=args.datafname, env=args.env_att)
 
-        for i, _ in enumerate(allenvs):
-            id = str(int(args.id) + i)
-            uniqueid = unid_from_algo(id, a=args.algo, \
-                                      data=args.datafname, env=allenvs[i])
+        #Write Exp Command to commandfile
+        with open(args.cmdfile, 'a') as f:
+            command_str = \
+                '''python main.py {id} {algo} {data} {expdir} -fteng {feat_eng} -reduce_dsize {d_size} -binarize {bin} -eq_estrat {eq} -seed {s} -env_atts {env_list} -val_info {val}\n'''
 
-            #Write Exp Command to commandfile
-            with open(args.cmdfile, 'a') as f:
-                command_str = \
-                    '''python main.py {id} {algo} {data} {expdir} -fteng {feat_eng} -reduce_dsize {d_size} -binarize {bin} -eq_estrat {eq} -seed {s} -env_atts {env_list} -val_info {val}\n'''
+            command_str = command_str.format(
+                id=id,
+                algo=args.algo,
+                data=args.datafname,
+                expdir=args.expdir,
+                feat_eng=args.fteng,
+                d_size=args.reduce_dsize,
+                bin=args.binarize,
+                eq=args.eq_estrat,
+                s=args.seed,
+                env_list=args.env_att,
+                val=args.val_info
+            )
+            f.write(command_str)
 
-                command_str = command_str.format(
-                    id=id,
-                    algo=args.algo,
-                    data=args.datafname,
-                    expdir=args.expdir,
-                    feat_eng=args.fteng,
-                    d_size=args.reduce_dsize,
-                    bin=args.binarize,
-                    eq=args.eq_estrat,
-                    s=args.seed,
-                    env_list=allenvs[i],
-                    val=allvalenvs[i]
-                )
-                f.write(command_str)
-
-            #Log Parameters in Datafame
-            addnxt = pd.DataFrame([id, args.algo, args.fteng, \
-            utils.dname_from_fpath(args.datafname), args.seed, args.reduce_dsize, \
-            args.binarize, args.eq_estrat, list_2_string(allenvs[i], ' '), \
-            list_2_string(allvalenvs[i], ' ')]).T
-
-            if i == 0:
-                add = addnxt
-            else:
-                 add = add.append(addnxt)
+        #Log Parameters in Datafame
+        add = pd.DataFrame([id, args.algo, args.fteng, \
+        utils.dname_from_fpath(args.datafname), args.seed, args.reduce_dsize, \
+        args.binarize, args.eq_estrat, args.env_att, args.val_info]).T
 
         parameter_cols = ['Id', 'Algo', 'Fteng', 'Dataset', \
                             'Seed', 'ReduceDsize', 'Bin', 'Eq_Estrat', \

@@ -28,15 +28,21 @@ import models
 import utils
 
 def default(id, algo, dataset_fname, expdir, env_atts_types, feateng_type='-1', \
-            d_size=-1, bin_env=False, eq_estrat=-1, SEED=100, val_info=['-1'],
+            d_size=-1, bin_env=False, eq_estrat=-1, SEED=100, val_info='-1',
             toy_data=[False], testing=False):
 
     '''
-
-    :param dataset_fname:
-    :param env_atts:
-    :param feateng_type: The particular preprocess methodology
-    :param logger: filepath to log file
+    :param id: Numerical identifier for run (str)
+    :param algo: Name of algo to be applied (str)
+    :param dataset_fname: path to dataset (str)
+    :param expdir: directory where results stored (str)
+    :param env_atts_types: environment vairanbbles in list (list len=1)
+    :param feateng_type: The feature engineering steps to be taken (str)
+    :param d_size: subsampling number on dataset (int)
+    :param bin_env: 0 to not bin, 1 to bin (0-1 int)
+    :param eq_estrat: -1 to not apply, int for min num samples per env (int)
+    :param seed: random seed used (int)
+    :param val_info: -1 or name of validation environment (str)
     '''
 
     random.seed(SEED)
@@ -67,25 +73,25 @@ def default(id, algo, dataset_fname, expdir, env_atts_types, feateng_type='-1', 
                 str(data.shape)))
 
     #Remove Val Data
-    if val_info != ['-1']:
-        assert (len(val_info) == 1) and (len(val_info[0].split('_')) == 2)
-        evar = val_info[0].split('_')[0]
+    if val_info != '-1':
+        assert (len(val_info.split('_')) == 2)
+        evar = val_info.split('_')[0]
         e_ins_store = eproc.get_environments(data, {evar:d_atts[evar]})
-        val_ein = e_ins_store.pop(tuple([val_info[0]]))
+        val_ein = e_ins_store.pop(tuple([val_info]))
         data, y_all = data[np.logical_not(val_ein.values)], y_all[np.logical_not(val_ein.values)]
-        d_atts[evar].remove(val_info[0])
+        d_atts[evar].remove(val_info)
         logging.info('Validation Environment Removed - Dataset size {}'.format(str(data.shape)))
 
     if algo == 'icp':
         icp = models.InvariantCausalPrediction()
         icp.run(data, y_all, d_atts, unid, expdir, proc_fteng(feateng_type), \
-                SEED, env_atts_types, eq_estrat, val=val_info)
+                SEED, env_atts_types, eq_estrat)
     elif algo == 'irm':
         irm = models.InvariantRiskMinimization()
-        irm.run(data, y_all, d_atts, unid, expdir, SEED, env_atts_types, eq_estrat, val=val_info)
+        irm.run(data, y_all, d_atts, unid, expdir, SEED, env_atts_types, eq_estrat)
     elif algo == 'linreg':
         linreg = models.Linear()
-        linreg.run(data, y_all, unid, expdir, val=val_info)
+        linreg.run(data, y_all, unid, expdir)
     else:
         raise Exception('Algorithm not Implemented')
 
@@ -131,7 +137,7 @@ if __name__ == '__main__':
         print("testing?:", args.testing)
         quit()
 
-    default(args.id, args.algo, args.data_fname, args.expdir, utils.str_2_strlist_parser(args.env_atts), \
+    default(args.id, args.algo, args.data_fname, args.expdir, [args.env_atts], \
            feateng_type=args.fteng, d_size=args.reduce_dsize, \
-            bin_env=bool(args.binarize), eq_estrat=args.eq_estrat, SEED=args.seed, \
-            val_info=utils.str_2_strlist_parser(args.val_info), testing=args.testing)
+           bin_env=bool(args.binarize), eq_estrat=args.eq_estrat, SEED=args.seed, \
+           val_info=args.val_info, testing=args.testing)
