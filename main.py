@@ -30,8 +30,8 @@ import utils
 
 def default(id, algo, dataset_fname, expdir, env_atts_types, feateng_type='-1', \
             d_size=-1, bin_env=False, eq_estrat=-1, SEED=100, test_info='-1',\
-            irm_lr=0.001, irm_niter=5000, irm_l2=0.001, irm_penalty_anneal=100,
-            toy_data=[False], testing=False):
+            irm_lr=0.001, irm_niter=5000, irm_l2=0.001, irm_penalty_anneal=100, \
+            irm_pen_weight=10000, irm_hid_layers=100, toy_data=[False], testing=False):
 
     '''
     :param id: Numerical identifier for run (str)
@@ -96,7 +96,8 @@ def default(id, algo, dataset_fname, expdir, env_atts_types, feateng_type='-1', 
         logging.info('penalty_anneal_iters: {}'.format(str(irm_penalty_anneal)))
         irm = models.InvariantRiskMinimization()
         irm.run(data, y_all, d_atts, unid, expdir, SEED, env_atts_types, eq_estrat, \
-                 lr=irm_lr, niter=irm_niter, l2=irm_l2, pen_anneal=irm_penalty_anneal)
+                 lr=irm_lr, niter=irm_niter, l2=irm_l2, pen_anneal=irm_penalty_anneal,
+                 pen_weight=irm_pen_weight, hid_layers=irm_hid_layers)
 
     elif algo == 'linreg':
         linreg = models.Linear()
@@ -134,8 +135,9 @@ if __name__ == '__main__':
     parser.add_argument('-irm_lr', type=float, default=None)
     parser.add_argument('-irm_niter', type=int, default=5000)
     parser.add_argument('-irm_l2', type=float, default=None)
-    parser.add_argument('-penalty_weight', type=float, default=None)
+    parser.add_argument('-irm_penalty_weight', type=float, default=None)
     parser.add_argument('-irm_penalty_anneal', type=float, default=None)
+    parser.add_argument('-irm_hid_layers', type=float, default=None)
 
 
     args = parser.parse_args()
@@ -167,5 +169,5 @@ if __name__ == '__main__':
                bin_env=bool(args.binarize), eq_estrat=args.eq_estrat, SEED=args.seed, \
                test_info=args.test_info, testing=args.testing, \
                irm_lr=args.irm_lr, irm_niter=args.irm_niter, irm_l2=args.irm_l2, \
-               irm_penalty_anneal=args.irm_penalty_anneal
-               )
+               irm_penalty_anneal=args.irm_penalty_anneal, irm_pen_weight=args.irm_penalty_weight,
+               irm_hid_layers=args.irm_hid_layers)

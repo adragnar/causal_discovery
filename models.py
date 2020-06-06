@@ -95,14 +95,14 @@ class InvariantRiskMinimization(InvarianceBase):
         grad = autograd.grad(loss, [scale], create_graph=True)[0]
         return torch.sum(grad**2)
 
-    def train(self, data, y_all, environments, args, hid_layers=100, reg=0):
+    def train(self, data, y_all, environments, args):
         dim_x = data.shape[1]
 
         self.errors = []
         self.penalties = []
         self.losses = []
 
-        self.phi = MLP(dim_x, hid_layers)
+        self.phi = MLP(dim_x, args['hid_layers'])
         optimizer = torch.optim.Adam(self.phi.parameters(), lr=args['lr'])
 
         logging.info('[step, train nll, train acc, train penalty, test acc]')
@@ -138,7 +138,7 @@ class InvariantRiskMinimization(InvarianceBase):
             loss += args['l2_reg'] * weight_norm
 
             #Add the invariance penalty
-            penalty_weight = (reg
+            penalty_weight = (args['pen_wgt']
                 if step >= args['penalty_anneal_iters'] else 1.0)
             loss += penalty_weight * train_penalty
             if penalty_weight > 1.0: # Rescale big loss
@@ -165,7 +165,8 @@ class InvariantRiskMinimization(InvarianceBase):
 
 
     def run(self, data, y_all, d_atts, unid, expdir, seed, env_atts_types, eq_estrat, \
-                lr=0.001, niter=5000, l2=0.001, pen_anneal=100):
+                lr=0.001, niter=5000, l2=0.001, pen_anneal=100, pen_weight=10000, \
+                hid_layers=100):
 
         phi_fname = os.path.join(expdir, 'phi_{}.pt'.format(unid))
         errors_fname = os.path.join(expdir, 'errors_{}.npy'.format(unid))
@@ -176,6 +177,8 @@ class InvariantRiskMinimization(InvarianceBase):
                      'n_iterations':niter, \
                      'penalty_anneal_iters':pen_anneal, \
                      'l2_reg':l2, \
+                     'pen_wgt':pen_weight, \
+                     'hid_layers':hid_layers, \
                      'verbose':True}
 
         #Set allowable datts as PCPs
@@ -196,8 +199,7 @@ class InvariantRiskMinimization(InvarianceBase):
 
 
         #Now start with IRM itself
-        reg = 10000
-        self.train(data, y_all, e_ins_store, args, reg=reg)
+        self.train(data, y_all, e_ins_store, args)
 
         #Save Results
         torch.save(self.phi.state_dict(), phi_fname)

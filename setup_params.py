@@ -91,8 +91,9 @@ if __name__ == '__main__':
     parser.add_argument('-irm_lr', type=float, default=None)
     parser.add_argument('-irm_niter', type=int, default=None)
     parser.add_argument('-irm_l2', type=float, default=None)
-    parser.add_argument('-penalty_weight', type=float, default=None)
+    parser.add_argument('-irm_penalty_weight', type=float, default=None)
     parser.add_argument('-irm_penalty_anneal', type=float, default=None)
+    parser.add_argument('-irm_hid_layers', type=int, default=None)
 
     args = parser.parse_args()
 
@@ -122,7 +123,7 @@ if __name__ == '__main__':
             #Write Exp Command to commandfile
             with open(args.cmdfile, 'a') as f:
                 command_str = \
-                    '''python main.py {id} {algo} {data} {expdir} -fteng {feat_eng} -reduce_dsize {d_size} -binarize {bin} -eq_estrat {eq} -seed {s} -env_atts {env_list} -test_info {test} -irm_lr {lr} -irm_niter {niter} -irm_l2 {l2} -irm_penalty_anneal {n_ann} -penalty_weight {pen_weight}\n'''
+                    '''python main.py {id} {algo} {data} {expdir} -fteng {feat_eng} -reduce_dsize {d_size} -binarize {bin} -eq_estrat {eq} -seed {s} -env_atts {env_list} -test_info {test} -irm_lr {lr} -irm_niter {niter} -irm_l2 {l2} -irm_penalty_anneal {n_ann} -irm_penalty_weight {pen_weight} -irm_hid_layers {hid}\n'''
 
                 command_str = command_str.format(
                     id=id,
@@ -140,7 +141,8 @@ if __name__ == '__main__':
                     niter=args.irm_niter,
                     l2=args.irm_l2,
                     n_ann=args.irm_penalty_anneal,
-                    pen_weight=args.penalty_weight
+                    pen_weight=args.irm_penalty_weight,
+                    hid=args.irm_hid_layers
                 )
                 f.write(command_str)
 
@@ -148,12 +150,13 @@ if __name__ == '__main__':
             add = pd.DataFrame([id, args.algo, args.fteng, \
             utils.dname_from_fpath(args.datafname), args.seed, args.reduce_dsize, \
             args.binarize, args.eq_estrat, args.env_att, args.test_info, args.irm_lr, \
-            args.irm_niter, args.irm_l2, args.irm_penalty_anneal, args.penalty_weight]).T
+            args.irm_niter, args.irm_l2, args.irm_penalty_anneal, args.irm_penalty_weight,
+            args.irm_hid_layers]).T
 
             parameter_cols = ['Id', 'Algo', 'Fteng', 'Dataset', \
                                 'Seed', 'ReduceDsize', 'Bin', 'Eq_Estrat', \
                                 'Envs', 'TestSet', 'LR', 'N_Iterations', 'L2_WeightPen', \
-                                'N_AnnealIter', 'PenWeight']
+                                'N_AnnealIter', 'PenWeight', 'HidLayers']
         else:
             raise Exception('Algorithm not implemented')
 
@@ -221,17 +224,18 @@ if __name__ == '__main__':
             parameter_cols = ['Id', 'Algo', 'Fteng', 'Dataset', 'Seed', 'ReduceDsize', 'Bin', 'TestSet']
 
 
-        #Save parameters in dataframe
-        try:
-            param_df = pd.read_pickle(args.paramfile)
-            add.columns = [param_df.index.name] + list(param_df.columns)
-            add = add.set_index('Id')
-            param_df = param_df.append(add)
-            print(param_df.shape)
-            pd.to_pickle(param_df, args.paramfile)
+    #Save parameters in dataframe
+    try:
+        print('hi')
+        param_df = pd.read_pickle(args.paramfile)
+        add.columns = [param_df.index.name] + list(param_df.columns)
+        add = add.set_index('Id')
+        param_df = param_df.append(add)
+        print(param_df.shape)
+        pd.to_pickle(param_df, args.paramfile)
 
-        except:  #Df not yet initialized
-            param_df = add
-            param_df.columns = parameter_cols
-            param_df.set_index('Id', inplace=True)
-            pd.to_pickle(param_df, args.paramfile)
+    except:  #Df not yet initialized
+        param_df = add
+        param_df.columns = parameter_cols
+        param_df.set_index('Id', inplace=True)
+        pd.to_pickle(param_df, args.paramfile)
