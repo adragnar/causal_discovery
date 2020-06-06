@@ -27,8 +27,10 @@ import random
 import models
 import utils
 
+
 def default(id, algo, dataset_fname, expdir, env_atts_types, feateng_type='-1', \
-            d_size=-1, bin_env=False, eq_estrat=-1, SEED=100, test_info='-1',
+            d_size=-1, bin_env=False, eq_estrat=-1, SEED=100, test_info='-1',\
+            irm_lr=0.001, irm_niter=5000, irm_l2=0.001, irm_penalty_anneal=100,
             toy_data=[False], testing=False):
 
     '''
@@ -57,6 +59,7 @@ def default(id, algo, dataset_fname, expdir, env_atts_types, feateng_type='-1', 
     logger_fname = os.path.join(expdir, 'log_{}.txt'.format(unid))
     logging.basicConfig(filename=logger_fname, level=logging.DEBUG)
     logging.info('id: {}'.format(id))
+    logging.info('algo: {}'.format(algo))
     logging.info('fteng: {}'.format(feateng_type))
     logging.info('dataset: {}'.format(dname_from_fpath(dataset_fname)))
     logging.info('env_atts: {}'.format(str(env_atts_types)))
@@ -87,8 +90,14 @@ def default(id, algo, dataset_fname, expdir, env_atts_types, feateng_type='-1', 
         icp.run(data, y_all, d_atts, unid, expdir, proc_fteng(feateng_type), \
                 SEED, env_atts_types, eq_estrat)
     elif algo == 'irm':
+        logging.info('learing_rate: {}'.format(str(irm_lr)))
+        logging.info('weight decay: {}'.format(str(irm_l2)))
+        logging.info('n_iterations: {}'.format(str(irm_niter)))
+        logging.info('penalty_anneal_iters: {}'.format(str(irm_penalty_anneal)))
         irm = models.InvariantRiskMinimization()
-        irm.run(data, y_all, d_atts, unid, expdir, SEED, env_atts_types, eq_estrat)
+        irm.run(data, y_all, d_atts, unid, expdir, SEED, env_atts_types, eq_estrat, \
+                 lr=irm_lr, niter=irm_niter, l2=irm_l2, pen_anneal=irm_penalty_anneal)
+
     elif algo == 'linreg':
         linreg = models.Linear()
         linreg.run(data, y_all, unid, expdir)
@@ -120,6 +129,15 @@ if __name__ == '__main__':
                         help='test env per environment')
     parser.add_argument("--testing", action='store_true')
 
+    #Additions for Hyperparameter Tuning
+    parser.add_argument('-inc_hyperparams', type=int, default=0)
+    parser.add_argument('-irm_lr', type=float, default=None)
+    parser.add_argument('-irm_niter', type=int, default=5000)
+    parser.add_argument('-irm_l2', type=float, default=None)
+    parser.add_argument('-penalty_weight', type=float, default=None)
+    parser.add_argument('-irm_penalty_anneal', type=float, default=None)
+
+
     args = parser.parse_args()
 
     if args.testing:
@@ -137,7 +155,17 @@ if __name__ == '__main__':
         print("testing?:", args.testing)
         quit()
 
-    default(args.id, args.algo, args.data_fname, args.expdir, [args.env_atts], \
-           feateng_type=args.fteng, d_size=args.reduce_dsize, \
-           bin_env=bool(args.binarize), eq_estrat=args.eq_estrat, SEED=args.seed, \
-           test_info=args.test_info, testing=args.testing)
+    if args.inc_hyperparams == 0:
+        default(args.id, args.algo, args.data_fname, args.expdir, [args.env_atts], \
+               feateng_type=args.fteng, d_size=args.reduce_dsize, \
+               bin_env=bool(args.binarize), eq_estrat=args.eq_estrat, SEED=args.seed, \
+               test_info=args.test_info, testing=args.testing)
+
+    else:
+        default(args.id, args.algo, args.data_fname, args.expdir, [args.env_atts], \
+               feateng_type=args.fteng, d_size=args.reduce_dsize, \
+               bin_env=bool(args.binarize), eq_estrat=args.eq_estrat, SEED=args.seed, \
+               test_info=args.test_info, testing=args.testing, \
+               irm_lr=args.irm_lr, irm_niter=args.irm_niter, irm_l2=args.irm_l2, \
+               irm_penalty_anneal=args.irm_penalty_anneal
+               )

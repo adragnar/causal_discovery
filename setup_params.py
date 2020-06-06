@@ -86,6 +86,14 @@ if __name__ == '__main__':
     parser.add_argument("-test_info", type=str, default='-1')
     parser.add_argument("--testing", action='store_true')
 
+    #Hyperparameter Testing
+    parser.add_argument('-inc_hyperparams', type=int, default=0)
+    parser.add_argument('-irm_lr', type=float, default=None)
+    parser.add_argument('-irm_niter', type=int, default=None)
+    parser.add_argument('-irm_l2', type=float, default=None)
+    parser.add_argument('-penalty_weight', type=float, default=None)
+    parser.add_argument('-irm_penalty_anneal', type=float, default=None)
+
     args = parser.parse_args()
 
     if args.testing:
@@ -105,104 +113,125 @@ if __name__ == '__main__':
         print("test_info?:", args.test_info)
         quit()
 
-    if args.env_att != '-1':
+    id = args.id
+    if args.inc_hyperparams == 1:
+        if args.algo == 'irm':
+            uniqueid = unid_from_algo(id, a=args.algo, \
+                                      data=args.datafname, env=args.env_att)
 
-        # #Set up evironment combos
-        # if args.envcombos == 'all_combos':
-        #     allenvs = utils.powerset(e_list)
-        # elif args.envcombos == 'single':
-        #     allenvs = [[a] for a in e_list]
-        # all_envs = [args.env_att]
+            #Write Exp Command to commandfile
+            with open(args.cmdfile, 'a') as f:
+                command_str = \
+                    '''python main.py {id} {algo} {data} {expdir} -fteng {feat_eng} -reduce_dsize {d_size} -binarize {bin} -eq_estrat {eq} -seed {s} -env_atts {env_list} -test_info {test} -irm_lr {lr} -irm_niter {niter} -irm_l2 {l2} -irm_penalty_anneal {n_ann} -penalty_weight {pen_weight}\n'''
 
-        #Set up considerations around validation
-        # if args.val_info != '[-1]':
-            # val_e_list = utils.str_2_strlist_parser(args.val_info)
-            # assert len(val_e_list) == len(e_list)
-            #
-            # if args.envcombos == 'all_combos':
-            #     allvalenvs = utils.powerset(val_e_list)
-            # elif args.envcombos == 'single':
-            #     allvalenvs = [[a] for a in val_e_list]
-        #     allvalenvs = [args.val_info]
-        # else:
-        #     allvalenvs = ['[-1]']
+                command_str = command_str.format(
+                    id=id,
+                    algo=args.algo,
+                    data=args.datafname,
+                    expdir=args.expdir,
+                    feat_eng=args.fteng,
+                    d_size=args.reduce_dsize,
+                    bin=args.binarize,
+                    eq=args.eq_estrat,
+                    s=args.seed,
+                    env_list=args.env_att,
+                    test=args.test_info,
+                    lr=args.irm_lr,
+                    niter=args.irm_niter,
+                    l2=args.irm_l2,
+                    n_ann=args.irm_penalty_anneal,
+                    pen_weight=args.penalty_weight
+                )
+                f.write(command_str)
 
-        # for i, _ in enumerate(allenvs):
-        id = args.id
-        uniqueid = unid_from_algo(id, a=args.algo, \
-                                  data=args.datafname, env=args.env_att)
+            #Log Parameters in Datafame
+            add = pd.DataFrame([id, args.algo, args.fteng, \
+            utils.dname_from_fpath(args.datafname), args.seed, args.reduce_dsize, \
+            args.binarize, args.eq_estrat, args.env_att, args.test_info, args.irm_lr, \
+            args.irm_niter, args.irm_l2, args.irm_penalty_anneal, args.penalty_weight]).T
 
-        #Write Exp Command to commandfile
-        with open(args.cmdfile, 'a') as f:
-            command_str = \
-                '''python main.py {id} {algo} {data} {expdir} -fteng {feat_eng} -reduce_dsize {d_size} -binarize {bin} -eq_estrat {eq} -seed {s} -env_atts {env_list} -test_info {test}\n'''
-
-            command_str = command_str.format(
-                id=id,
-                algo=args.algo,
-                data=args.datafname,
-                expdir=args.expdir,
-                feat_eng=args.fteng,
-                d_size=args.reduce_dsize,
-                bin=args.binarize,
-                eq=args.eq_estrat,
-                s=args.seed,
-                env_list=args.env_att,
-                test=args.test_info
-            )
-            f.write(command_str)
-
-        #Log Parameters in Datafame
-        add = pd.DataFrame([id, args.algo, args.fteng, \
-        utils.dname_from_fpath(args.datafname), args.seed, args.reduce_dsize, \
-        args.binarize, args.eq_estrat, args.env_att, args.test_info]).T
-
-        parameter_cols = ['Id', 'Algo', 'Fteng', 'Dataset', \
-                            'Seed', 'ReduceDsize', 'Bin', 'Eq_Estrat', \
-                            'Envs', 'TestSet']
+            parameter_cols = ['Id', 'Algo', 'Fteng', 'Dataset', \
+                                'Seed', 'ReduceDsize', 'Bin', 'Eq_Estrat', \
+                                'Envs', 'TestSet', 'LR', 'N_Iterations', 'L2_WeightPen', \
+                                'N_AnnealIter', 'PenWeight']
+        else:
+            raise Exception('Algorithm not implemented')
 
     else:
-        id = args.id
-        uniqueid = unid_from_algo(id, a=args.algo, \
-                                  data=args.datafname)
+        if args.env_att != '-1':
+            uniqueid = unid_from_algo(id, a=args.algo, \
+                                      data=args.datafname, env=args.env_att)
 
-        #Write Exp Command to commandfile
-        with open(args.cmdfile, 'a') as f:
-            command_str = \
-                '''python main.py {id} {algo} {data} {expdir} -fteng {feat_eng} -reduce_dsize {d_size} -binarize {bin} -seed {s} -test_info {test}\n'''
+            #Write Exp Command to commandfile
+            with open(args.cmdfile, 'a') as f:
+                command_str = \
+                    '''python main.py {id} {algo} {data} {expdir} -fteng {feat_eng} -reduce_dsize {d_size} -binarize {bin} -eq_estrat {eq} -seed {s} -env_atts {env_list} -test_info {test}\n'''
 
-            command_str = command_str.format(
-                id=id,
-                algo=args.algo,
-                data=args.datafname,
-                expdir=args.expdir,
-                feat_eng=args.fteng,
-                d_size=args.reduce_dsize,
-                bin=args.binarize,
-                s=args.seed,
-                test=args.test_info
-            )
-            f.write(command_str)
+                command_str = command_str.format(
+                    id=id,
+                    algo=args.algo,
+                    data=args.datafname,
+                    expdir=args.expdir,
+                    feat_eng=args.fteng,
+                    d_size=args.reduce_dsize,
+                    bin=args.binarize,
+                    eq=args.eq_estrat,
+                    s=args.seed,
+                    env_list=args.env_att,
+                    test=args.test_info
+                )
+                f.write(command_str)
 
-        #Log Parameters in Datafame
-        add = pd.DataFrame([id, args.algo, args.fteng, \
-                            utils.dname_from_fpath(args.datafname), args.seed, \
-                             args.reduce_dsize, args.binarize, args.test_info]).T
+            #Log Parameters in Datafame
+            add = pd.DataFrame([id, args.algo, args.fteng, \
+            utils.dname_from_fpath(args.datafname), args.seed, args.reduce_dsize, \
+            args.binarize, args.eq_estrat, args.env_att, args.test_info]).T
 
-        parameter_cols = ['Id', 'Algo', 'Fteng', 'Dataset', 'Seed', 'ReduceDsize', 'Bin', 'TestSet']
+            parameter_cols = ['Id', 'Algo', 'Fteng', 'Dataset', \
+                                'Seed', 'ReduceDsize', 'Bin', 'Eq_Estrat', \
+                                'Envs', 'TestSet']
+
+        else:
+            uniqueid = unid_from_algo(id, a=args.algo, \
+                                      data=args.datafname)
+
+            #Write Exp Command to commandfile
+            with open(args.cmdfile, 'a') as f:
+                command_str = \
+                    '''python main.py {id} {algo} {data} {expdir} -fteng {feat_eng} -reduce_dsize {d_size} -binarize {bin} -seed {s} -test_info {test}\n'''
+
+                command_str = command_str.format(
+                    id=id,
+                    algo=args.algo,
+                    data=args.datafname,
+                    expdir=args.expdir,
+                    feat_eng=args.fteng,
+                    d_size=args.reduce_dsize,
+                    bin=args.binarize,
+                    s=args.seed,
+                    test=args.test_info
+                )
+                f.write(command_str)
+
+            #Log Parameters in Datafame
+            add = pd.DataFrame([id, args.algo, args.fteng, \
+                                utils.dname_from_fpath(args.datafname), args.seed, \
+                                 args.reduce_dsize, args.binarize, args.test_info]).T
+
+            parameter_cols = ['Id', 'Algo', 'Fteng', 'Dataset', 'Seed', 'ReduceDsize', 'Bin', 'TestSet']
 
 
-    #Save parameters in dataframe
-    try:
-        param_df = pd.read_pickle(args.paramfile)
-        add.columns = [param_df.index.name] + list(param_df.columns)
-        add = add.set_index('Id')
-        param_df = param_df.append(add)
-        print(param_df.shape)
-        pd.to_pickle(param_df, args.paramfile)
+        #Save parameters in dataframe
+        try:
+            param_df = pd.read_pickle(args.paramfile)
+            add.columns = [param_df.index.name] + list(param_df.columns)
+            add = add.set_index('Id')
+            param_df = param_df.append(add)
+            print(param_df.shape)
+            pd.to_pickle(param_df, args.paramfile)
 
-    except:  #Df not yet initialized
-        param_df = add
-        param_df.columns = parameter_cols
-        param_df.set_index('Id', inplace=True)
-        pd.to_pickle(param_df, args.paramfile)
+        except:  #Df not yet initialized
+            param_df = add
+            param_df.columns = parameter_cols
+            param_df.set_index('Id', inplace=True)
+            pd.to_pickle(param_df, args.paramfile)

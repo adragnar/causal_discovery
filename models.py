@@ -80,11 +80,7 @@ class InvariantRiskMinimization(InvarianceBase):
     """Object Wrapper around IRM"""
 
     def __init__(self):
-        self.args = {'lr':0.001, \
-                     'n_iterations':5000, \
-                     'penalty_anneal_iters':100, \
-                     'l2_reg':0.001, \
-                     'verbose':True}
+        pass
 
     def mean_nll(self, logits, y):
         return nn.functional.binary_cross_entropy_with_logits(logits, y)
@@ -168,11 +164,19 @@ class InvariantRiskMinimization(InvarianceBase):
 
 
 
-    def run(self, data, y_all, d_atts, unid, expdir, seed, env_atts_types, eq_estrat):
+    def run(self, data, y_all, d_atts, unid, expdir, seed, env_atts_types, eq_estrat, \
+                lr=0.001, niter=5000, l2=0.001, pen_anneal=100):
+
         phi_fname = os.path.join(expdir, 'phi_{}.pt'.format(unid))
         errors_fname = os.path.join(expdir, 'errors_{}.npy'.format(unid))
         penalties_fname = os.path.join(expdir, 'penalties_{}.npy'.format(unid))
         losses_fname = os.path.join(expdir, 'losses_{}.npy'.format(unid))
+
+        args = {'lr':lr, \
+                     'n_iterations':niter, \
+                     'penalty_anneal_iters':pen_anneal, \
+                     'l2_reg':l2, \
+                     'verbose':True}
 
         #Set allowable datts as PCPs
         allowed_datts = {cat:d_atts[cat] for cat in d_atts.keys() if cat not in env_atts_types}
@@ -193,7 +197,7 @@ class InvariantRiskMinimization(InvarianceBase):
 
         #Now start with IRM itself
         reg = 10000
-        self.train(data, y_all, e_ins_store, self.args, reg=reg)
+        self.train(data, y_all, e_ins_store, args, reg=reg)
 
         #Save Results
         torch.save(self.phi.state_dict(), phi_fname)
