@@ -41,7 +41,7 @@ get_datapath () {
   fi
 }
 
-get_val () {
+get_testset () {
   local dset_type=$1
   local algo=$2
   local vind=$3
@@ -49,16 +49,16 @@ get_val () {
 
   if [ $vind == "0" ]
   then
-      val_info="-1"
+      test_info="-1"
 
   elif [ $algo == "linreg" ]
   then
       if [ $dset_type == "adult" ]
       then
-          val_info="workclass_DUMmY"
+          test_info="workclass_DUMmY"
       elif [ $dset_type == "german" ]
       then
-          val_info="Purpose_DUMmY"
+          test_info="Purpose_DUMmY"
       else
           echo Unimplemented Dset
           exit 42
@@ -70,15 +70,15 @@ get_val () {
       then
           case $env in
             "workclass")
-              val_info="workclass_DUMmY"  ;;
+              test_info="workclass_DUMmY"  ;;
             "native-country")
-              val_info="native-country_DUMmY"  ;;
+              test_info="native-country_DUMmY"  ;;
             "occupation")
-              val_info='occupation_DUMmY'  ;;
+              test_info='occupation_DUMmY'  ;;
             "marital-status")
-              val_info='marital-status_DUMmY'  ;;
+              test_info='marital-status_DUMmY'  ;;
             "relationship")
-              val_info='relationship_DUMmY'  ;;
+              test_info='relationship_DUMmY'  ;;
             *)
               echo unimplemented env
               exit 42
@@ -88,11 +88,11 @@ get_val () {
           echo 2
         case $env in
           "Purpose")
-            val_info="Purpose_DUMmY"  ;;
+            test_info="Purpose_DUMmY"  ;;
           "Housing")
-            val_info="Housing_DUMmY"  ;;
+            test_info="Housing_DUMmY"  ;;
           "Property")
-            val_info="Property_DUMmY"  ;;
+            test_info="Property_DUMmY"  ;;
           *)
             echo unimplemented env
             exit 42

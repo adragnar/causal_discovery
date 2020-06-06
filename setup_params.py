@@ -83,7 +83,7 @@ if __name__ == '__main__':
     parser.add_argument("-binarize", type=int, default=0)
     parser.add_argument("-eq_estrat", type=int, default=-1)
     parser.add_argument("-seed", type=int, default=100)
-    parser.add_argument("-val_info", type=str, default=['-1'])
+    parser.add_argument("-test_info", type=str, default='-1')
     parser.add_argument("--testing", action='store_true')
 
     args = parser.parse_args()
@@ -102,7 +102,7 @@ if __name__ == '__main__':
         print("binarize?:", args.binarize)
         print("eq_estrat?:", args.eq_estrat)
         print("seed?:", args.seed)
-        print("val_info?:", args.val_info)
+        print("test_info?:", args.test_info)
         quit()
 
     if args.env_att != '-1':
@@ -135,7 +135,7 @@ if __name__ == '__main__':
         #Write Exp Command to commandfile
         with open(args.cmdfile, 'a') as f:
             command_str = \
-                '''python main.py {id} {algo} {data} {expdir} -fteng {feat_eng} -reduce_dsize {d_size} -binarize {bin} -eq_estrat {eq} -seed {s} -env_atts {env_list} -val_info {val}\n'''
+                '''python main.py {id} {algo} {data} {expdir} -fteng {feat_eng} -reduce_dsize {d_size} -binarize {bin} -eq_estrat {eq} -seed {s} -env_atts {env_list} -test_info {test}\n'''
 
             command_str = command_str.format(
                 id=id,
@@ -148,18 +148,18 @@ if __name__ == '__main__':
                 eq=args.eq_estrat,
                 s=args.seed,
                 env_list=args.env_att,
-                val=args.val_info
+                test=args.test_info
             )
             f.write(command_str)
 
         #Log Parameters in Datafame
         add = pd.DataFrame([id, args.algo, args.fteng, \
         utils.dname_from_fpath(args.datafname), args.seed, args.reduce_dsize, \
-        args.binarize, args.eq_estrat, args.env_att, args.val_info]).T
+        args.binarize, args.eq_estrat, args.env_att, args.test_info]).T
 
         parameter_cols = ['Id', 'Algo', 'Fteng', 'Dataset', \
                             'Seed', 'ReduceDsize', 'Bin', 'Eq_Estrat', \
-                            'Envs', 'Val']
+                            'Envs', 'TestSet']
 
     else:
         id = args.id
@@ -169,7 +169,7 @@ if __name__ == '__main__':
         #Write Exp Command to commandfile
         with open(args.cmdfile, 'a') as f:
             command_str = \
-                '''python main.py {id} {algo} {data} {expdir} -fteng {feat_eng} -reduce_dsize {d_size} -binarize {bin} -seed {s} -val_info {val}\n'''
+                '''python main.py {id} {algo} {data} {expdir} -fteng {feat_eng} -reduce_dsize {d_size} -binarize {bin} -seed {s} -test_info {test}\n'''
 
             command_str = command_str.format(
                 id=id,
@@ -180,16 +180,16 @@ if __name__ == '__main__':
                 d_size=args.reduce_dsize,
                 bin=args.binarize,
                 s=args.seed,
-                val=args.val_info
+                test=args.test_info
             )
             f.write(command_str)
 
         #Log Parameters in Datafame
         add = pd.DataFrame([id, args.algo, args.fteng, \
                             utils.dname_from_fpath(args.datafname), args.seed, \
-                             args.reduce_dsize, args.binarize, args.val_info]).T
+                             args.reduce_dsize, args.binarize, args.test_info]).T
 
-        parameter_cols = ['Id', 'Algo', 'Fteng', 'Dataset', 'Seed', 'ReduceDsize', 'Bin', 'Val']
+        parameter_cols = ['Id', 'Algo', 'Fteng', 'Dataset', 'Seed', 'ReduceDsize', 'Bin', 'TestSet']
 
 
     #Save parameters in dataframe

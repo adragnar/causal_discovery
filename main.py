@@ -28,7 +28,7 @@ import models
 import utils
 
 def default(id, algo, dataset_fname, expdir, env_atts_types, feateng_type='-1', \
-            d_size=-1, bin_env=False, eq_estrat=-1, SEED=100, val_info='-1',
+            d_size=-1, bin_env=False, eq_estrat=-1, SEED=100, test_info='-1',
             toy_data=[False], testing=False):
 
     '''
@@ -42,7 +42,7 @@ def default(id, algo, dataset_fname, expdir, env_atts_types, feateng_type='-1', 
     :param bin_env: 0 to not bin, 1 to bin (0-1 int)
     :param eq_estrat: -1 to not apply, int for min num samples per env (int)
     :param seed: random seed used (int)
-    :param val_info: -1 or name of validation environment (str)
+    :param test_info: -1 or name of test environment (str)
     '''
 
     random.seed(SEED)
@@ -64,7 +64,7 @@ def default(id, algo, dataset_fname, expdir, env_atts_types, feateng_type='-1', 
     logging.info('binarize envs: {}'.format(str(bin_env)))
     logging.info('equalize envs: {}'.format(str(eq_estrat)))
     logging.info('seed: {}'.format(str(SEED)))
-    logging.info('val_info: {}'.format(val_info))
+    logging.info('test_info: {}'.format(test_info))
 
     #Select correct dataset
     data, y_all, d_atts = dp.data_loader(dataset_fname, proc_fteng(feateng_type), dsize=d_size, \
@@ -72,15 +72,15 @@ def default(id, algo, dataset_fname, expdir, env_atts_types, feateng_type='-1', 
     logging.info('{} Dataset loaded - size {}'.format(dataset_fname.split('/')[-1], \
                 str(data.shape)))
 
-    #Remove Val Data
-    if val_info != '-1':
-        assert (len(val_info.split('_')) == 2)
-        evar = val_info.split('_')[0]
+    #Remove test Data
+    if test_info != '-1':
+        assert (len(test_info.split('_')) == 2)
+        evar = test_info.split('_')[0]
         e_ins_store = eproc.get_environments(data, {evar:d_atts[evar]})
-        val_ein = e_ins_store.pop(tuple([val_info]))
-        data, y_all = data[np.logical_not(val_ein.values)], y_all[np.logical_not(val_ein.values)]
-        d_atts[evar].remove(val_info)
-        logging.info('Validation Environment Removed - Dataset size {}'.format(str(data.shape)))
+        test_ein = e_ins_store.pop(tuple([test_info]))
+        data, y_all = data[np.logical_not(test_ein.values)], y_all[np.logical_not(test_ein.values)]
+        d_atts[evar].remove(test_info)
+        logging.info('Test Environment Removed - Dataset size {}'.format(str(data.shape)))
 
     if algo == 'icp':
         icp = models.InvariantCausalPrediction()
@@ -116,8 +116,8 @@ if __name__ == '__main__':
     parser.add_argument("-seed", type=int, default=100)
     parser.add_argument('-env_atts', type=str, default='[]', \
                         help='atts categorical defining envs')
-    parser.add_argument('-val_info', type=str, default='[]', \
-                        help='validation envs per environment')
+    parser.add_argument('-test_info', type=str, default='[]', \
+                        help='test env per environment')
     parser.add_argument("--testing", action='store_true')
 
     args = parser.parse_args()
@@ -133,11 +133,11 @@ if __name__ == '__main__':
         print("eq_estrat?:", args.eq_estrat)
         print("seed?:", args.seed)
         print("env_list:", args.env_atts)
-        print("val_info:", args.val_info)
+        print("test_info:", args.test_info)
         print("testing?:", args.testing)
         quit()
 
     default(args.id, args.algo, args.data_fname, args.expdir, [args.env_atts], \
            feateng_type=args.fteng, d_size=args.reduce_dsize, \
            bin_env=bool(args.binarize), eq_estrat=args.eq_estrat, SEED=args.seed, \
-           val_info=args.val_info, testing=args.testing)
+           test_info=args.test_info, testing=args.testing)
