@@ -31,8 +31,7 @@ import utils
 
 def default(id, algo, dataset_fname, expdir, env_atts_types, feateng_type='-1', \
             d_size=-1, bin_env=False, eq_estrat=-1, SEED=100, test_info='-1',\
-            val_split=0.0, irm_lr=0.001, irm_niter=5000, irm_l2=0.001, irm_penalty_anneal=100, \
-            irm_pen_weight=10000, irm_hid_layers=100, toy_data=[False], testing=False):
+            val_split=0.0, irm_args={}, toy_data=[False], testing=False):
 
     '''
     :param id: Numerical identifier for run (str)
@@ -96,15 +95,13 @@ def default(id, algo, dataset_fname, expdir, env_atts_types, feateng_type='-1', 
         icp = models.InvariantCausalPrediction()
         icp.run(data, y_all, d_atts, unid, expdir, proc_fteng(feateng_type), \
                 SEED, env_atts_types, eq_estrat)
+
     elif algo == 'irm':
-        logging.info('learing_rate: {}'.format(str(irm_lr)))
-        logging.info('weight decay: {}'.format(str(irm_l2)))
-        logging.info('n_iterations: {}'.format(str(irm_niter)))
-        logging.info('penalty_anneal_iters: {}'.format(str(irm_penalty_anneal)))
+        assert len(irm_args) > 0
+        logging.info('irm_params: {}'.format(str(irm_args)))
         irm = models.InvariantRiskMinimization()
         irm.run(data, y_all, d_atts, unid, expdir, SEED, env_atts_types, eq_estrat, \
-                 lr=irm_lr, niter=irm_niter, l2=irm_l2, pen_anneal=irm_penalty_anneal,
-                 pen_weight=irm_pen_weight, hid_layers=irm_hid_layers)
+                irm_args)
 
     elif algo == 'linreg':
         linreg = models.Linear()
@@ -140,12 +137,12 @@ if __name__ == '__main__':
     #Additions for Hyperparameter Tuning
     parser.add_argument('-inc_hyperparams', type=int, default=0)
     parser.add_argument('-val_split', type=float, default=0.0)
-    parser.add_argument('-irm_lr', type=float, default=None)
+    parser.add_argument('-irm_lr', type=float, default=0.001)
     parser.add_argument('-irm_niter', type=int, default=5000)
-    parser.add_argument('-irm_l2', type=float, default=None)
-    parser.add_argument('-irm_penalty_weight', type=float, default=None)
-    parser.add_argument('-irm_penalty_anneal', type=float, default=None)
-    parser.add_argument('-irm_hid_layers', type=int, default=None)
+    parser.add_argument('-irm_l2', type=float, default=0.001)
+    parser.add_argument('-irm_penalty_weight', type=float, default=10000)
+    parser.add_argument('-irm_penalty_anneal', type=float, default=100)
+    parser.add_argument('-irm_hid_layers', type=int, default=100)
 
 
     args = parser.parse_args()
@@ -165,17 +162,17 @@ if __name__ == '__main__':
         print("testing?:", args.testing)
         quit()
 
-    if args.inc_hyperparams == 0:
-        default(args.id, args.algo, args.data_fname, args.expdir, [args.env_atts], \
-               feateng_type=args.fteng, d_size=args.reduce_dsize, \
-               bin_env=bool(args.binarize), eq_estrat=args.eq_estrat, SEED=args.seed, \
-               test_info=args.test_info, testing=args.testing)
+    irm_args = {'lr':args.irm_lr, \
+             'n_iterations':args.irm_niter, \
+             'penalty_anneal_iters':args.irm_penalty_anneal, \
+             'l2_reg':args.irm_l2, \
+             'pen_wgt':args.irm_penalty_weight, \
+             'hid_layers':args.irm_hid_layers, \
+             'verbose':True}
 
-    else:
-        default(args.id, args.algo, args.data_fname, args.expdir, [args.env_atts], \
-               feateng_type=args.fteng, d_size=args.reduce_dsize, \
-               bin_env=bool(args.binarize), eq_estrat=args.eq_estrat, SEED=args.seed, \
-               test_info=args.test_info, val_split=args.val_split, testing=args.testing, \
-               irm_lr=args.irm_lr, irm_niter=args.irm_niter, irm_l2=args.irm_l2, \
-               irm_penalty_anneal=args.irm_penalty_anneal, irm_pen_weight=args.irm_penalty_weight,
-               irm_hid_layers=args.irm_hid_layers)
+
+    default(args.id, args.algo, args.data_fname, args.expdir, [args.env_atts], \
+           feateng_type=args.fteng, d_size=args.reduce_dsize, \
+           bin_env=bool(args.binarize), eq_estrat=args.eq_estrat, SEED=args.seed, \
+           test_info=args.test_info, val_split=args.val_split, testing=args.testing, \
+           irm_args=irm_args)

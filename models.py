@@ -165,21 +165,12 @@ class InvariantRiskMinimization(InvarianceBase):
 
 
     def run(self, data, y_all, d_atts, unid, expdir, seed, env_atts_types, eq_estrat, \
-                lr=0.001, niter=5000, l2=0.001, pen_anneal=100, pen_weight=10000, \
-                hid_layers=100):
+                args):
 
         phi_fname = os.path.join(expdir, 'phi_{}.pt'.format(unid))
         errors_fname = os.path.join(expdir, 'errors_{}.npy'.format(unid))
         penalties_fname = os.path.join(expdir, 'penalties_{}.npy'.format(unid))
         losses_fname = os.path.join(expdir, 'losses_{}.npy'.format(unid))
-
-        args = {'lr':lr, \
-                     'n_iterations':niter, \
-                     'penalty_anneal_iters':pen_anneal, \
-                     'l2_reg':l2, \
-                     'pen_wgt':pen_weight, \
-                     'hid_layers':hid_layers, \
-                     'verbose':True}
 
         #Set allowable datts as PCPs
         allowed_datts = {cat:d_atts[cat] for cat in d_atts.keys() if cat not in env_atts_types}
