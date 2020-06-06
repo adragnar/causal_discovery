@@ -6,6 +6,7 @@ import json
 import logging
 import os
 from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import train_test_split
 import warnings
 import pandas as pd
 from tqdm import tqdm
@@ -30,7 +31,7 @@ import utils
 
 def default(id, algo, dataset_fname, expdir, env_atts_types, feateng_type='-1', \
             d_size=-1, bin_env=False, eq_estrat=-1, SEED=100, test_info='-1',\
-            irm_lr=0.001, irm_niter=5000, irm_l2=0.001, irm_penalty_anneal=100, \
+            val_split=0.0, irm_lr=0.001, irm_niter=5000, irm_l2=0.001, irm_penalty_anneal=100, \
             irm_pen_weight=10000, irm_hid_layers=100, toy_data=[False], testing=False):
 
     '''
@@ -74,6 +75,12 @@ def default(id, algo, dataset_fname, expdir, env_atts_types, feateng_type='-1', 
                                     bin=bin_env, toy=toy_data, testing=testing)
     logging.info('{} Dataset loaded - size {}'.format(dataset_fname.split('/')[-1], \
                 str(data.shape)))
+
+    #Remove Validation Data
+    if val_split != 0.0:
+        assert (0 < val_split) and (val_split < 1)
+        data, _, y_all, _ = train_test_split(data, y_all, test_size=val_split, \
+                                             random_state=SEED)
 
     #Remove test Data
     if test_info != '-1':
@@ -132,12 +139,13 @@ if __name__ == '__main__':
 
     #Additions for Hyperparameter Tuning
     parser.add_argument('-inc_hyperparams', type=int, default=0)
+    parser.add_argument('-val_split', type=float, default=0.0)
     parser.add_argument('-irm_lr', type=float, default=None)
     parser.add_argument('-irm_niter', type=int, default=5000)
     parser.add_argument('-irm_l2', type=float, default=None)
     parser.add_argument('-irm_penalty_weight', type=float, default=None)
     parser.add_argument('-irm_penalty_anneal', type=float, default=None)
-    parser.add_argument('-irm_hid_layers', type=float, default=None)
+    parser.add_argument('-irm_hid_layers', type=int, default=None)
 
 
     args = parser.parse_args()
@@ -167,7 +175,7 @@ if __name__ == '__main__':
         default(args.id, args.algo, args.data_fname, args.expdir, [args.env_atts], \
                feateng_type=args.fteng, d_size=args.reduce_dsize, \
                bin_env=bool(args.binarize), eq_estrat=args.eq_estrat, SEED=args.seed, \
-               test_info=args.test_info, testing=args.testing, \
+               test_info=args.test_info, val_split=args.val_split, testing=args.testing, \
                irm_lr=args.irm_lr, irm_niter=args.irm_niter, irm_l2=args.irm_l2, \
                irm_penalty_anneal=args.irm_penalty_anneal, irm_pen_weight=args.irm_penalty_weight,
                irm_hid_layers=args.irm_hid_layers)

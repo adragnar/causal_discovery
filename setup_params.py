@@ -88,6 +88,7 @@ if __name__ == '__main__':
 
     #Hyperparameter Testing
     parser.add_argument('-inc_hyperparams', type=int, default=0)
+    parser.add_argument('-val_split', type=float, default=0.0)
     parser.add_argument('-irm_lr', type=float, default=None)
     parser.add_argument('-irm_niter', type=int, default=None)
     parser.add_argument('-irm_l2', type=float, default=None)
@@ -123,7 +124,7 @@ if __name__ == '__main__':
             #Write Exp Command to commandfile
             with open(args.cmdfile, 'a') as f:
                 command_str = \
-                    '''python main.py {id} {algo} {data} {expdir} -fteng {feat_eng} -reduce_dsize {d_size} -binarize {bin} -eq_estrat {eq} -seed {s} -env_atts {env_list} -test_info {test} -irm_lr {lr} -irm_niter {niter} -irm_l2 {l2} -irm_penalty_anneal {n_ann} -irm_penalty_weight {pen_weight} -irm_hid_layers {hid}\n'''
+                    '''python main.py {id} {algo} {data} {expdir} -fteng {feat_eng} -reduce_dsize {d_size} -binarize {bin} -eq_estrat {eq} -seed {s} -env_atts {env_list} -inc_hyperparams {hp} -test_info {test} -val_split {split} -irm_lr {lr} -irm_niter {niter} -irm_l2 {l2} -irm_penalty_anneal {n_ann} -irm_penalty_weight {pen_weight} -irm_hid_layers {hid}\n'''
 
                 command_str = command_str.format(
                     id=id,
@@ -136,7 +137,9 @@ if __name__ == '__main__':
                     eq=args.eq_estrat,
                     s=args.seed,
                     env_list=args.env_att,
+                    hp=args.inc_hyperparams,
                     test=args.test_info,
+                    split=args.val_split,
                     lr=args.irm_lr,
                     niter=args.irm_niter,
                     l2=args.irm_l2,

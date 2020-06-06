@@ -25,13 +25,14 @@ ft_combos='-1'   #'1' '12')
 eq_estrat=-1  #-1, #samples_wanted
 
 data=$(get_datapath $dtypes)
-seeds=(1000)  # 1000 8079 52 147 256 784 990 587 304 888)
-l_rates=(0.001)  # 0.0001 0.00001 .000001)
-l2_regs=(0.1 0.001 0.0001)
+seeds=(1000 8079)  # 1000 8079 52 147 256 784 990 587 304 888)
+l_rates=(0.0001) #0.00001 .000001)
+l2_regs=(0.1)  #0.001 0.0001)
 n_anneals=(100)
-n_iters=(100)  # 500 1000)
-penreg=(5000)  # 10000 20000)
-hid_layers=(200)
+n_iters=(100 )  #500 1000)
+penreg=(5000) # 10000 20000)
+hid_layers=(100) # 200)
+val_split=0.20
 
 #Generate the commandfile
 id=0
@@ -53,7 +54,7 @@ id=0
                         then
                           env_att="workclass"
                           test_info="workclass_DUMmY"
-                          python setup_params.py $id $algo $data $expdir $cmdfile $paramfile -env_att $env_att -fteng $ft_combos -reduce_dsize $reduce_dsize -binarize $bin -eq_estrat $eq_estrat -seed $s -test_info $test_info -inc_hyperparams 1 -irm_lr $lr -irm_niter $it -irm_l2 $l2 -irm_penalty_anneal $n_ann -irm_penalty_weight $pw -irm_hid_layers $nh
+                          python setup_params.py $id $algo $data $expdir $cmdfile $paramfile -env_att $env_att -fteng $ft_combos -reduce_dsize $reduce_dsize -binarize $bin -eq_estrat $eq_estrat -seed $s -test_info $test_info -inc_hyperparams 1 -irm_lr $lr -irm_niter $it -irm_l2 $l2 -irm_penalty_anneal $n_ann -irm_penalty_weight $pw -irm_hid_layers $nh -val_split $val_split
                           id=$(($id + 1))
 
                           else
