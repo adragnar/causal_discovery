@@ -75,21 +75,27 @@ def default(id, algo, dataset_fname, expdir, env_atts_types, feateng_type='-1', 
     logging.info('{} Dataset loaded - size {}'.format(dataset_fname.split('/')[-1], \
                 str(data.shape)))
 
-    #Remove Validation Data
-    if val_split != 0.0:
-        assert (0 < val_split) and (val_split < 1)
-        data, _, y_all, _ = train_test_split(data, y_all, test_size=val_split, \
-                                             random_state=SEED)
+    # #Remove Validation and Test Data
+    data, y_all, d_atts, _, _, _, _ = dp.train_val_test_split(\
+                                         data, y_all, d_atts, val_split, \
+                                         test_info, SEED)
+    import pdb; pdb.set_trace()
+    # if val_split != 0.0:
+    #     assert (0 < val_split) and (val_split < 1)
+    #     data, _, y_all, _ = train_test_split(data, y_all, test_size=val_split, \
+    #                                          random_state=SEED)
+    #
+    # #Remove test Data
+    # if test_info != '-1':
+    #     assert (len(test_info.split('_')) == 2)
+    #     evar = test_info.split('_')[0]
+    #     e_ins_store = eproc.get_environments(data, {evar:d_atts[evar]})
+    #     test_ein = e_ins_store.pop(tuple([test_info]))
+    #     data, y_all = data[np.logical_not(test_ein.values)], y_all[np.logical_not(test_ein.values)]
+    #     d_atts[evar].remove(test_info)
+    #     logging.info('Test Environment Removed - Dataset size {}'.format(str(data.shape)))
 
-    #Remove test Data
-    if test_info != '-1':
-        assert (len(test_info.split('_')) == 2)
-        evar = test_info.split('_')[0]
-        e_ins_store = eproc.get_environments(data, {evar:d_atts[evar]})
-        test_ein = e_ins_store.pop(tuple([test_info]))
-        data, y_all = data[np.logical_not(test_ein.values)], y_all[np.logical_not(test_ein.values)]
-        d_atts[evar].remove(test_info)
-        logging.info('Test Environment Removed - Dataset size {}'.format(str(data.shape)))
+    logging.info('Val, Test Environment Removed - Dataset size {}'.format(str(data.shape)))
 
     if algo == 'icp':
         icp = models.InvariantCausalPrediction()

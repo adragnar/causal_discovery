@@ -9,11 +9,43 @@ from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 from sklearn.model_selection import train_test_split
 from utils import dname_from_fpath
 
+import environment_processing as eproc
+
 # from model import MultiLayerPerceptron
 # from dataset import AdultDataset
 # from util import *
 
 #import matplotlib.pyplot as plt
+
+def train_val_test_split(data, labels, d_atts, val=0.0, test='-1', seed=1000):
+    '''Split Data into training, validation, test sets
+    :param data: The dataset (pandas df)
+    :labels: Label for each row in dataset (pandas DataFrame)
+    :param val: The proporition of data split off for validaton (float)
+    :param test: The test environment (str)'''
+
+    #Remove Validation Data
+    if val != 0.0:
+        assert (0 < val) and (val < 1)
+        data, val_data, labels, val_labels = train_test_split(data, labels, test_size=val, \
+                                             random_state=seed)
+    else:
+        val_data, val_labels = pd.DataFrame(), pd.DataFrame()
+
+    #Remove test Data
+    if test != '-1':
+        assert (len(test.split('_')) == 2)
+        evar = test.split('_')[0]
+        e_ins_store = eproc.get_environments(data, {evar:d_atts[evar]})
+        test_ein = e_ins_store.pop(tuple([test]))
+
+        d_atts[evar].remove(test)
+        test_data, test_labels = data[test_ein.values], labels[test_ein.values]
+        data, labels = data[np.logical_not(test_ein.values)], labels[np.logical_not(test_ein.values)]
+    else:
+        test_data, test_labels = pd.DataFrame(), pd.DataFrame()
+
+    return data, labels, d_atts, val_data, val_labels, test_data, test_labels
 
 def data_loader(fname, fteng, dsize=-1, bin=0, toy=[False], seed=1000, testing=0):
     '''From dataset name, optional flags, return dataset, labels,
