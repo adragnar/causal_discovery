@@ -8,7 +8,7 @@ get_envs () {
   then
       if [ $bin_val == 0 ]
       then
-          env_vars=("workclass" "native-country" "occupation" "marital-status" "relationship")
+          env_vars=("workclass" "native-country" "relationship")  #"occupation" "marital-status" "relationship")
       fi
       if [ $bin_val == 1 ]
       then
@@ -20,7 +20,7 @@ get_envs () {
   then
       if [ $bin_val == 0 ]
       then
-          env_vars=("Purpose" "Housing" "Property")  # 'OtherInstallmentPlans'  'Foreign' 'Savings' 'Personal' 'OtherDebtors')
+          env_vars=("Purpose" "Housing")  # 'OtherInstallmentPlans'  'Foreign' 'Savings' 'Personal' 'OtherDebtors')
       fi
       if [ $bin_val == 1 ]
       then

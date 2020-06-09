@@ -167,6 +167,7 @@ def adult_dataset_processing(fname, fteng, reduce_dsize=-1, bin=False, \
     data.drop('educational-num', axis=1, inplace=True)
     data.drop('fnlwgt', axis=1, inplace=True)
     data = data[data['native-country'] != 'South']  #no entries
+    # data = data[data['native-country'] != 'Holand-Netherlands']  #too few entries
     data = data[(data['workclass'] != 'Without-pay') & \
             (data['workclass'] != 'Never-worked')] #small num-_entries (21)
     data = data[(data['occupation'] != 'Armed-Forces')] #small num-_entries (14)

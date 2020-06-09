@@ -15,6 +15,7 @@ from itertools import combinations
 from utils import powerset, dname_from_fpath, proc_fteng
 import data_processing as dp
 import environment_processing as eproc
+import algo_hyperparams as ahp
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 warnings.simplefilter(action='ignore', category=RuntimeWarning)
@@ -153,13 +154,16 @@ if __name__ == '__main__':
         print("testing?:", args.testing)
         quit()
 
-    irm_args = {'lr':args.irm_lr, \
-             'n_iterations':args.irm_niter, \
-             'penalty_anneal_iters':args.irm_penalty_anneal, \
-             'l2_reg':args.irm_l2, \
-             'pen_wgt':args.irm_penalty_weight, \
-             'hid_layers':args.irm_hid_layers, \
-             'verbose':True}
+    if args.inc_hyperparams == 1:
+        irm_args = {'lr':args.irm_lr, \
+                     'n_iterations':args.irm_niter, \
+                     'penalty_anneal_iters':args.irm_penalty_anneal, \
+                     'l2_reg':args.irm_l2, \
+                     'pen_wgt':args.irm_penalty_weight, \
+                     'hid_layers':args.irm_hid_layers, \
+                     'verbose':True}
+    else:
+        irm_args = ahp.get_irm_args(args.data_fname)
 
 
     default(args.id, args.algo, args.data_fname, args.expdir, [args.env_atts], \
