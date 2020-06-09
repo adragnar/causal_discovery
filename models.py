@@ -198,7 +198,7 @@ class InvariantRiskMinimization(InvarianceBase):
         np.save(penalties_fname, self.penalties)
         np.save(losses_fname, self.losses)
 
-    def predict(self, data, phi_params):
+    def predict(self, data, phi_params, hid_layers=100):
         '''
         :param data: the dataset (nparray)
         :param phi_params: The state dict of the MLP'''
@@ -206,7 +206,7 @@ class InvariantRiskMinimization(InvarianceBase):
         if data.shape[0] == 0:
             return pd.DataFrame()
 
-        phi = MLP(data.shape[1], 100)
+        phi = MLP(data.shape[1], hid_layers)
         phi.load_state_dict(phi_params)
         return pd.DataFrame(phi(make_tensor(data)).detach().numpy())
 

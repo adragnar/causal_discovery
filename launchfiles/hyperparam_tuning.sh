@@ -4,7 +4,7 @@
 
 
 #Make expieriment directories/files
-expdir="test_expdir"   #"/scratch/hdd001/home/adragnar/experiments/causal_discovery/$(date +'%s')"  #"/scratch/gobi1/adragnar/experiments/causal_discovery/$(date +'%s')"
+expdir="/scratch/gobi1/adragnar/experiments/causal_discovery/0607_nativeirm/$(date +'%s')"  #"/scratch/hdd001/home/adragnar/experiments/causal_discovery/$(date +'%s')"  #"/scratch/gobi1/adragnar/experiments/causal_discovery/$(date +'%s')"
 mkdir -p $expdir
 cmdfile="$expdir/cmdfile.sh"
 
@@ -17,7 +17,7 @@ algo="irm" #  "icp" "linreg"
 paramfile="$expdir/${algo}_paramfile.pkl"
 
 #Set Dataset Parameters
-dtypes="adult"  # "german"
+dtypes="german"  # "german"
 reduce_dsize=-1
 bin=0  #0, 1
 ft_combos='-1'   #'1' '12')
@@ -26,12 +26,12 @@ eq_estrat=-1  #-1, #samples_wanted
 
 data=$(get_datapath $dtypes)
 seeds=(1000 8079)  # 1000 8079 52 147 256 784 990 587 304 888)
-l_rates=(0.0001) #0.00001 .000001)
-l2_regs=(0.1)  #0.001 0.0001)
-n_anneals=(100)
-n_iters=(100 )  #500 1000)
-penreg=(5000) # 10000 20000)
-hid_layers=(100) # 200)
+l_rates=(0.0001 0.001 .01)
+l2_regs=(0.001 0.0001)
+n_anneals=(100 500)
+n_iters=(1000 2000)
+penreg=(5000 3000) # 10000 20000)
+hid_layers=(100 200) # 200)
 val_split=0.20
 
 #Generate the commandfile
@@ -52,8 +52,8 @@ id=0
               do
                         if [ $algo == "icp"  -o  $algo == "irm" ]
                         then
-                          env_att="workclass"
-                          test_info="workclass_DUMmY"
+                          env_att="Housing"
+                          test_info="Housing_DUMmY"
                           python setup_params.py $id $algo $data $expdir $cmdfile $paramfile -env_att $env_att -fteng $ft_combos -reduce_dsize $reduce_dsize -binarize $bin -eq_estrat $eq_estrat -seed $s -test_info $test_info -inc_hyperparams 1 -irm_lr $lr -irm_niter $it -irm_l2 $l2 -irm_penalty_anneal $n_ann -irm_penalty_weight $pw -irm_hid_layers $nh -val_split $val_split
                           id=$(($id + 1))
 
@@ -72,9 +72,9 @@ id=0
 
 
 #Run evaluation on cluster
-# num_cmds=`wc -l $cmdfile | cut -d' ' -f1`
-# echo "Wrote $num_cmds commands to $cmdfile"
-#
-# cmd=( $cmd )
-# num_tokens=${#cmd[@]}
+num_cmds=`wc -l $cmdfile | cut -d' ' -f1`
+echo "Wrote $num_cmds commands to $cmdfile"
+
+cmd=( $cmd )
+num_tokens=${#cmd[@]}
 # xargs -L 1 -P $max_proc srun --mem=16G -p cpu < $cmdfile
