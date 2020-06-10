@@ -295,9 +295,9 @@ def irm_process(res_dir, dset_dir):
 
     pd.to_pickle(params, paramfile)
 
-def linreg_process(res_dir, dset_dir):
+def regression_process(res_dir, dset_dir, name):
     expdir = os.path.join(res_dir, 'causal_discovery')
-    paramfile = os.path.join(res_dir, 'linreg_paramfile.pkl')
+    paramfile = os.path.join(res_dir, '{}_paramfile.pkl'.format(name))
     params = pd.read_pickle(paramfile)
 
     savedir = os.path.join(res_dir, 'processed_results')
@@ -306,12 +306,12 @@ def linreg_process(res_dir, dset_dir):
     os.mkdir(savedir)
 
     #Load Coefficients into dataframe
-    params['linregressors'] = np.NaN
+    params['regressors'] = np.NaN
     for fname in os.listdir(expdir):
         id = get_id_from_fname(fname)
         ftype = get_ftype_from_fname(fname)
         if ftype == 'regs':
-            params.loc[id, 'linregressors'] = os.path.join(expdir, fname)
+            params.loc[id, 'regressors'] = os.path.join(expdir, fname)
 
     pd.to_pickle(params, paramfile)
 
@@ -320,8 +320,8 @@ def aggregate_loader(resdir, dsetdir, algo):
         icp_process(resdir, dsetdir)
     elif algo == 'irm':
         irm_process(resdir, dsetdir)
-    elif algo == 'linreg':
-        linreg_process(resdir, dsetdir)
+    elif (algo == 'linreg') or (algo == 'logreg'):
+        regression_process(resdir, dsetdir, algo)
     else:
         raise Exception('algo not implemented')
 

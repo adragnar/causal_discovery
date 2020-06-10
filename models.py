@@ -411,7 +411,6 @@ class Regression(ABC):
         assert set(list(coeffs['predictor'].values)).issubset(set(list(data.columns)))
         data = data[list(coeffs['predictor'].values)]  #make sure cols align
 
-        import pdb; pdb.set_trace()
         return pd.DataFrame((data.values @ coeffs['coeff'].values) + int)
 
 class Linear(Regression):
@@ -458,5 +457,5 @@ class LogisticReg(Regression):
         model = LogisticRegression(C=args['C'], fit_intercept=True, max_iter=1000).fit(data, labels.ravel())
         reg = model.coef_.T.squeeze()
         int = model.intercept_[0]
-        import pdb; pdb.set_trace()
+
         return reg, int
