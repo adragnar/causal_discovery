@@ -51,20 +51,20 @@ get_testset () {
   then
       test_info="-1"
 
-  elif [ $algo == "linreg" ]
+  elif [ $algo == "linreg"  -o  $algo == "logreg" ]
   then
       if [ $dset_type == "adult" ]
       then
           test_info=("workclass_DUMmY" "native-country_DUMmY" "relationship_DUMmY")
       elif [ $dset_type == "german" ]
       then
-          test_info=("Purpose_DUMmY" "Housing_DUMmY") 
+          test_info=("Purpose_DUMmY" "Housing_DUMmY")
       else
           echo Unimplemented Dset
           exit 42
       fi
 
-  elif [ $algo == "icp" ] || [ $algo == "irm" ]
+  elif [ $algo == "icp"  -o  $algo == "irm" ]
   then
       if [ $dset_type == "adult" ]
       then

@@ -32,7 +32,8 @@ import utils
 
 def default(id, algo, dataset_fname, expdir, env_atts_types, feateng_type='-1', \
             d_size=-1, bin_env=False, eq_estrat=-1, SEED=100, test_info='-1',\
-            val_split=0.0, irm_args={}, linreg_args={}, toy_data=[False], testing=False):
+            val_split=0.0, irm_args={}, linreg_args={}, logreg_args={}, \
+            toy_data=[False], testing=False):
 
     '''
     :param id: Numerical identifier for run (str)
@@ -98,6 +99,11 @@ def default(id, algo, dataset_fname, expdir, env_atts_types, feateng_type='-1', 
     elif algo == 'linreg':
         linreg = models.Linear()
         linreg.run(data, y_all, unid, expdir, linreg_args)
+
+    elif algo == 'logreg':
+        logreg = models.LogisticReg()
+        logreg.run(data, y_all, unid, expdir, logreg_args)
+
     else:
         raise Exception('Algorithm not Implemented')
 
@@ -132,6 +138,7 @@ if __name__ == '__main__':
 
     #Linear Regression
     parser.add_argument('-linreg_lambda', type=float, default=0.0)
+    parser.add_argument('-logreg_c', type=float, default=1.0)
 
     #IRM
     parser.add_argument('-irm_lr', type=float, default=0.001)
@@ -168,12 +175,14 @@ if __name__ == '__main__':
                      'hid_layers':args.irm_hid_layers, \
                      'verbose':True}
         linreg_args = {'lambda':args.linreg_lambda}
+        logreg_args = {'C':args.logreg_c}
     else:
         irm_args = ahp.get_irm_args(args.data_fname)
         linreg_args = ahp.get_linreg_args(args.data_fname)
+        logreg_args = ahp.get_logreg_args(args.data_fname)
 
     default(args.id, args.algo, args.data_fname, args.expdir, [args.env_atts], \
            feateng_type=args.fteng, d_size=args.reduce_dsize, \
            bin_env=bool(args.binarize), eq_estrat=args.eq_estrat, SEED=args.seed, \
            test_info=args.test_info, val_split=args.val_split, testing=args.testing, \
-           irm_args=irm_args, linreg_args=linreg_args)
+           irm_args=irm_args, linreg_args=linreg_args, logreg_args=logreg_args)

@@ -5,7 +5,7 @@ import itertools
 import json
 import logging
 import os
-from sklearn.linear_model import Lasso
+from sklearn.linear_model import Lasso, LogisticRegression
 import torch
 import warnings
 import pandas as pd
@@ -13,6 +13,8 @@ from tqdm import tqdm
 from itertools import combinations
 import torch.autograd as autograd
 from torch import nn
+
+from abc import ABC, abstractmethod
 
 from utils import powerset, dname_from_fpath, make_tensor
 import data_processing as dp
@@ -368,16 +370,19 @@ class InvariantCausalPrediction(InvarianceBase):
             #Save results
             json.dump(full_res, rawres, indent=4, separators=(',',':'))
 
-class Linear():
 
-    def __init__(self):
+class Regression(ABC):
+    def __init__(self, regtype):
+        self.regtype = regtype
+
+    @abstractmethod
+    def fit_model(self, data, labels, args):
         pass
 
-    def run(self, data, y_all, unid, expdir, linreg_args, seed=1000):
+    def run(self, data, y_all, unid, expdir, args, seed=1000):
         reg_fname = os.path.join(expdir, 'regs_{}.pkl'.format(unid))
-        model = Lasso(alpha=linreg_args['lambda'], fit_intercept=True).fit(data.values, y_all.values)
-        reg = model.coef_
-        int = model.intercept_[0]
+        reg, int = self.fit_model(data.values, y_all.values.ravel(), args)
+
         coeffs = sorted(zip(reg, data.columns), reverse=True, key=lambda x: abs(x[0]))
         coeffs.append([int, 'Intercept'])
         coeffs = pd.DataFrame(coeffs, columns=['coeff', 'predictor'])
@@ -406,4 +411,52 @@ class Linear():
         assert set(list(coeffs['predictor'].values)).issubset(set(list(data.columns)))
         data = data[list(coeffs['predictor'].values)]  #make sure cols align
 
+        import pdb; pdb.set_trace()
         return pd.DataFrame((data.values @ coeffs['coeff'].values) + int)
+
+class Linear(Regression):
+
+    def __init__(self):
+        pass
+
+    def fit_model(self, data, labels, args):
+        '''Return fitted sklearn model from dataset
+        :param data: Dataset (np array)
+        :param labels: Labels for each row in dataset (np array)
+        :param args: Dictionary of keyword args (dict)'''
+
+        assert set(args.keys()) == {'lambda'}
+        model = Lasso(alpha=args['lambda'], fit_intercept=True).fit(data, labels)
+        reg = model.coef_
+        int = model.intercept_[0]
+        return reg, int
+
+    # def run(self, data, y_all, unid, expdir, linreg_args, seed=1000):
+    #     reg_fname = os.path.join(expdir, 'regs_{}.pkl'.format(unid))
+    #     model = Lasso(alpha=linreg_args['lambda'], fit_intercept=True).fit(data.values, y_all.values)
+    #     reg = model.coef_
+    #     int = model.intercept_[0]
+    #     coeffs = sorted(zip(reg, data.columns), reverse=True, key=lambda x: abs(x[0]))
+    #     coeffs.append([int, 'Intercept'])
+    #     coeffs = pd.DataFrame(coeffs, columns=['coeff', 'predictor'])
+    #     pd.to_pickle(coeffs, reg_fname)
+
+
+
+class LogisticReg(Regression):
+
+    def __init__(self):
+        pass
+
+    def fit_model(self, data, labels, args):
+        '''Return fitted sklearn model from dataset
+        :param data: Dataset (np array)
+        :param labels: Labels for each row in dataset (np array)
+        :param args: Dictionary of keyword args (dict)'''
+
+        assert set(args.keys()) == {'C'}
+        model = LogisticRegression(C=args['C'], fit_intercept=True, max_iter=1000).fit(data, labels.ravel())
+        reg = model.coef_.T.squeeze()
+        int = model.intercept_[0]
+        import pdb; pdb.set_trace()
+        return reg, int

@@ -25,7 +25,7 @@ def unid_from_algo(id, a=None, data=None, env=None):
             data=utils.dname_from_fpath(data),
             env_list=list_2_string(env, '--')
         )
-    elif (a == 'linreg'):
+    elif (a == 'linreg') or (a == 'logreg'):
         uniqueid = '''{id}_{algo}_{data}'''
         uniqueid= uniqueid.format(
             id=id,
@@ -97,6 +97,7 @@ if __name__ == '__main__':
     parser.add_argument('-irm_hid_layers', type=int, default=None)
 
     parser.add_argument('-linreg_lambda', type=float, default=None)
+    parser.add_argument('-logreg_c', type=float, default=None)
 
     args = parser.parse_args()
 
@@ -163,14 +164,23 @@ if __name__ == '__main__':
                                 'Envs', 'TestSet', 'LR', 'N_Iterations', 'L2_WeightPen', \
                                 'N_AnnealIter', 'PenWeight', 'HidLayers']
 
-        elif args.algo == 'linreg':
+        elif (args.algo == 'linreg') or (args.algo == 'logreg'):
             uniqueid = unid_from_algo(id, a=args.algo, \
                                       data=args.datafname)
+
+            #Get paramnames
+            if args.algo == 'linreg':
+                reg_pname = '-linreg_lambda'
+                reg_val = args.linreg_lambda
+            elif args.algo == 'logreg':
+                reg_pname = '-logreg_c'
+                reg_val = args.logreg_c
+
 
             #Write Exp Command to commandfile
             with open(args.cmdfile, 'a') as f:
                 command_str = \
-                    '''python main.py {id} {algo} {data} {expdir} -fteng {feat_eng} -reduce_dsize {d_size} -binarize {bin} -inc_hyperparams {hp} -val_split {split} -seed {s} -test_info {test} -linreg_lambda {lam}\n'''
+                    '''python main.py {id} {algo} {data} {expdir} -fteng {feat_eng} -reduce_dsize {d_size} -binarize {bin} -inc_hyperparams {hp} -val_split {split} -seed {s} -test_info {test} {r_pname} {r}\n'''
 
                 command_str = command_str.format(
                     id=id,
@@ -184,14 +194,15 @@ if __name__ == '__main__':
                     split=args.val_split,
                     s=args.seed,
                     test=args.test_info,
-                    lam=args.linreg_lambda
+                    r_pname=reg_pname,
+                    r=reg_val
                 )
                 f.write(command_str)
 
             #Log Parameters in Datafame
             add = pd.DataFrame([id, args.algo, args.fteng, \
                                 utils.dname_from_fpath(args.datafname), args.seed, \
-                                 args.reduce_dsize, args.binarize, args.test_info, args.linreg_lambda]).T
+                                 args.reduce_dsize, args.binarize, args.test_info, reg_val]).T
 
             parameter_cols = ['Id', 'Algo', 'Fteng', 'Dataset', 'Seed', 'ReduceDsize', 'Bin', 'TestSet', 'Reg']
 
