@@ -170,7 +170,7 @@ if __name__ == '__main__':
         linreg_args = {'lambda':args.linreg_lambda}
     else:
         irm_args = ahp.get_irm_args(args.data_fname)
-
+        linreg_args = ahp.get_linreg_args(args.data_fname)
 
     default(args.id, args.algo, args.data_fname, args.expdir, [args.env_atts], \
            feateng_type=args.fteng, d_size=args.reduce_dsize, \

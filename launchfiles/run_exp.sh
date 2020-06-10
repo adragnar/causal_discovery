@@ -4,7 +4,7 @@
 
 
 #Make expieriment directories/files
-expdir="/scratch/gobi1/adragnar/experiments/causal_discovery/0607_test/$(date +'%s')"   #"/scratch/hdd001/home/adragnar/experiments/causal_discovery/$(date +'%s')"  #"/scratch/gobi1/adragnar/experiments/causal_discovery/$(date +'%s')"
+expdir="/scratch/gobi1/adragnar/experiments/causal_discovery/0609_test/$(date +'%s')"   #"/scratch/hdd001/home/adragnar/experiments/causal_discovery/$(date +'%s')"  #"/scratch/gobi1/adragnar/experiments/causal_discovery/$(date +'%s')"
 mkdir -p $expdir
 cmdfile="$expdir/cmdfile.sh"
 
@@ -13,7 +13,7 @@ max_proc=50
 
 #Set Misc Experiment Parameters
 use_test=1
-algo="irm" #  "icp" "linreg"
+algo="linreg" #  "icp" "linreg"
 paramfile="$expdir/${algo}_paramfile.pkl"
 
 #Set Dataset Parameters
@@ -49,9 +49,12 @@ do
                 id=$(($id + 1))
               done
             else
-                get_testset $d $algo $use_test  #Sets variable val_info
-                python setup_params.py $id $algo $data $expdir $cmdfile $paramfile -fteng $f_eng -reduce_dsize $red_d -binarize $b -seed $s -test_info $test_info
-                id=$(($id + 1))
+              get_testset $d $algo $use_test  #Sets variable val_info
+                for t in ${test_info[*]}
+                do
+                  python setup_params.py $id $algo $data $expdir $cmdfile $paramfile -fteng $f_eng -reduce_dsize $red_d -binarize $b -seed $s -test_info $t
+                  id=$(($id + 1))
+                done
             fi
 
         done

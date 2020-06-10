@@ -55,10 +55,10 @@ get_testset () {
   then
       if [ $dset_type == "adult" ]
       then
-          test_info="workclass_DUMmY"
+          test_info=("workclass_DUMmY" "native-country_DUMmY" "relationship_DUMmY")
       elif [ $dset_type == "german" ]
       then
-          test_info="Purpose_DUMmY"
+          test_info=("Purpose_DUMmY" "Housing_DUMmY") 
       else
           echo Unimplemented Dset
           exit 42
