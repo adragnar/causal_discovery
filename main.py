@@ -32,7 +32,7 @@ import utils
 
 def default(id, algo, dataset_fname, expdir, env_atts_types, feateng_type='-1', \
             d_size=-1, bin_env=False, eq_estrat=-1, SEED=100, test_info='-1',\
-            val_split=0.0, irm_args={}, toy_data=[False], testing=False):
+            val_split=0.0, irm_args={}, linreg_args={}, toy_data=[False], testing=False):
 
     '''
     :param id: Numerical identifier for run (str)
@@ -97,7 +97,7 @@ def default(id, algo, dataset_fname, expdir, env_atts_types, feateng_type='-1', 
 
     elif algo == 'linreg':
         linreg = models.Linear()
-        linreg.run(data, y_all, unid, expdir)
+        linreg.run(data, y_all, unid, expdir, linreg_args)
     else:
         raise Exception('Algorithm not Implemented')
 
@@ -129,6 +129,11 @@ if __name__ == '__main__':
     #Additions for Hyperparameter Tuning
     parser.add_argument('-inc_hyperparams', type=int, default=0)
     parser.add_argument('-val_split', type=float, default=0.0)
+
+    #Linear Regression
+    parser.add_argument('-linreg_lambda', type=float, default=0.0)
+
+    #IRM
     parser.add_argument('-irm_lr', type=float, default=0.001)
     parser.add_argument('-irm_niter', type=int, default=5000)
     parser.add_argument('-irm_l2', type=float, default=0.001)
@@ -162,6 +167,7 @@ if __name__ == '__main__':
                      'pen_wgt':args.irm_penalty_weight, \
                      'hid_layers':args.irm_hid_layers, \
                      'verbose':True}
+        linreg_args = {'lambda':args.linreg_lambda}
     else:
         irm_args = ahp.get_irm_args(args.data_fname)
 
@@ -170,4 +176,4 @@ if __name__ == '__main__':
            feateng_type=args.fteng, d_size=args.reduce_dsize, \
            bin_env=bool(args.binarize), eq_estrat=args.eq_estrat, SEED=args.seed, \
            test_info=args.test_info, val_split=args.val_split, testing=args.testing, \
-           irm_args=irm_args)
+           irm_args=irm_args, linreg_args=linreg_args)

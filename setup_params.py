@@ -96,6 +96,8 @@ if __name__ == '__main__':
     parser.add_argument('-irm_penalty_anneal', type=float, default=None)
     parser.add_argument('-irm_hid_layers', type=int, default=None)
 
+    parser.add_argument('-linreg_lambda', type=float, default=None)
+
     args = parser.parse_args()
 
     if args.testing:
@@ -160,6 +162,40 @@ if __name__ == '__main__':
                                 'Seed', 'ReduceDsize', 'Bin', 'Eq_Estrat', \
                                 'Envs', 'TestSet', 'LR', 'N_Iterations', 'L2_WeightPen', \
                                 'N_AnnealIter', 'PenWeight', 'HidLayers']
+
+        elif args.algo == 'linreg':
+            uniqueid = unid_from_algo(id, a=args.algo, \
+                                      data=args.datafname)
+
+            #Write Exp Command to commandfile
+            with open(args.cmdfile, 'a') as f:
+                command_str = \
+                    '''python main.py {id} {algo} {data} {expdir} -fteng {feat_eng} -reduce_dsize {d_size} -binarize {bin} -inc_hyperparams {hp} -val_split {split} -seed {s} -test_info {test} -linreg_lambda {lam}\n'''
+
+                command_str = command_str.format(
+                    id=id,
+                    algo=args.algo,
+                    data=args.datafname,
+                    expdir=args.expdir,
+                    feat_eng=args.fteng,
+                    d_size=args.reduce_dsize,
+                    bin=args.binarize,
+                    hp=args.inc_hyperparams,
+                    split=args.val_split,
+                    s=args.seed,
+                    test=args.test_info,
+                    lam=args.linreg_lambda
+                )
+                f.write(command_str)
+
+            #Log Parameters in Datafame
+            add = pd.DataFrame([id, args.algo, args.fteng, \
+                                utils.dname_from_fpath(args.datafname), args.seed, \
+                                 args.reduce_dsize, args.binarize, args.test_info, args.linreg_lambda]).T
+
+            parameter_cols = ['Id', 'Algo', 'Fteng', 'Dataset', 'Seed', 'ReduceDsize', 'Bin', 'TestSet', 'Reg']
+
+
         else:
             raise Exception('Algorithm not implemented')
 

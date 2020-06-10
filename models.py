@@ -5,7 +5,7 @@ import itertools
 import json
 import logging
 import os
-from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import Lasso
 import torch
 import warnings
 import pandas as pd
@@ -373,12 +373,22 @@ class Linear():
     def __init__(self):
         pass
 
-    def run(self, data, y_all, unid, expdir, seed=1000):
+    def run(self, data, y_all, unid, expdir, linreg_args, seed=1000):
         reg_fname = os.path.join(expdir, 'regs_{}.pkl'.format(unid))
-        reg = LinearRegression(fit_intercept=False).fit(data.values, y_all.values).coef_[0]
+        model = Lasso(alpha=linreg_args['lambda'], fit_intercept=True).fit(data.values, y_all.values)
+        reg = model.coef_
+        int = model.intercept_[0]
         coeffs = sorted(zip(reg, data.columns), reverse=True, key=lambda x: abs(x[0]))
+        coeffs.append([int, 'Intercept'])
         coeffs = pd.DataFrame(coeffs, columns=['coeff', 'predictor'])
         pd.to_pickle(coeffs, reg_fname)
+
+    def get_weight_norm(self, coeffs):
+        #Order dataframe by coefficients column
+        if coeffs.empty:
+            return 0
+
+        return coeffs['coeff'].apply(lambda x: abs(x)).sum()
 
     def predict(self, data, coeffs):
         #Handle case of no data
@@ -388,7 +398,12 @@ class Linear():
         #Order dataframe by coefficients column
         if coeffs.empty:
             return pd.DataFrame()
+
+        #Remove Intercept
+        int = coeffs[coeffs['predictor'] == "Intercept"]['coeff'].values[0]
+        coeffs = coeffs[coeffs['predictor'] != "Intercept"]
+
         assert set(list(coeffs['predictor'].values)).issubset(set(list(data.columns)))
         data = data[list(coeffs['predictor'].values)]  #make sure cols align
 
-        return pd.DataFrame(data.values @ coeffs['coeff'].values)
+        return pd.DataFrame((data.values @ coeffs['coeff'].values) + int)
