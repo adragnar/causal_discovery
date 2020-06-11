@@ -4,7 +4,7 @@
 
 
 #Make expieriment directories/files
-expdir="/scratch/gobi1/adragnar/experiments/causal_discovery/0609_test/$(date +'%s')"   #"/scratch/hdd001/home/adragnar/experiments/causal_discovery/$(date +'%s')"  #"/scratch/gobi1/adragnar/experiments/causal_discovery/$(date +'%s')"
+expdir="/scratch/gobi1/adragnar/experiments/causal_discovery/0610_logreg_test/$(date +'%s')"   #"/scratch/hdd001/home/adragnar/experiments/causal_discovery/$(date +'%s')"  #"/scratch/gobi1/adragnar/experiments/causal_discovery/$(date +'%s')"
 mkdir -p $expdir
 cmdfile="$expdir/cmdfile.sh"
 

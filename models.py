@@ -465,7 +465,7 @@ class LogisticReg(Regression):
         :param args: Dictionary of keyword args (dict)'''
 
         assert set(args.keys()) == {'C'}
-        model = LogisticRegression(C=args['C'], fit_intercept=True, max_iter=1000).fit(data, labels.ravel())
+        model = LogisticRegression(C=args['C'], fit_intercept=True, max_iter=2000).fit(data, labels.ravel())
         reg = model.coef_.T.squeeze()
         int = model.intercept_[0]
 
