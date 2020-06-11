@@ -2,7 +2,7 @@
 . "$(pwd)/launchfiles/helper_funcs.sh"
 
 #Make expieriment directories/files
-expdir="test_expdir"  #"/scratch/gobi1/adragnar/experiments/causal_discovery/0609_fulllinreg_test/$(date +'%s')"  #"/scratch/hdd001/home/adragnar/experiments/causal_discovery/$(date +'%s')"  #"/scratch/gobi1/adragnar/experiments/causal_discovery/$(date +'%s')"
+expdir="/scratch/gobi1/adragnar/experiments/causal_discovery/0610_realreg_hyp/$(date +'%s')"  #"/scratch/hdd001/home/adragnar/experiments/causal_discovery/$(date +'%s')"  #"/scratch/gobi1/adragnar/experiments/causal_discovery/$(date +'%s')"
 mkdir -p $expdir
 cmdfile="$expdir/cmdfile.sh"
 
@@ -30,8 +30,8 @@ elif [ $algo == "logreg"  ]
 then
   hp_name='-logreg_c'
 fi
-seeds=(1000 8079 52 147)  # 1000 8079 52 147 256 784 990 587 304 888)
-lambdas=(0.01 0.1 0.5 1.0 5.0 10.0)
+seeds=(1000 8079)  # 1000 8079 52 147 256 784 990 587 304 888)
+lambdas=(0.001 0.0001 0.00001 0.000001)
 
 #Generate the commandfile
 id=0
@@ -67,4 +67,4 @@ echo "Wrote $num_cmds commands to $cmdfile"
 
 cmd=( $cmd )
 num_tokens=${#cmd[@]}
-# xargs -L 1 -P $max_proc srun --mem=16G -p cpu <  #$cmdfile
+xargs -L 1 -P $max_proc srun --mem=16G -p cpu <  $cmdfile
