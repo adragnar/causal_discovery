@@ -133,12 +133,6 @@ class InvariantRiskMinimization(InvarianceBase):
                 weight_norm += w.norm().pow(2)
             loss += args['l2_reg'] * weight_norm
 
-            #Regularize the weights
-            weight_norm = torch.tensor(0.)
-            for w in self.phi.parameters():
-                weight_norm += w.norm().pow(2)
-            loss += args['l2_reg'] * weight_norm
-
             #Add the invariance penalty
             penalty_weight = (args['pen_wgt']
                 if step >= args['penalty_anneal_iters'] else 1.0)
