@@ -379,6 +379,10 @@ class Regression(ABC):
     def fit_model(self, data, labels, args):
         pass
 
+    @abstractmethod
+    def compute_preds(self, data, coeffs):
+        pass
+
     def run(self, data, y_all, unid, expdir, args, seed=1000):
         reg_fname = os.path.join(expdir, 'regs_{}.pkl'.format(unid))
         reg, int = self.fit_model(data.values, y_all.values.ravel(), args)
@@ -411,7 +415,7 @@ class Regression(ABC):
         assert set(list(coeffs['predictor'].values)).issubset(set(list(data.columns)))
         data = data[list(coeffs['predictor'].values)]  #make sure cols align
 
-        return pd.DataFrame((data.values @ coeffs['coeff'].values) + int)
+        return pd.DataFrame(self.compute_preds(data.values, coeffs['coeff'].values, int))
 
 class Linear(Regression):
 
@@ -430,6 +434,13 @@ class Linear(Regression):
         int = model.intercept_[0]
         return reg, int
 
+    def compute_preds(self, data, coeffs, int):
+        '''Compute prediction from data, regressors, intercept_
+        :param data: (np array)
+        :param labels: (np array)
+        :param int: (scalar)
+        '''
+        return (data @ coeffs) + int
     # def run(self, data, y_all, unid, expdir, linreg_args, seed=1000):
     #     reg_fname = os.path.join(expdir, 'regs_{}.pkl'.format(unid))
     #     model = Lasso(alpha=linreg_args['lambda'], fit_intercept=True).fit(data.values, y_all.values)
@@ -459,3 +470,13 @@ class LogisticReg(Regression):
         int = model.intercept_[0]
 
         return reg, int
+
+    def compute_preds(self, data, coeffs, int):
+        '''Compute prediction from data, regressors, intercept_
+        :param data: (np array)
+        :param labels: (np array)
+        :param int: (scalar)
+        '''
+        def sigmoid(x):
+            return 1/(1 + np.exp(-x))
+        return sigmoid((data @ coeffs) + int)
