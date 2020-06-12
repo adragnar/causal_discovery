@@ -17,7 +17,7 @@ def unid_from_algo(id, a=None, data=None, env=None):
     :param env: The env names to be included (list)
     '''
 
-    if (a == 'icp') or (a == 'irm'):
+    if (a == 'icp') or (a == 'irm') or (a == 'linear-irm'):
         uniqueid = '''{id}_{algo}_{data}_{env_list}'''
         uniqueid= uniqueid.format(
             id=id,
@@ -120,7 +120,7 @@ if __name__ == '__main__':
 
     id = args.id
     if args.inc_hyperparams == 1:
-        if args.algo == 'irm':
+        if (args.algo == 'irm') or (args.algo == 'linear-irm'):
             uniqueid = unid_from_algo(id, a=args.algo, \
                                       data=args.datafname, env=args.env_att)
 

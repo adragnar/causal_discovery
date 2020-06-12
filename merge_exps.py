@@ -19,7 +19,7 @@ def format_experiments(resdir):
         cd = join(expdir, 'causal_discovery')
         if not os.path.exists(cd):
             os.mkdir(cd)
-            
+
         for fname in iterate_files(expdir):
 
             #Copy everything into relevant internal folder
@@ -64,6 +64,7 @@ def merge_exps(newdir, e1, e2):
     assert len(e1_algo) == 1; assert len(e2_algo) == 1;
     assert e1_algo[0] == e2_algo[0]
     new_algo = e1_algo[0]
+
 
     #Make new folder
     if os.path.exists(newdir):

@@ -63,25 +63,17 @@ class InvarianceBase(object):
             raw.update(chosen_cols)
             store[env] = raw.squeeze()
 
-class MLP(nn.Module):
-    def __init__(self, d, hid_dim):
-        super(MLP, self).__init__()
-        lin1 = nn.Linear(d, hid_dim)
-        lin2 = nn.Linear(hid_dim, hid_dim)
-        lin3 = nn.Linear(hid_dim, 1)
-        for lin in [lin1, lin2, lin3]:
-            nn.init.xavier_uniform_(lin.weight)
-            nn.init.zeros_(lin.bias)
-        self._main = nn.Sequential(lin1, nn.ReLU(True), lin2, nn.ReLU(True), lin3)
-
-    def forward(self, input):
-        out = self._main(input)
-        return out
-
-class InvariantRiskMinimization(InvarianceBase):
-    """Object Wrapper around IRM"""
-
+class IRMBase(InvarianceBase, ABC):
+    '''Base class for all IRM implementations'''
     def __init__(self):
+        pass
+
+    @abstractmethod
+    def train(self, data, y_all, environments, seed, args):
+        pass
+
+    @abstractmethod
+    def predict(self, data, phi_params, hid_layers=100):
         pass
 
     def mean_nll(self, logits, y):
@@ -96,69 +88,6 @@ class InvariantRiskMinimization(InvarianceBase):
         loss = self.mean_nll(logits * scale, y)
         grad = autograd.grad(loss, [scale], create_graph=True)[0]
         return torch.sum(grad**2)
-
-    def train(self, data, y_all, environments, args):
-        dim_x = data.shape[1]
-
-        self.errors = []
-        self.penalties = []
-        self.losses = []
-
-        self.phi = MLP(dim_x, args['hid_layers'])
-        optimizer = torch.optim.Adam(self.phi.parameters(), lr=args['lr'])
-
-        logging.info('[step, train nll, train acc, train penalty, test acc]')
-
-        #Start the training loop
-        for step in tqdm(range(args['n_iterations'])):
-            e_comp = {}
-            for e, e_in in environments.items():
-                e_comp[e] = {}
-                # import pdb; pdb.set_trace()
-                # d = make_tensor(data.loc[e_in].values)
-                logits = self.phi(make_tensor(data.loc[e_in].values))
-                labels = make_tensor(y_all.loc[e_in].values)
-                e_comp[e]['nll'] = self.mean_nll(logits, labels)
-                e_comp[e]['acc'] = self.mean_accuracy(logits, labels)
-                e_comp[e]['penalty'] = self.penalty(logits, labels)
-
-            train_nll = torch.stack([e_comp[e]['nll'] for e in e_comp.keys()]).mean()
-            train_acc = torch.stack([e_comp[e]['acc'] for e in e_comp.keys()]).mean()
-            train_penalty = torch.stack([e_comp[e]['penalty'] for e in e_comp.keys()]).mean()
-            loss = train_nll.clone()
-
-            #Regularize the weights
-            weight_norm = torch.tensor(0.)
-            for w in self.phi.parameters():
-                weight_norm += w.norm().pow(2)
-            loss += args['l2_reg'] * weight_norm
-
-            #Add the invariance penalty
-            penalty_weight = (args['pen_wgt']
-                if step >= args['penalty_anneal_iters'] else 1.0)
-            loss += penalty_weight * train_penalty
-            if penalty_weight > 1.0: # Rescale big loss
-                loss /= penalty_weight
-
-            #Do the backprop
-            loss.backward()
-            optimizer.step()
-            optimizer.zero_grad()
-
-            #Printing and Logging
-            if step % 1000 == 0:
-                logging.info([np.int32(step),
-                              train_nll.detach().cpu().numpy(),
-                              train_acc.detach().cpu().numpy(),
-                              train_penalty.detach().cpu().numpy()]
-                             )
-
-
-            self.errors.append(train_nll.detach().numpy())
-            self.penalties.append(train_penalty.detach().numpy())
-            self.losses.append(loss.detach().numpy())
-
-
 
     def run(self, data, y_all, d_atts, unid, expdir, seed, env_atts_types, eq_estrat, \
                 args):
@@ -184,15 +113,165 @@ class InvariantRiskMinimization(InvarianceBase):
             assert eq_estrat > 0
             self.equalize_strats(e_ins_store, eq_estrat, data.shape[0], seed)
 
-
         #Now start with IRM itself
-        self.train(data, y_all, e_ins_store, args)
+        phi, errors, penalties, losses = self.train(data, y_all, e_ins_store, seed, args)
 
         #Save Results
-        torch.save(self.phi.state_dict(), phi_fname)
-        np.save(errors_fname, self.errors)
-        np.save(penalties_fname, self.penalties)
-        np.save(losses_fname, self.losses)
+        torch.save(phi, phi_fname)
+        np.save(errors_fname, errors)
+        np.save(penalties_fname, penalties)
+        np.save(losses_fname, losses)
+
+
+class LinearInvariantRiskMinimization(IRMBase):
+    """Object Wrapper around IRM"""
+
+    def __init__(self):
+        pass
+
+    def train(self, data, y_all, environments, seed, args):
+        dim_x = data.shape[1]
+
+        errors = []
+        penalties = []
+        losses = []
+
+        phi = torch.nn.Parameter(torch.empty(dim_x, args['hid_layers']).normal_(generator=torch.manual_seed(seed)))
+        w = torch.ones(args['hid_layers'], 1)
+        w.requires_grad = True
+        optimizer = torch.optim.Adam([phi], lr=args['lr'])
+
+        logging.info('[step, train nll, train acc, train penalty, test acc]')
+
+        #Start the training loop
+        for step in tqdm(range(args['n_iterations'])):
+            e_comp = {}
+            for e, e_in in environments.items():
+                e_comp[e] = {}
+                # import pdb; pdb.set_trace()
+                # d = make_tensor(data.loc[e_in].values)
+                logits = torch.nn.functional.sigmoid(make_tensor(data.loc[e_in].values) @ phi @ w)
+                labels = make_tensor(y_all.loc[e_in].values)
+                e_comp[e]['nll'] = self.mean_nll(logits, labels)
+                e_comp[e]['acc'] = self.mean_accuracy(logits, labels)
+                e_comp[e]['penalty'] = self.penalty(logits, labels)
+
+            train_nll = torch.stack([e_comp[e]['nll'] for e in e_comp.keys()]).mean()
+            train_acc = torch.stack([e_comp[e]['acc'] for e in e_comp.keys()]).mean()
+            train_penalty = torch.stack([e_comp[e]['penalty'] for e in e_comp.keys()]).mean()
+            loss = train_nll.clone()
+
+            #Add the invariance penalty
+            penalty_weight = (args['pen_wgt']
+                if step >= args['penalty_anneal_iters'] else 1.0)
+            loss += penalty_weight * train_penalty
+            if penalty_weight > 1.0: # Rescale big loss
+                loss /= penalty_weight
+
+            #Do the backprop
+            loss.backward()
+            optimizer.step()
+            optimizer.zero_grad()
+
+            #Printing and Logging
+            if step % 1000 == 0:
+                logging.info([np.int32(step),
+                              train_nll.detach().cpu().numpy(),
+                              train_acc.detach().cpu().numpy(),
+                              train_penalty.detach().cpu().numpy()]
+                             )
+
+
+            errors.append(train_nll.detach().numpy())
+            penalties.append(train_penalty.detach().numpy())
+            losses.append(loss.detach().numpy())
+
+        return phi, errors, penalties, losses
+
+    def predict(self, data, phi_params, hid_layers=100):
+        '''
+        :param data: the dataset (nparray)
+        :param phi_params: The state dict of the MLP'''
+        def sigmoid(x):
+            return 1/(1 + np.exp(-x))
+
+        #Handle case of no data
+        if data.shape[0] == 0:
+            return pd.DataFrame()
+
+        phi = phi_params.detach().numpy()
+        w = np.ones([phi.shape[1], 1])
+        return sigmoid(pd.DataFrame(data @ (phi @ w).ravel()))
+
+class InvariantRiskMinimization(IRMBase):
+    """Object Wrapper around IRM"""
+
+    def __init__(self):
+        pass
+
+
+    def train(self, data, y_all, environments, seed, args):
+        dim_x = data.shape[1]
+
+        errors = []
+        penalties = []
+        losses = []
+
+        phi = MLP(dim_x, args['hid_layers'])
+        optimizer = torch.optim.Adam(phi.parameters(), lr=args['lr'])
+
+        logging.info('[step, train nll, train acc, train penalty, test acc]')
+
+        #Start the training loop
+        for step in tqdm(range(args['n_iterations'])):
+            e_comp = {}
+            for e, e_in in environments.items():
+                e_comp[e] = {}
+                # import pdb; pdb.set_trace()
+                # d = make_tensor(data.loc[e_in].values)
+                logits = phi(make_tensor(data.loc[e_in].values))
+                labels = make_tensor(y_all.loc[e_in].values)
+                e_comp[e]['nll'] = self.mean_nll(logits, labels)
+                e_comp[e]['acc'] = self.mean_accuracy(logits, labels)
+                e_comp[e]['penalty'] = self.penalty(logits, labels)
+
+            train_nll = torch.stack([e_comp[e]['nll'] for e in e_comp.keys()]).mean()
+            train_acc = torch.stack([e_comp[e]['acc'] for e in e_comp.keys()]).mean()
+            train_penalty = torch.stack([e_comp[e]['penalty'] for e in e_comp.keys()]).mean()
+            loss = train_nll.clone()
+
+            #Regularize the weights
+            weight_norm = torch.tensor(0.)
+            for w in phi.parameters():
+                weight_norm += w.norm().pow(2)
+            loss += args['l2_reg'] * weight_norm
+
+            #Add the invariance penalty
+            penalty_weight = (args['pen_wgt']
+                if step >= args['penalty_anneal_iters'] else 1.0)
+            loss += penalty_weight * train_penalty
+            if penalty_weight > 1.0: # Rescale big loss
+                loss /= penalty_weight
+
+            #Do the backprop
+            loss.backward()
+            optimizer.step()
+            optimizer.zero_grad()
+
+            #Printing and Logging
+            if step % 1000 == 0:
+                logging.info([np.int32(step),
+                              train_nll.detach().cpu().numpy(),
+                              train_acc.detach().cpu().numpy(),
+                              train_penalty.detach().cpu().numpy()]
+                             )
+
+
+            errors.append(train_nll.detach().numpy())
+            penalties.append(train_penalty.detach().numpy())
+            losses.append(loss.detach().numpy())
+
+        return phi, errors, penalties, losses
 
     def predict(self, data, phi_params, hid_layers=100):
         '''
@@ -363,6 +442,22 @@ class InvariantCausalPrediction(InvarianceBase):
 
             #Save results
             json.dump(full_res, rawres, indent=4, separators=(',',':'))
+
+
+class MLP(nn.Module):
+    def __init__(self, d, hid_dim):
+        super(MLP, self).__init__()
+        lin1 = nn.Linear(d, hid_dim)
+        lin2 = nn.Linear(hid_dim, hid_dim)
+        lin3 = nn.Linear(hid_dim, 1)
+        for lin in [lin1, lin2, lin3]:
+            nn.init.xavier_uniform_(lin.weight)
+            nn.init.zeros_(lin.bias)
+        self._main = nn.Sequential(lin1, nn.ReLU(True), lin2, nn.ReLU(True), lin3)
+
+    def forward(self, input):
+        out = self._main(input)
+        return out
 
 
 class Regression(ABC):

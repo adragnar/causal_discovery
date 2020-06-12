@@ -64,7 +64,7 @@ get_testset () {
           exit 42
       fi
 
-  elif [ $algo == "icp"  -o  $algo == "irm" ]
+  elif [ $algo == "icp"  -o  $algo == "irm"  -o  $algo == "linear-irm" ]
   then
       if [ $dset_type == "adult" ]
       then

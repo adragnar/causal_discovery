@@ -32,7 +32,7 @@ import utils
 
 def default(id, algo, dataset_fname, expdir, env_atts_types, feateng_type='-1', \
             d_size=-1, bin_env=False, eq_estrat=-1, SEED=100, test_info='-1',\
-            val_split=0.0, irm_args={}, linreg_args={}, logreg_args={}, \
+            val_split=0.0, irm_args={}, linear_irm_args={}, linreg_args={}, logreg_args={}, \
             toy_data=[False], testing=False):
 
     '''
@@ -95,6 +95,13 @@ def default(id, algo, dataset_fname, expdir, env_atts_types, feateng_type='-1', 
         irm = models.InvariantRiskMinimization()
         irm.run(data, y_all, d_atts, unid, expdir, SEED, env_atts_types, eq_estrat, \
                 irm_args)
+
+    elif algo == 'linear-irm':
+        assert len(linear_irm_args) > 0
+        logging.info('linear-irm_params: {}'.format(str(linear_irm_args)))
+        l_irm = models.LinearInvariantRiskMinimization()
+        l_irm.run(data, y_all, d_atts, unid, expdir, SEED, env_atts_types, eq_estrat, \
+                linear_irm_args)
 
     elif algo == 'linreg':
         linreg = models.Linear()
@@ -174,15 +181,26 @@ if __name__ == '__main__':
                      'pen_wgt':args.irm_penalty_weight, \
                      'hid_layers':args.irm_hid_layers, \
                      'verbose':True}
+        linear_irm_args = {'lr':args.irm_lr, \
+                            'n_iterations':args.irm_niter, \
+                            'penalty_anneal_iters':args.irm_penalty_anneal, \
+                            'l2_reg':args.irm_l2, \
+                            'pen_wgt':args.irm_penalty_weight, \
+                            'hid_layers':args.irm_hid_layers, \
+                            'verbose':True}
+
         linreg_args = {'lambda':args.linreg_lambda}
         logreg_args = {'C':args.logreg_c}
     else:
         irm_args = ahp.get_irm_args(args.data_fname)
+        linear_irm_args = ahp.get_linear_irm_args(args.data_fname)
         linreg_args = ahp.get_linreg_args(args.data_fname)
         logreg_args = ahp.get_logreg_args(args.data_fname)
+
 
     default(args.id, args.algo, args.data_fname, args.expdir, [args.env_atts], \
            feateng_type=args.fteng, d_size=args.reduce_dsize, \
            bin_env=bool(args.binarize), eq_estrat=args.eq_estrat, SEED=args.seed, \
            test_info=args.test_info, val_split=args.val_split, testing=args.testing, \
-           irm_args=irm_args, linreg_args=linreg_args, logreg_args=logreg_args)
+           irm_args=irm_args, linear_irm_args=linear_irm_args, \
+           linreg_args=linreg_args, logreg_args=logreg_args)

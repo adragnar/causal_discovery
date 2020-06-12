@@ -271,9 +271,9 @@ def icp_process(res_dir, dset_dir, NUM_POINTS=100, MIN_ALPHA=1e-10):
 
     pd.to_pickle(params, paramfile)
 
-def irm_process(res_dir, dset_dir):
+def irm_process(res_dir, dset_dir, name):
     expdir = os.path.join(res_dir, 'causal_discovery')
-    paramfile = os.path.join(res_dir, 'irm_paramfile.pkl')
+    paramfile = os.path.join(res_dir, '{}_paramfile.pkl'.format(name))
     params = pd.read_pickle(paramfile)
 
     savedir = os.path.join(res_dir, 'processed_results')
@@ -318,8 +318,8 @@ def regression_process(res_dir, dset_dir, name):
 def aggregate_loader(resdir, dsetdir, algo):
     if algo == 'icp':
         icp_process(resdir, dsetdir)
-    elif algo == 'irm':
-        irm_process(resdir, dsetdir)
+    elif (algo == 'irm') or (algo == 'linear-irm'):
+        irm_process(resdir, dsetdir, algo)
     elif (algo == 'linreg') or (algo == 'logreg'):
         regression_process(resdir, dsetdir, algo)
     else:
