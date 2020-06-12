@@ -23,7 +23,7 @@ def format_experiments(resdir):
         for fname in iterate_files(expdir):
 
             #Copy everything into relevant internal folder
-            if (fname != 'cmdfile.sh') and ('paramfile' not in fname):
+            if (fname != 'cmdfile.sh') and ('paramfile' not in fname) and ('code' not in fname):
                 shutil.move(join(expdir, fname), join(cd, fname))
 
             #Associate algos with folders
@@ -112,6 +112,12 @@ def merge_exps(newdir, e1, e2):
                 new_f = '_'.join(new_f)
                 shutil.copy(join(join(e2, 'causal_discovery'), f), \
                             join(join(newdir, 'causal_discovery'), new_f))
+
+    #Deal with the code foldes in both folders
+    new_code_dirname = join(newdir, 'code')
+    os.mkdir(new_code_dirname)
+    shutil.copytree(join(e1, 'code'), join(new_code_dirname, 'code_1'))
+    shutil.copytree(join(e2, 'code'), join(new_code_dirname, 'code_2'))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Params')
