@@ -4,6 +4,7 @@ import enum
 import json
 import pickle
 import os
+from os.path import join
 import shutil
 
 import numpy as np
@@ -267,7 +268,7 @@ def icp_process(res_dir, dset_dir, NUM_POINTS=100, MIN_ALPHA=1e-10):
         #Store Results in HDD and param df
         coeffs_fname = os.path.join(savedir, '{}_coeffs.pkl'.format(id))
         pd.to_pickle(res, coeffs_fname)
-        params.loc[id, 'coeffs'] = coeffs_fname
+        params.loc[id, 'coeffs'] = join('icp/processed_results', '{}_coeffs.pkl'.format(id))
 
     pd.to_pickle(params, paramfile)
 
@@ -289,7 +290,7 @@ def irm_process(res_dir, dset_dir, name):
         id = get_id_from_fname(fname)
         ftype = get_ftype_from_fname(fname)
         if ftype == 'phi':
-            params.loc[id, 'phi'] = os.path.join(expdir, fname)
+            params.loc[id, 'phi'] = join(name, join('causal_discovery', fname))
         # elif ftype == 'w':
         #     params.loc[id, 'w'] = os.path.join(expdir, fname)
 
@@ -311,7 +312,7 @@ def regression_process(res_dir, dset_dir, name):
         id = get_id_from_fname(fname)
         ftype = get_ftype_from_fname(fname)
         if ftype == 'regs':
-            params.loc[id, 'regressors'] = os.path.join(expdir, fname)
+            params.loc[id, 'regressors'] = join(name, join('causal_discovery', fname))
 
     pd.to_pickle(params, paramfile)
 

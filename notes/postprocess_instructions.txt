@@ -1,0 +1,11 @@
+How to post-process Experiments: 
+
+Run using the format_experiments() function in the merge_exps.py script. format_experiments takes a directory resdir as input. resdir points to many different additional directories, which each contain the raw results of a single experiment run (for instance - one run of run_exp.sh). Resdir contains all those experiment folders which are desired to be analyzed in parallel. 
+
+Some of these different experiments may be run with the same algorithm: for instance, one is IRM on the adult dataset and another is IRM on the german dataset. For all such cases, these directories will be merged together. In general, one directory within resdir will be created per algo used among the experiments in resdir, and it will be named after that algo.
+
+The aggregate.py step takes each of these folders and computes results. This is not a directory dependant operation - and it is possible to aggregate again without any issues. The paths it establishes start with 'causal_discovery/' and go on 
+
+Its is possible to reapply format_expierments as many times as desired. If a new raw result from server is added to the resdir director, it will be merged into the existing folder of its algorithm. Whenever aggregate.py is re-applied all paths are updated. 
+
+Individual units within a resdir (folders with also names) can be moved around indiscriminately  

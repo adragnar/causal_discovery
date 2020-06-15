@@ -29,16 +29,26 @@ def format_experiments(resdir):
             #Associate algos with folders
             if ('paramfile' in fname):
                 a_name = fname.split('_')[0]
+
+                #Deal with case where aggregation before, modify filenames
+                true_expdir = expdir
+                if join(resdir, a_name) == expdir:
+                    true_expdir = '{}Tmp'.format(expdir)
+                    shutil.move(expdir, true_expdir)
                 try:
-                    algo_dict[a_name].append(expdir)
+                    algo_dict[a_name].append(true_expdir)
                 except:
-                    algo_dict[a_name] = [expdir]
+                    algo_dict[a_name] = [true_expdir]
 
     #Merge Experiments
     old_names = []
     for a, exp_list in algo_dict.items():
-        assert len(exp_list) == 2
-        merge_exps(join(resdir, a), *exp_list)
+        if len(exp_list) == 1:
+            os.rename(exp_list[0], join(resdir, a))
+        elif len(exp_list) == 2:
+            merge_exps(join(resdir, a), *exp_list)
+        else:
+            raise Exception('Too many folders merging')
         old_names += exp_list
 
     #Clean up and aggregate
