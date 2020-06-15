@@ -9,12 +9,18 @@ import aggregate as agg
 def format_experiments(resdir):
     '''Given experiment folders pulled raw from server, combine into new directory)'''
     def iterate_dirs(d):
-        return [r for r in os.listdir(d) if not r.startswith('.')]
+        return [r for r in os.listdir(d) if (not r.startswith('.'))]
     def iterate_files(d):
         return [r for r in os.listdir(d) if ((not r.startswith('.')) and ('.' in r))]
 
     algo_dict = {}
     for edir in iterate_dirs(resdir):
+
+        #Check not final results dir
+        if 'results' in edir:
+            shutil.rmtree(join(resdir, edir))
+            continue
+            
         expdir = join(resdir, edir)
         cd = join(expdir, 'causal_discovery')
         if not os.path.exists(cd):

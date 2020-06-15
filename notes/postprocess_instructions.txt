@@ -9,3 +9,5 @@ The aggregate.py step takes each of these folders and computes results. This is 
 Its is possible to reapply format_expierments as many times as desired. If a new raw result from server is added to the resdir director, it will be merged into the existing folder of its algorithm. Whenever aggregate.py is re-applied all paths are updated. 
 
 Individual units within a resdir (folders with also names) can be moved around indiscriminately  
+
+Within a resdir folder, final results pertaining to that resdir collection should be in a resdir folder whose name includes 'results'. If format_experiments is reapplied to this resdir, the file will be deleted
