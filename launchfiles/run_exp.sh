@@ -39,7 +39,7 @@ do
         do
 
           data=$(get_datapath $d)
-          if [ $algo == "icp"  -o  $algo == "irm" ]
+          if [ $algo == "icp"  -o  $algo == "irm"  -o  $algo == "linear-irm"]
           then
             get_envs $d $b   #Sets variable env_vars
               for e in ${env_vars[*]}
