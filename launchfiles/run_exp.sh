@@ -13,11 +13,11 @@ max_proc=50
 
 #Set Misc Experiment Parameters
 use_test=1
-algo="linreg" #  "icp" "linreg"
+algo="mlp" # "logreg" "icp" "linreg"
 paramfile="$expdir/${algo}_paramfile.pkl"
 
 #Set Dataset Parameters
-dtypes=("adult")
+dtypes=("adult")  #"german"
 reduce_dsize=(-1)
 bin=(0)  #0, 1
 seeds=(52)  # 1000 8079 52 147 256 784 990 587 304 888)
@@ -48,7 +48,7 @@ do
                 python setup_params.py $id $algo $data $expdir $cmdfile $paramfile -env_att $e -fteng $f_eng -reduce_dsize $red_d -binarize $b -eq_estrat $eq_estrat -seed $s -test_info $test_info
                 id=$(($id + 1))
               done
-          elif [ $algo == "linreg"  -o  $algo == "logreg" ]
+          elif [ $algo == "linreg"  -o  $algo == "logreg"  -o  $algo == "mlp" ]
           then
             get_testset $d $algo $use_test  #Sets variable val_info
               for t in ${test_info[*]}

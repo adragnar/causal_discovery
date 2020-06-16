@@ -51,7 +51,7 @@ get_testset () {
   then
       test_info="-1"
 
-  elif [ $algo == "linreg"  -o  $algo == "logreg" ]
+  elif [ $algo == "linreg"  -o  $algo == "logreg"  -o  $algo == "mlp" ]
   then
       if [ $dset_type == "adult" ]
       then

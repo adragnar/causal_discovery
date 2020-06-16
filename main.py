@@ -32,8 +32,8 @@ import utils
 
 def default(id, algo, dataset_fname, expdir, env_atts_types, feateng_type='-1', \
             d_size=-1, bin_env=False, eq_estrat=-1, SEED=100, test_info='-1',\
-            val_split=0.0, irm_args={}, linear_irm_args={}, linreg_args={}, logreg_args={}, \
-            toy_data=[False], testing=False):
+            val_split=0.0, irm_args={}, linear_irm_args={}, mlp_args={}, \
+            linreg_args={}, logreg_args={}, toy_data=[False], testing=False):
 
     '''
     :param id: Numerical identifier for run (str)
@@ -103,6 +103,10 @@ def default(id, algo, dataset_fname, expdir, env_atts_types, feateng_type='-1', 
         l_irm.run(data, y_all, d_atts, unid, expdir, SEED, env_atts_types, eq_estrat, \
                 linear_irm_args)
 
+    elif algo == 'mlp':
+        mlp = models.MLP()
+        mlp.run(data, y_all, unid, expdir, mlp_args)
+
     elif algo == 'linreg':
         linreg = models.Linear()
         linreg.run(data, y_all, unid, expdir, linreg_args)
@@ -143,9 +147,15 @@ if __name__ == '__main__':
     parser.add_argument('-inc_hyperparams', type=int, default=0)
     parser.add_argument('-val_split', type=float, default=0.0)
 
-    #Linear Regression
+    #Regression
     parser.add_argument('-linreg_lambda', type=float, default=0.0)
     parser.add_argument('-logreg_c', type=float, default=1.0)
+
+    #Vanilla MLP
+    parser.add_argument('-mlp_lr', type=float, default=0.001)
+    parser.add_argument('-mlp_niter', type=int, default=5000)
+    parser.add_argument('-mlp_l2', type=float, default=0.001)
+    parser.add_argument('-mlp_hid_layers', type=int, default=100)
 
     #IRM
     parser.add_argument('-irm_lr', type=float, default=0.001)
@@ -189,11 +199,17 @@ if __name__ == '__main__':
                             'hid_layers':args.irm_hid_layers, \
                             'verbose':True}
 
+        mlp_args = {'lr':args.mlp_lr, \
+                     'n_iterations':args.mlp_niter, \
+                     'l2_reg':args.mlp_l2, \
+                     'hid_layers':args.mlp_hid_layers }
+
         linreg_args = {'lambda':args.linreg_lambda}
         logreg_args = {'C':args.logreg_c}
     else:
         irm_args = ahp.get_irm_args(args.data_fname)
         linear_irm_args = ahp.get_linear_irm_args(args.data_fname)
+        mlp_args = ahp.get_mlp_args(args.data_fname)
         linreg_args = ahp.get_linreg_args(args.data_fname)
         logreg_args = ahp.get_logreg_args(args.data_fname)
 
@@ -202,5 +218,5 @@ if __name__ == '__main__':
            feateng_type=args.fteng, d_size=args.reduce_dsize, \
            bin_env=bool(args.binarize), eq_estrat=args.eq_estrat, SEED=args.seed, \
            test_info=args.test_info, val_split=args.val_split, testing=args.testing, \
-           irm_args=irm_args, linear_irm_args=linear_irm_args, \
+           irm_args=irm_args, linear_irm_args=linear_irm_args, mlp_args=mlp_args, \
            linreg_args=linreg_args, logreg_args=logreg_args)

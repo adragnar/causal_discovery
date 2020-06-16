@@ -217,7 +217,7 @@ class InvariantRiskMinimization(IRMBase):
         penalties = []
         losses = []
 
-        phi = MLP(dim_x, args['hid_layers'])
+        phi = BaseMLP(dim_x, args['hid_layers'])
         optimizer = torch.optim.Adam(phi.parameters(), lr=args['lr'])
 
         logging.info('[step, train nll, train acc, train penalty, test acc]')
@@ -281,9 +281,208 @@ class InvariantRiskMinimization(IRMBase):
         if data.shape[0] == 0:
             return pd.DataFrame()
 
-        phi = MLP(data.shape[1], hid_layers)
+        phi = BaseMLP(data.shape[1], hid_layers)
         phi.load_state_dict(phi_params)
         return pd.DataFrame(phi(make_tensor(data)).detach().numpy())
+
+class Regression(ABC):
+    def __init__(self, regtype):
+        self.regtype = regtype
+
+    @abstractmethod
+    def fit_model(self, data, labels, args):
+        pass
+
+    @abstractmethod
+    def compute_preds(self, data, coeffs):
+        pass
+
+    def run(self, data, y_all, unid, expdir, args, seed=1000):
+        reg_fname = os.path.join(expdir, 'regs_{}.pkl'.format(unid))
+        reg, int = self.fit_model(data.values, y_all.values.ravel(), args)
+
+        coeffs = sorted(zip(reg, data.columns), reverse=True, key=lambda x: abs(x[0]))
+        coeffs.append([int, 'Intercept'])
+        coeffs = pd.DataFrame(coeffs, columns=['coeff', 'predictor'])
+        pd.to_pickle(coeffs, reg_fname)
+
+    def get_weight_norm(self, coeffs):
+        #Order dataframe by coefficients column
+        if coeffs.empty:
+            return 0
+
+        return coeffs['coeff'].apply(lambda x: abs(x)).sum()
+
+    def predict(self, data, coeffs):
+        #Handle case of no data
+        if data.shape[0] == 0:
+            return pd.DataFrame()
+
+        #Order dataframe by coefficients column
+        if coeffs.empty:
+            return pd.DataFrame()
+
+        #Remove Intercept
+        int = coeffs[coeffs['predictor'] == "Intercept"]['coeff'].values[0]
+        coeffs = coeffs[coeffs['predictor'] != "Intercept"]
+
+        assert set(list(coeffs['predictor'].values)).issubset(set(list(data.columns)))
+        data = data[list(coeffs['predictor'].values)]  #make sure cols align
+
+        return pd.DataFrame(self.compute_preds(data.values, coeffs['coeff'].values, int))
+
+class Linear(Regression):
+
+    def __init__(self):
+        pass
+
+    def fit_model(self, data, labels, args):
+        '''Return fitted sklearn model from dataset
+        :param data: Dataset (np array)
+        :param labels: Labels for each row in dataset (np array)
+        :param args: Dictionary of keyword args (dict)'''
+
+        assert set(args.keys()) == {'lambda'}
+        model = Lasso(alpha=args['lambda'], fit_intercept=True).fit(data, labels)
+        reg = model.coef_
+        int = model.intercept_[0]
+        return reg, int
+
+    def compute_preds(self, data, coeffs, int):
+        '''Compute prediction from data, regressors, intercept_
+        :param data: (np array)
+        :param labels: (np array)
+        :param int: (scalar)
+        '''
+        return (data @ coeffs) + int
+    # def run(self, data, y_all, unid, expdir, linreg_args, seed=1000):
+    #     reg_fname = os.path.join(expdir, 'regs_{}.pkl'.format(unid))
+    #     model = Lasso(alpha=linreg_args['lambda'], fit_intercept=True).fit(data.values, y_all.values)
+    #     reg = model.coef_
+    #     int = model.intercept_[0]
+    #     coeffs = sorted(zip(reg, data.columns), reverse=True, key=lambda x: abs(x[0]))
+    #     coeffs.append([int, 'Intercept'])
+    #     coeffs = pd.DataFrame(coeffs, columns=['coeff', 'predictor'])
+    #     pd.to_pickle(coeffs, reg_fname)
+
+
+
+class LogisticReg(Regression):
+
+    def __init__(self):
+        pass
+
+    def fit_model(self, data, labels, args):
+        '''Return fitted sklearn model from dataset
+        :param data: Dataset (np array)
+        :param labels: Labels for each row in dataset (np array)
+        :param args: Dictionary of keyword args (dict)'''
+
+        assert set(args.keys()) == {'C'}
+        model = LogisticRegression(C=args['C'], fit_intercept=True, max_iter=2000).fit(data, labels.ravel())
+        reg = model.coef_.T.squeeze()
+        int = model.intercept_[0]
+
+        return reg, int
+
+    def compute_preds(self, data, coeffs, int):
+        '''Compute prediction from data, regressors, intercept_
+        :param data: (np array)
+        :param labels: (np array)
+        :param int: (scalar)
+        '''
+        def sigmoid(x):
+            return 1/(1 + np.exp(-x))
+        return sigmoid((data @ coeffs) + int)
+
+
+class BaseMLP(nn.Module):
+    def __init__(self, d, hid_dim):
+        super(BaseMLP, self).__init__()
+        lin1 = nn.Linear(d, hid_dim)
+        lin2 = nn.Linear(hid_dim, hid_dim)
+        lin3 = nn.Linear(hid_dim, 1)
+        for lin in [lin1, lin2, lin3]:
+            nn.init.xavier_uniform_(lin.weight)
+            nn.init.zeros_(lin.bias)
+        self._main = nn.Sequential(lin1, nn.ReLU(True), lin2, nn.ReLU(True), lin3)
+
+    def weight_norm(self):
+        '''Returns the l1 norm of all weights in the model'''
+        # import pdb; pdb.set_trace()
+        weight_norm = torch.tensor(0.)
+        for w in self._main.parameters():
+            weight_norm += w.norm().pow(2)
+        return weight_norm
+
+    def forward(self, input):
+        out = self._main(input)
+        return out
+
+
+class MLP(BaseMLP):
+    '''Wrapper around BaseMLP class to use as standalone prediction model'''
+    def __init__(self):
+        pass
+
+    def run(self, data, y_all, unid, expdir, args, seed=1000):
+        wgt_fname = os.path.join(expdir, 'wgts_{}.pkl'.format(unid))
+        losses_fname = os.path.join(expdir, 'losses_{}.npy'.format(unid))
+        losses = []
+
+        dim_x = data.shape[1]
+        model = BaseMLP(dim_x, args['hid_layers'])
+        optimizer = torch.optim.Adam(model.parameters(), lr=args['lr'])
+
+        for step in tqdm(range(args['n_iterations'])):
+            logits = model(make_tensor(data.values))
+            labels = make_tensor(y_all.values)
+            loss = nn.functional.binary_cross_entropy_with_logits(logits, labels)
+            weight_norm = model.weight_norm()
+            loss += args['l2_reg'] * weight_norm
+
+            #Do the backprop
+            loss.backward()
+            optimizer.step()
+            optimizer.zero_grad()
+
+            #Printing and Logging
+            if step % 1000 == 0:
+                logging.info([np.int32(step), loss.detach().cpu().numpy()])
+
+            #Store results
+            losses.append(loss.detach().numpy())
+
+        np.save(losses_fname, losses)
+        torch.save(model, wgt_fname)
+
+    def get_weight_norm(self, model_params, dsize=None, hid_layers=100):
+        #Order dataframe by coefficients column
+        if data.shape[0] == 0:
+            return pd.DataFrame()
+
+        model = BaseMLP(dsize, hid_layers)
+        model.load_state_dict(model_params)
+        return model.weight_norm()
+
+        return coeffs['coeff'].apply(lambda x: abs(x)).sum()
+
+    def predict(self, data, model_params, hid_layers=100):
+        '''
+        :param data: the dataset (nparray)
+        :param phi_params: The state dict of the MLP'''
+        #Handle case of no data
+        if data.shape[0] == 0:
+            return pd.DataFrame()
+
+        model = BaseMLP(data.shape[1], hid_layers)
+        model.load_state_dict(model_params)
+        return pd.DataFrame(model(make_tensor(data)).detach().numpy())
+
+
+
+
+
 
 class InvariantCausalPrediction(InvarianceBase):
     """Object Wrapper around ICP"""
@@ -442,130 +641,3 @@ class InvariantCausalPrediction(InvarianceBase):
 
             #Save results
             json.dump(full_res, rawres, indent=4, separators=(',',':'))
-
-
-class MLP(nn.Module):
-    def __init__(self, d, hid_dim):
-        super(MLP, self).__init__()
-        lin1 = nn.Linear(d, hid_dim)
-        lin2 = nn.Linear(hid_dim, hid_dim)
-        lin3 = nn.Linear(hid_dim, 1)
-        for lin in [lin1, lin2, lin3]:
-            nn.init.xavier_uniform_(lin.weight)
-            nn.init.zeros_(lin.bias)
-        self._main = nn.Sequential(lin1, nn.ReLU(True), lin2, nn.ReLU(True), lin3)
-
-    def forward(self, input):
-        out = self._main(input)
-        return out
-
-
-class Regression(ABC):
-    def __init__(self, regtype):
-        self.regtype = regtype
-
-    @abstractmethod
-    def fit_model(self, data, labels, args):
-        pass
-
-    @abstractmethod
-    def compute_preds(self, data, coeffs):
-        pass
-
-    def run(self, data, y_all, unid, expdir, args, seed=1000):
-        reg_fname = os.path.join(expdir, 'regs_{}.pkl'.format(unid))
-        reg, int = self.fit_model(data.values, y_all.values.ravel(), args)
-
-        coeffs = sorted(zip(reg, data.columns), reverse=True, key=lambda x: abs(x[0]))
-        coeffs.append([int, 'Intercept'])
-        coeffs = pd.DataFrame(coeffs, columns=['coeff', 'predictor'])
-        pd.to_pickle(coeffs, reg_fname)
-
-    def get_weight_norm(self, coeffs):
-        #Order dataframe by coefficients column
-        if coeffs.empty:
-            return 0
-
-        return coeffs['coeff'].apply(lambda x: abs(x)).sum()
-
-    def predict(self, data, coeffs):
-        #Handle case of no data
-        if data.shape[0] == 0:
-            return pd.DataFrame()
-
-        #Order dataframe by coefficients column
-        if coeffs.empty:
-            return pd.DataFrame()
-
-        #Remove Intercept
-        int = coeffs[coeffs['predictor'] == "Intercept"]['coeff'].values[0]
-        coeffs = coeffs[coeffs['predictor'] != "Intercept"]
-
-        assert set(list(coeffs['predictor'].values)).issubset(set(list(data.columns)))
-        data = data[list(coeffs['predictor'].values)]  #make sure cols align
-
-        return pd.DataFrame(self.compute_preds(data.values, coeffs['coeff'].values, int))
-
-class Linear(Regression):
-
-    def __init__(self):
-        pass
-
-    def fit_model(self, data, labels, args):
-        '''Return fitted sklearn model from dataset
-        :param data: Dataset (np array)
-        :param labels: Labels for each row in dataset (np array)
-        :param args: Dictionary of keyword args (dict)'''
-
-        assert set(args.keys()) == {'lambda'}
-        model = Lasso(alpha=args['lambda'], fit_intercept=True).fit(data, labels)
-        reg = model.coef_
-        int = model.intercept_[0]
-        return reg, int
-
-    def compute_preds(self, data, coeffs, int):
-        '''Compute prediction from data, regressors, intercept_
-        :param data: (np array)
-        :param labels: (np array)
-        :param int: (scalar)
-        '''
-        return (data @ coeffs) + int
-    # def run(self, data, y_all, unid, expdir, linreg_args, seed=1000):
-    #     reg_fname = os.path.join(expdir, 'regs_{}.pkl'.format(unid))
-    #     model = Lasso(alpha=linreg_args['lambda'], fit_intercept=True).fit(data.values, y_all.values)
-    #     reg = model.coef_
-    #     int = model.intercept_[0]
-    #     coeffs = sorted(zip(reg, data.columns), reverse=True, key=lambda x: abs(x[0]))
-    #     coeffs.append([int, 'Intercept'])
-    #     coeffs = pd.DataFrame(coeffs, columns=['coeff', 'predictor'])
-    #     pd.to_pickle(coeffs, reg_fname)
-
-
-
-class LogisticReg(Regression):
-
-    def __init__(self):
-        pass
-
-    def fit_model(self, data, labels, args):
-        '''Return fitted sklearn model from dataset
-        :param data: Dataset (np array)
-        :param labels: Labels for each row in dataset (np array)
-        :param args: Dictionary of keyword args (dict)'''
-
-        assert set(args.keys()) == {'C'}
-        model = LogisticRegression(C=args['C'], fit_intercept=True, max_iter=2000).fit(data, labels.ravel())
-        reg = model.coef_.T.squeeze()
-        int = model.intercept_[0]
-
-        return reg, int
-
-    def compute_preds(self, data, coeffs, int):
-        '''Compute prediction from data, regressors, intercept_
-        :param data: (np array)
-        :param labels: (np array)
-        :param int: (scalar)
-        '''
-        def sigmoid(x):
-            return 1/(1 + np.exp(-x))
-        return sigmoid((data @ coeffs) + int)

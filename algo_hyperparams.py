@@ -34,6 +34,14 @@ def get_linear_irm_args(dset_fname):
              'verbose':True}
     return args
 
+def get_mlp_args(dset_fname):
+    args =  {'lr': 0.01, \
+             'n_iterations':1000, \
+             'l2_reg':0.0, \
+             'hid_layers':100}
+
+    return args
+
 def get_linreg_args(dset_fname):
     args =  {'lambda':1e-5}
     return args

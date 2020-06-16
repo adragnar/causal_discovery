@@ -36,7 +36,7 @@ def unid_from_algo(id, a=None, data=None, env=None):
             data=utils.dname_from_fpath(data),
             env_list=list_2_string(env, '--')
         )
-    elif (a == 'linreg') or (a == 'logreg'):
+    elif (a == 'linreg') or (a == 'logreg') or (a == 'mlp'):
         uniqueid = '''{id}_{algo}_{data}'''
         uniqueid= uniqueid.format(
             id=id,
@@ -100,6 +100,8 @@ if __name__ == '__main__':
     #Hyperparameter Testing
     parser.add_argument('-inc_hyperparams', type=int, default=0)
     parser.add_argument('-val_split', type=float, default=0.0)
+
+    #Irm + LinearIRM
     parser.add_argument('-irm_lr', type=float, default=None)
     parser.add_argument('-irm_niter', type=int, default=None)
     parser.add_argument('-irm_l2', type=float, default=None)
@@ -107,6 +109,13 @@ if __name__ == '__main__':
     parser.add_argument('-irm_penalty_anneal', type=float, default=None)
     parser.add_argument('-irm_hid_layers', type=int, default=None)
 
+    #MLP
+    parser.add_argument('-mlp_lr', type=float, default=None)
+    parser.add_argument('-mlp_niter', type=int, default=None)
+    parser.add_argument('-mlp_l2', type=float, default=None)
+    parser.add_argument('-mlp_hid_layers', type=int, default=None)
+
+    #Regressions
     parser.add_argument('-linreg_lambda', type=float, default=None)
     parser.add_argument('-logreg_c', type=float, default=None)
 
