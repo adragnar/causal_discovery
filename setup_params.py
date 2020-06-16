@@ -7,6 +7,17 @@ import pandas as pd
 import os
 import utils
 
+def cmd_append(cstr, newstr):
+    '''Take an existing, properly formatted command string, append the newstr
+    (with new flags and vals) to it and reformat'''
+    cstr = cstr.replace('\n', ' ')
+    cstr = cstr + newstr
+    cstr = cstr + '\n'
+
+    assert newstr[0] != ' '
+    assert cstr[-1] == '\n'
+    return cstr
+
 
 def unid_from_algo(id, a=None, data=None, env=None):
     '''Generate name of experiment filename descriptor
@@ -119,55 +130,72 @@ if __name__ == '__main__':
         quit()
 
     id = args.id
+
+    #First get unique Ids
+    if args.algo in ['icp', 'irm', 'linear-irm']:
+        uniqueid = unid_from_algo(id, a=args.algo, \
+                                  data=args.datafname, env=args.env_att)
+    elif args.algo in ['linreg', 'logreg', 'mlp']:
+        uniqueid = unid_from_algo(id, a=args.algo, \
+                                  data=args.datafname)
+    else:
+        raise Exception('ALgo Unimplemented')
+
+    #Setup baseline command for all experiment runs
+    command_str = \
+        '''python main.py {id} {algo} {data} {expdir} -fteng {feat_eng} -reduce_dsize {d_size} -binarize {bin} -seed {s} -test_info {test}\n'''
+    command_str = command_str.format(
+        id=id,
+        algo=args.algo,
+        data=args.datafname,
+        expdir=args.expdir,
+        feat_eng=args.fteng,
+        d_size=args.reduce_dsize,
+        bin=args.binarize,
+        s=args.seed,
+        test=args.test_info,
+    )
+    add = [id, args.algo, args.fteng, utils.dname_from_fpath(args.datafname), \
+           args.seed, args.reduce_dsize, args.binarize, args.test_info]
+    parameter_cols = ['Id', 'Algo', 'Fteng', 'Dataset', 'Seed', \
+                          'ReduceDsize', 'Bin', 'TestSet']
+
+    #Add flags for invariance algos
+    if args.algo in ['icp', 'irm', 'linear-irm']:
+        command_str = cmd_append(command_str, \
+                        '-eq_estrat {} -env_atts {}'.format(\
+                        args.eq_estrat, args.env_att))
+        add.extend([args.eq_estrat, args.env_att])
+        parameter_cols.extend(['Eq_Estrat', 'Envs'])
+
+
     if args.inc_hyperparams == 1:
-        if (args.algo == 'irm') or (args.algo == 'linear-irm'):
-            uniqueid = unid_from_algo(id, a=args.algo, \
-                                      data=args.datafname, env=args.env_att)
+        command_str = cmd_append(command_str, \
+                        '-inc_hyperparams {} -val_split {}'.format(\
+                        args.inc_hyperparams, args.val_split))
 
-            #Write Exp Command to commandfile
-            with open(args.cmdfile, 'a') as f:
-                command_str = \
-                    '''python main.py {id} {algo} {data} {expdir} -fteng {feat_eng} -reduce_dsize {d_size} -binarize {bin} -eq_estrat {eq} -seed {s} -env_atts {env_list} -inc_hyperparams {hp} -test_info {test} -val_split {split} -irm_lr {lr} -irm_niter {niter} -irm_l2 {l2} -irm_penalty_anneal {n_ann} -irm_penalty_weight {pen_weight} -irm_hid_layers {hid}\n'''
 
-                command_str = command_str.format(
-                    id=id,
-                    algo=args.algo,
-                    data=args.datafname,
-                    expdir=args.expdir,
-                    feat_eng=args.fteng,
-                    d_size=args.reduce_dsize,
-                    bin=args.binarize,
-                    eq=args.eq_estrat,
-                    s=args.seed,
-                    env_list=args.env_att,
-                    hp=args.inc_hyperparams,
-                    test=args.test_info,
-                    split=args.val_split,
-                    lr=args.irm_lr,
-                    niter=args.irm_niter,
-                    l2=args.irm_l2,
-                    n_ann=args.irm_penalty_anneal,
-                    pen_weight=args.irm_penalty_weight,
-                    hid=args.irm_hid_layers
-                )
-                f.write(command_str)
+        if args.algo in ['irm', 'linear-irm']:
+            command_str = cmd_append(command_str, \
+                          ('-irm_lr {lr}' + \
+                          ' -irm_niter {niter}' ' -irm_l2 {l2}' + \
+                          ' -irm_penalty_anneal {n_ann}' + \
+                          ' -irm_penalty_weight {pen_weight}' +\
+                          ' -irm_hid_layers {hid}').format(
+                          lr=args.irm_lr,
+                          niter=args.irm_niter,
+                          l2=args.irm_l2,
+                          n_ann=args.irm_penalty_anneal,
+                          pen_weight=args.irm_penalty_weight,
+                          hid=args.irm_hid_layers)
+                          )
+            add.extend([args.irm_lr, args.irm_niter, args.irm_l2, \
+                        args.irm_penalty_anneal, \
+                        args.irm_penalty_weight, args.irm_hid_layers])
+            parameter_cols.extend(['LR', 'N_Iterations', 'L2_WeightPen', \
+                                   'N_AnnealIter', 'PenWeight', 'HidLayers'])
 
-            #Log Parameters in Datafame
-            add = pd.DataFrame([id, args.algo, args.fteng, \
-            utils.dname_from_fpath(args.datafname), args.seed, args.reduce_dsize, \
-            args.binarize, args.eq_estrat, args.env_att, args.test_info, args.irm_lr, \
-            args.irm_niter, args.irm_l2, args.irm_penalty_anneal, args.irm_penalty_weight,
-            args.irm_hid_layers]).T
-
-            parameter_cols = ['Id', 'Algo', 'Fteng', 'Dataset', \
-                                'Seed', 'ReduceDsize', 'Bin', 'Eq_Estrat', \
-                                'Envs', 'TestSet', 'LR', 'N_Iterations', 'L2_WeightPen', \
-                                'N_AnnealIter', 'PenWeight', 'HidLayers']
-
-        elif (args.algo == 'linreg') or (args.algo == 'logreg'):
-            uniqueid = unid_from_algo(id, a=args.algo, \
-                                      data=args.datafname)
-
+        elif args.algo in ['linreg', 'logreg']:
             #Get paramnames
             if args.algo == 'linreg':
                 reg_pname = '-linreg_lambda'
@@ -176,105 +204,35 @@ if __name__ == '__main__':
                 reg_pname = '-logreg_c'
                 reg_val = args.logreg_c
 
+            command_str = cmd_append(command_str, '{} {}'.format(\
+                                                  reg_pname, reg_val))
+            add.extend([reg_val])
+            parameter_cols.extend(['Reg'])
 
-            #Write Exp Command to commandfile
-            with open(args.cmdfile, 'a') as f:
-                command_str = \
-                    '''python main.py {id} {algo} {data} {expdir} -fteng {feat_eng} -reduce_dsize {d_size} -binarize {bin} -inc_hyperparams {hp} -val_split {split} -seed {s} -test_info {test} {r_pname} {r}\n'''
-
-                command_str = command_str.format(
-                    id=id,
-                    algo=args.algo,
-                    data=args.datafname,
-                    expdir=args.expdir,
-                    feat_eng=args.fteng,
-                    d_size=args.reduce_dsize,
-                    bin=args.binarize,
-                    hp=args.inc_hyperparams,
-                    split=args.val_split,
-                    s=args.seed,
-                    test=args.test_info,
-                    r_pname=reg_pname,
-                    r=reg_val
-                )
-                f.write(command_str)
-
-            #Log Parameters in Datafame
-            add = pd.DataFrame([id, args.algo, args.fteng, \
-                                utils.dname_from_fpath(args.datafname), args.seed, \
-                                 args.reduce_dsize, args.binarize, args.test_info, reg_val]).T
-
-            parameter_cols = ['Id', 'Algo', 'Fteng', 'Dataset', 'Seed', 'ReduceDsize', 'Bin', 'TestSet', 'Reg']
-
+        elif args.algo in ['mlp']:
+            command_str = cmd_append(command_str, \
+                          ('-mlp_lr {lr}' + \
+                          ' -mlp_niter {niter}' ' -mlp_l2 {l2}' + \
+                          ' -mlp_hid_layers {hid}').format(
+                          lr=args.mlp_lr,
+                          niter=args.mlp_niter,
+                          l2=args.mlp_l2,
+                          hid=args.mlp_hid_layers)
+                          )
+            add.extend([args.mlp_lr, args.mlp_niter, args.mlp_l2, \
+                        args.mlp_hid_layers])
+            parameter_cols.extend(['LR', 'N_Iterations', 'L2_WeightPen', \
+                                   'HidLayers'])
 
         else:
             raise Exception('Algorithm not implemented')
 
-    else:
-        if args.env_att != '-1':
-            uniqueid = unid_from_algo(id, a=args.algo, \
-                                      data=args.datafname, env=args.env_att)
+    #Write Exp Command to commandfile
+    with open(args.cmdfile, 'a') as f:
+        f.write(command_str)
 
-            #Write Exp Command to commandfile
-            with open(args.cmdfile, 'a') as f:
-                command_str = \
-                    '''python main.py {id} {algo} {data} {expdir} -fteng {feat_eng} -reduce_dsize {d_size} -binarize {bin} -eq_estrat {eq} -seed {s} -env_atts {env_list} -test_info {test}\n'''
-
-                command_str = command_str.format(
-                    id=id,
-                    algo=args.algo,
-                    data=args.datafname,
-                    expdir=args.expdir,
-                    feat_eng=args.fteng,
-                    d_size=args.reduce_dsize,
-                    bin=args.binarize,
-                    eq=args.eq_estrat,
-                    s=args.seed,
-                    env_list=args.env_att,
-                    test=args.test_info
-                )
-                f.write(command_str)
-
-            #Log Parameters in Datafame
-            add = pd.DataFrame([id, args.algo, args.fteng, \
-            utils.dname_from_fpath(args.datafname), args.seed, args.reduce_dsize, \
-            args.binarize, args.eq_estrat, args.env_att, args.test_info]).T
-
-            parameter_cols = ['Id', 'Algo', 'Fteng', 'Dataset', \
-                                'Seed', 'ReduceDsize', 'Bin', 'Eq_Estrat', \
-                                'Envs', 'TestSet']
-
-        else:
-            uniqueid = unid_from_algo(id, a=args.algo, \
-                                      data=args.datafname)
-
-            #Write Exp Command to commandfile
-            with open(args.cmdfile, 'a') as f:
-                command_str = \
-                    '''python main.py {id} {algo} {data} {expdir} -fteng {feat_eng} -reduce_dsize {d_size} -binarize {bin} -seed {s} -test_info {test}\n'''
-
-                command_str = command_str.format(
-                    id=id,
-                    algo=args.algo,
-                    data=args.datafname,
-                    expdir=args.expdir,
-                    feat_eng=args.fteng,
-                    d_size=args.reduce_dsize,
-                    bin=args.binarize,
-                    s=args.seed,
-                    test=args.test_info
-                )
-                f.write(command_str)
-
-            #Log Parameters in Datafame
-            add = pd.DataFrame([id, args.algo, args.fteng, \
-                                utils.dname_from_fpath(args.datafname), args.seed, \
-                                 args.reduce_dsize, args.binarize, args.test_info]).T
-
-            parameter_cols = ['Id', 'Algo', 'Fteng', 'Dataset', 'Seed', 'ReduceDsize', 'Bin', 'TestSet']
-
-
-    #Save parameters in dataframe
+    #Save parameters in paramdf
+    add = pd.DataFrame(add).T
     try:
         print('hi')
         param_df = pd.read_pickle(args.paramfile)

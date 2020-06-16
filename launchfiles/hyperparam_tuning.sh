@@ -4,7 +4,7 @@
 
 
 #Make expieriment directories/files
-expdir="/scratch/hdd001/home/adragnar/experiments/causal_discovery/0610_linearirm/$(date +'%s')"  #"/scratch/gobi1/adragnar/experiments/causal_discovery/$(date +'%s')"  #"/scratch/gobi1/adragnar/experiments/causal_discovery/0610_linearirm_hyp/$(date +'%s')"  #"/scratch/hdd001/home/adragnar/experiments/causal_discovery/$(date +'%s')"  #"/scratch/gobi1/adragnar/experiments/causal_discovery/$(date +'%s')"
+expdir="test_expdir"  #"/scratch/hdd001/home/adragnar/experiments/causal_discovery/0610_linearirm/$(date +'%s')"  #"/scratch/gobi1/adragnar/experiments/causal_discovery/$(date +'%s')"  #"/scratch/gobi1/adragnar/experiments/causal_discovery/0610_linearirm_hyp/$(date +'%s')"  #"/scratch/hdd001/home/adragnar/experiments/causal_discovery/$(date +'%s')"  #"/scratch/gobi1/adragnar/experiments/causal_discovery/$(date +'%s')"
 mkdir -p $expdir
 cmdfile="$expdir/cmdfile.sh"
 
@@ -24,46 +24,45 @@ ft_combos='-1'   #'1' '12')
 #Environment Parameters
 eq_estrat=-1  #-1, #samples_wanted
 
-seeds=(1000 8079)  # 1000 8079 52 147 256 784 990 587 304 888)
-l_rates=(0.0001 0.001 .01)
-l2_regs=(0)
+seeds=(1000) # 8079)  # 1000 8079 52 147 256 784 990 587 304 888)
+l_rates=(0.0001) # 0.001 .01)
+l2_regs=(0 0.1)
 n_anneals=(1)
-n_iters=(1000 2000 5000)
-penreg=(10000 5000 3000 1000) # 10000 20000)
-hid_layers=(50 100 200) # 200)
+n_iters=(1000) # 2000 5000)
+penreg=(10000) # 5000 3000 1000) # 10000 20000)
+hid_layers=(50) # 100 200) # 200)
 val_split=0.10
 
 #Generate the commandfile
 id=0
-  for s in ${seeds[*]}
+for s in ${seeds[*]}
+do
+  for lr in ${l_rates[*]}
   do
-    for lr in ${l_rates[*]}
+    for l2 in ${l2_regs[*]}
     do
-      for l2 in ${l2_regs[*]}
+      for n_ann in ${n_anneals[*]}
       do
-        for n_ann in ${n_anneals[*]}
+        for it in ${n_iters[*]}
         do
-          for it in ${n_iters[*]}
+          for pw in ${penreg[*]}
           do
-            for pw in ${penreg[*]}
+            for nh in ${hid_layers[*]}
             do
-              for nh in ${hid_layers[*]}
+              for d in ${dtypes[*]}
               do
-                for d in ${dtypes[*]}
+                data=$(get_datapath $d)
+                if [ $d == "adult"  ]
+                then
+                  env_info=("workclass" "native-country" "relationship")
+                else
+                  env_info=("Purpose" "Housing")
+                fi
+                for e in ${env_info[*]}
                 do
-                  data=$(get_datapath $d)
-                  if [ $d == "adult"  ]
-                  then
-                    env_info=("workclass" "native-country" "relationship")
-                  else
-                    env_info=("Purpose" "Housing")
-                  fi
-                  for e in ${env_info[*]}
-                  do
-                    get_testset $d 'linear-irm' 1 $e
-                    python setup_params.py $id $algo $data $expdir $cmdfile $paramfile -env_att $e -fteng $ft_combos -reduce_dsize $reduce_dsize -binarize $bin -eq_estrat $eq_estrat -seed $s -test_info $test_info -inc_hyperparams 1 -irm_lr $lr -irm_niter $it -irm_l2 $l2 -irm_penalty_anneal $n_ann -irm_penalty_weight $pw -irm_hid_layers $nh -val_split $val_split
-                    id=$(($id + 1))
-                  done
+                  get_testset $d 'linear-irm' 1 $e
+                  python setup_params.py $id $algo $data $expdir $cmdfile $paramfile -env_att $e -fteng $ft_combos -reduce_dsize $reduce_dsize -binarize $bin -eq_estrat $eq_estrat -seed $s -test_info $test_info -inc_hyperparams 1 -irm_lr $lr -irm_niter $it -irm_l2 $l2 -irm_penalty_anneal $n_ann -irm_penalty_weight $pw -irm_hid_layers $nh -val_split $val_split
+                  id=$(($id + 1))
                 done
               done
             done
@@ -72,6 +71,7 @@ id=0
       done
     done
   done
+done
 
 
 #Run evaluation on cluster

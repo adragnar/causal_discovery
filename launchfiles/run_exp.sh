@@ -13,11 +13,11 @@ max_proc=50
 
 #Set Misc Experiment Parameters
 use_test=1
-algo="logreg" #  "icp" "linreg"
+algo="linreg" #  "icp" "linreg"
 paramfile="$expdir/${algo}_paramfile.pkl"
 
 #Set Dataset Parameters
-dtypes=("adult" "german")
+dtypes=("adult")
 reduce_dsize=(-1)
 bin=(0)  #0, 1
 seeds=(52)  # 1000 8079 52 147 256 784 990 587 304 888)
@@ -39,7 +39,7 @@ do
         do
 
           data=$(get_datapath $d)
-          if [ $algo == "icp"  -o  $algo == "irm"  -o  $algo == "linear-irm"]
+          if [ $algo == "icp"  -o  $algo == "irm"  -o  $algo == "linear-irm" ]
           then
             get_envs $d $b   #Sets variable env_vars
               for e in ${env_vars[*]}
