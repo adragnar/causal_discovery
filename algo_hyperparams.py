@@ -35,10 +35,10 @@ def get_linear_irm_args(dset_fname):
     return args
 
 def get_mlp_args(dset_fname):
-    args =  {'lr': 0.01, \
-             'n_iterations':1000, \
-             'l2_reg':0.0, \
-             'hid_layers':100}
+    args =  {'lr': 0.0001, \
+             'n_iterations':5000, \
+             'l2_reg':0.0001, \
+             'hid_layers':50}
 
     return args
 

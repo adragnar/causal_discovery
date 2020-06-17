@@ -316,6 +316,26 @@ def regression_process(res_dir, dset_dir, name):
 
     pd.to_pickle(params, paramfile)
 
+def mlp_process(res_dir, dset_dir, name):
+    expdir = os.path.join(res_dir, 'causal_discovery')
+    paramfile = os.path.join(res_dir, '{}_paramfile.pkl'.format(name))
+    params = pd.read_pickle(paramfile)
+
+    savedir = os.path.join(res_dir, 'processed_results')
+    if os.path.exists(savedir):
+        shutil.rmtree(savedir)
+    os.mkdir(savedir)
+
+    #Load weights into dataframe
+    params['weights'] = np.NaN
+    for fname in os.listdir(expdir):
+        id = get_id_from_fname(fname)
+        ftype = get_ftype_from_fname(fname)
+        if ftype == 'wgts':
+            params.loc[id, 'weights'] = join(name, join('causal_discovery', fname))
+
+    pd.to_pickle(params, paramfile)
+
 def constant_process(res_dir, dset_dir, name):
     savedir = os.path.join(res_dir, 'processed_results')
     if os.path.exists(savedir):
@@ -331,6 +351,8 @@ def aggregate_loader(resdir, dsetdir, algo):
         regression_process(resdir, dsetdir, algo)
     elif (algo == 'constant'):
         constant_process(resdir, dsetdir, algo)
+    elif (algo == 'mlp'):
+        mlp_process(resdir, dsetdir, algo)
     else:
         raise Exception('algo not implemented')
 
