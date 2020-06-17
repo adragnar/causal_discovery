@@ -316,6 +316,12 @@ def regression_process(res_dir, dset_dir, name):
 
     pd.to_pickle(params, paramfile)
 
+def constant_process(res_dir, dset_dir, name):
+    savedir = os.path.join(res_dir, 'processed_results')
+    if os.path.exists(savedir):
+        shutil.rmtree(savedir)
+    os.mkdir(savedir)
+
 def aggregate_loader(resdir, dsetdir, algo):
     if algo == 'icp':
         icp_process(resdir, dsetdir)
@@ -323,6 +329,8 @@ def aggregate_loader(resdir, dsetdir, algo):
         irm_process(resdir, dsetdir, algo)
     elif (algo == 'linreg') or (algo == 'logreg'):
         regression_process(resdir, dsetdir, algo)
+    elif (algo == 'constant'):
+        constant_process(resdir, dsetdir, algo)
     else:
         raise Exception('algo not implemented')
 
