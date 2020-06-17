@@ -6,6 +6,7 @@ import pickle
 import os
 from os.path import join
 import shutil
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -193,16 +194,28 @@ def max_alpha(pVals, arange, eps=1000):
     return -1
 
 
-def icp_process(res_dir, dset_dir, NUM_POINTS=100, MIN_ALPHA=1e-10):
-    ''''''
+#processed
+def base_process(res_dir, dset_dir, name):
     expdir = os.path.join(res_dir, 'causal_discovery')
-    paramfile = os.path.join(res_dir, 'icp_paramfile.pkl')
+    paramfile = os.path.join(res_dir, '{}_paramfile.pkl'.format(name))
     params = pd.read_pickle(paramfile)
 
     savedir = os.path.join(res_dir, 'processed_results')
     if os.path.exists(savedir):
         shutil.rmtree(savedir)
     os.mkdir(savedir)
+
+    finres_dir = os.path.join(res_dir, 'analysis')
+    if os.path.exists(finres_dir):
+        warnings.warn('Analysis already exists in {}'.format(name))
+    else:
+        os.mkdir(finres_dir)
+
+    return expdir, paramfile, params
+
+def icp_process(res_dir, dset_dir, name, NUM_POINTS=100, MIN_ALPHA=1e-10):
+    ''''''
+    expdir, paramfile, params = base_process(res_dir, dset_dir, name)
 
     #Collect all raw files
     rawres_files= []
@@ -273,15 +286,7 @@ def icp_process(res_dir, dset_dir, NUM_POINTS=100, MIN_ALPHA=1e-10):
     pd.to_pickle(params, paramfile)
 
 def irm_process(res_dir, dset_dir, name):
-    expdir = os.path.join(res_dir, 'causal_discovery')
-    paramfile = os.path.join(res_dir, '{}_paramfile.pkl'.format(name))
-    params = pd.read_pickle(paramfile)
-
-    savedir = os.path.join(res_dir, 'processed_results')
-    if os.path.exists(savedir):
-        shutil.rmtree(savedir)
-    os.mkdir(savedir)
-
+    expdir, paramfile, params = base_process(res_dir, dset_dir, name)
     #Load IRM Parameters into dataframe
     params['phi'] = np.NaN
     # params['w'] = np.NaN
@@ -297,14 +302,7 @@ def irm_process(res_dir, dset_dir, name):
     pd.to_pickle(params, paramfile)
 
 def regression_process(res_dir, dset_dir, name):
-    expdir = os.path.join(res_dir, 'causal_discovery')
-    paramfile = os.path.join(res_dir, '{}_paramfile.pkl'.format(name))
-    params = pd.read_pickle(paramfile)
-
-    savedir = os.path.join(res_dir, 'processed_results')
-    if os.path.exists(savedir):
-        shutil.rmtree(savedir)
-    os.mkdir(savedir)
+    expdir, paramfile, params = base_process(res_dir, dset_dir, name)
 
     #Load Coefficients into dataframe
     params['regressors'] = np.NaN
@@ -344,7 +342,7 @@ def constant_process(res_dir, dset_dir, name):
 
 def aggregate_loader(resdir, dsetdir, algo):
     if algo == 'icp':
-        icp_process(resdir, dsetdir)
+        icp_process(resdir, dsetdir, algo)
     elif (algo == 'irm') or (algo == 'linear-irm'):
         irm_process(resdir, dsetdir, algo)
     elif (algo == 'linreg') or (algo == 'logreg'):

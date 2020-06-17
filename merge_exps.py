@@ -58,7 +58,6 @@ def format_experiments(resdir):
         old_names += exp_list
 
     #Clean up and aggregate
-    import pdb; pdb.set_trace()
     for edir in iterate_dirs(resdir):
         expdir = join(resdir, edir)
         if expdir in old_names:
