@@ -480,8 +480,20 @@ class MLP(BaseMLP):
         return pd.DataFrame(model(make_tensor(data)).detach().numpy())
 
 
+class Constant():
+    '''Return binary prediction 1 to all inputs'''
+    def __init__(self):
+        pass
 
+    def predict(self, data, model_params, hid_layers=100):
+        '''
+        :param data: the dataset (nparray)
+        :param phi_params: The state dict of the MLP'''
+        #Handle case of no data
+        if data.shape[0] == 0:
+            return pd.DataFrame()
 
+        return pd.DataFrame(np.ones(data.shape[0]))
 
 
 class InvariantCausalPrediction(InvarianceBase):
