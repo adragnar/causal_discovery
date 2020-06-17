@@ -426,7 +426,7 @@ class MLP(BaseMLP):
         pass
 
     def run(self, data, y_all, unid, expdir, args, seed=1000):
-        wgt_fname = os.path.join(expdir, 'wgts_{}.pkl'.format(unid))
+        wgt_fname = os.path.join(expdir, 'wgts_{}.pt'.format(unid))
         losses_fname = os.path.join(expdir, 'losses_{}.npy'.format(unid))
         losses = []
 
