@@ -485,7 +485,7 @@ class Constant():
     def __init__(self):
         pass
 
-    def predict(self, data, model_params, hid_layers=100):
+    def predict(self, data):
         '''
         :param data: the dataset (nparray)
         :param phi_params: The state dict of the MLP'''

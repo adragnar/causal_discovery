@@ -36,7 +36,7 @@ def unid_from_algo(id, a=None, data=None, env=None):
             data=utils.dname_from_fpath(data),
             env_list=list_2_string(env, '--')
         )
-    elif (a == 'linreg') or (a == 'logreg') or (a == 'mlp'):
+    elif (a == 'linreg') or (a == 'logreg') or (a == 'mlp') or (a == 'constant'):
         uniqueid = '''{id}_{algo}_{data}'''
         uniqueid= uniqueid.format(
             id=id,
@@ -144,7 +144,7 @@ if __name__ == '__main__':
     if args.algo in ['icp', 'irm', 'linear-irm']:
         uniqueid = unid_from_algo(id, a=args.algo, \
                                   data=args.datafname, env=args.env_att)
-    elif args.algo in ['linreg', 'logreg', 'mlp']:
+    elif args.algo in ['linreg', 'logreg', 'mlp', 'constant']:
         uniqueid = unid_from_algo(id, a=args.algo, \
                                   data=args.datafname)
     else:
@@ -233,12 +233,15 @@ if __name__ == '__main__':
             parameter_cols.extend(['LR', 'N_Iterations', 'L2_WeightPen', \
                                    'HidLayers'])
 
+        elif args.algo in ['constant']:
+            pass
         else:
             raise Exception('Algorithm not implemented')
 
     #Write Exp Command to commandfile
-    with open(args.cmdfile, 'a') as f:
-        f.write(command_str)
+    if args.algo != 'constant':
+        with open(args.cmdfile, 'a') as f:
+            f.write(command_str)
 
     #Save parameters in paramdf
     add = pd.DataFrame(add).T

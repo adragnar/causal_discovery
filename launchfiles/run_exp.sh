@@ -13,7 +13,7 @@ max_proc=50
 
 #Set Misc Experiment Parameters
 use_test=1
-algo="mlp" # "logreg" "icp" "linreg"
+algo="constant" # "logreg" "icp" "linreg"
 paramfile="$expdir/${algo}_paramfile.pkl"
 
 #Set Dataset Parameters
@@ -48,7 +48,7 @@ do
                 python setup_params.py $id $algo $data $expdir $cmdfile $paramfile -env_att $e -fteng $f_eng -reduce_dsize $red_d -binarize $b -eq_estrat $eq_estrat -seed $s -test_info $test_info
                 id=$(($id + 1))
               done
-          elif [ $algo == "linreg"  -o  $algo == "logreg"  -o  $algo == "mlp" ]
+          elif [ $algo == "linreg"  -o  $algo == "logreg"  -o  $algo == "mlp" -o  $algo == "constant" ]
           then
             get_testset $d $algo $use_test  #Sets variable val_info
               for t in ${test_info[*]}
@@ -68,13 +68,15 @@ done
 python reproducibility.py $(pwd) $expdir
 
 #Run evaluation on cluster
-num_cmds=`wc -l $cmdfile | cut -d' ' -f1`
-echo "Wrote $num_cmds commands to $cmdfile"
+if [ $algo -ne "constant" ]
+then
+  num_cmds=`wc -l $cmdfile | cut -d' ' -f1`
+  echo "Wrote $num_cmds commands to $cmdfile"
 
-cmd=( $cmd )
-num_tokens=${#cmd[@]}
-# xargs -L 1 -P $max_proc srun --mem=16G -p cpu < $cmdfile
-
+  cmd=( $cmd )
+  num_tokens=${#cmd[@]}
+  xargs -L 1 -P $max_proc srun --mem=16G -p cpu < $cmdfile
+fi
 
 
 
