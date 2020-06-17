@@ -20,7 +20,7 @@ def format_experiments(resdir):
         if 'results' in edir:
             shutil.rmtree(join(resdir, edir))
             continue
-            
+
         expdir = join(resdir, edir)
         cd = join(expdir, 'causal_discovery')
         if not os.path.exists(cd):
@@ -58,6 +58,7 @@ def format_experiments(resdir):
         old_names += exp_list
 
     #Clean up and aggregate
+    import pdb; pdb.set_trace()
     for edir in iterate_dirs(resdir):
         expdir = join(resdir, edir)
         if expdir in old_names:
@@ -132,8 +133,11 @@ def merge_exps(newdir, e1, e2):
     #Deal with the code foldes in both folders
     new_code_dirname = join(newdir, 'code')
     os.mkdir(new_code_dirname)
-    shutil.copytree(join(e1, 'code'), join(new_code_dirname, 'code_1'))
-    shutil.copytree(join(e2, 'code'), join(new_code_dirname, 'code_2'))
+    try:
+        shutil.copytree(join(e1, 'code'), join(new_code_dirname, 'code_1'))
+        shutil.copytree(join(e2, 'code'), join(new_code_dirname, 'code_2'))
+    except:
+        pass
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Params')

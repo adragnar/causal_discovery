@@ -306,12 +306,9 @@ class Regression(ABC):
         coeffs = pd.DataFrame(coeffs, columns=['coeff', 'predictor'])
         pd.to_pickle(coeffs, reg_fname)
 
+    @abstractmethod
     def get_weight_norm(self, coeffs):
-        #Order dataframe by coefficients column
-        if coeffs.empty:
-            return 0
-
-        return coeffs['coeff'].apply(lambda x: abs(x)).sum()
+        pass
 
     def predict(self, data, coeffs):
         #Handle case of no data
@@ -347,6 +344,13 @@ class Linear(Regression):
         reg = model.coef_
         int = model.intercept_[0]
         return reg, int
+
+    def get_weight_norm(self, coeffs):
+        #Order dataframe by coefficients column
+        if coeffs.empty:
+            return 0
+
+        return coeffs['coeff'].apply(lambda x: abs(x)).sum()
 
     def compute_preds(self, data, coeffs, int):
         '''Compute prediction from data, regressors, intercept_
@@ -385,6 +389,13 @@ class LogisticReg(Regression):
 
         return reg, int
 
+    def get_weight_norm(self, coeffs):
+        #Order dataframe by coefficients column
+        if coeffs.empty:
+            return 0
+
+        return coeffs['coeff'].apply(lambda x: (abs(x) ** 2)).sum()
+
     def compute_preds(self, data, coeffs, int):
         '''Compute prediction from data, regressors, intercept_
         :param data: (np array)
@@ -411,7 +422,7 @@ class BaseMLP(nn.Module):
         '''Returns the l1 norm of all weights in the model'''
         # import pdb; pdb.set_trace()
         weight_norm = torch.tensor(0.)
-        for w in self._main.parameters():
+        for w in self.parameters():
             weight_norm += w.norm().pow(2)
         return weight_norm
 
@@ -458,14 +469,9 @@ class MLP(BaseMLP):
 
     def get_weight_norm(self, model_params, dsize=None, hid_layers=100):
         #Order dataframe by coefficients column
-        if data.shape[0] == 0:
-            return pd.DataFrame()
-
         model = BaseMLP(dsize, hid_layers)
         model.load_state_dict(model_params)
         return model.weight_norm()
-
-        return coeffs['coeff'].apply(lambda x: abs(x)).sum()
 
     def predict(self, data, model_params, hid_layers=100):
         '''
