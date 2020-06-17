@@ -271,7 +271,7 @@ class InvariantRiskMinimization(IRMBase):
             penalties.append(train_penalty.detach().numpy())
             losses.append(loss.detach().numpy())
 
-        return phi, errors, penalties, losses
+        return phi.state_dict(), errors, penalties, losses
 
     def predict(self, data, phi_params, hid_layers=100):
         '''
@@ -283,7 +283,7 @@ class InvariantRiskMinimization(IRMBase):
 
         phi = BaseMLP(data.shape[1], hid_layers)
         phi.load_state_dict(phi_params)
-        return pd.DataFrame(phi(make_tensor(data)).detach().numpy())
+        return pd.DataFrame(phi(make_tensor(data.values)).detach().numpy())
 
 class Regression(ABC):
     def __init__(self, regtype):
@@ -454,7 +454,7 @@ class MLP(BaseMLP):
             losses.append(loss.detach().numpy())
 
         np.save(losses_fname, losses)
-        torch.save(model, wgt_fname)
+        torch.save(model.state_dict(), wgt_fname)
 
     def get_weight_norm(self, model_params, dsize=None, hid_layers=100):
         #Order dataframe by coefficients column
@@ -477,7 +477,7 @@ class MLP(BaseMLP):
 
         model = BaseMLP(data.shape[1], hid_layers)
         model.load_state_dict(model_params)
-        return pd.DataFrame(model(make_tensor(data)).detach().numpy())
+        return pd.DataFrame(model(make_tensor(data.values)).detach().numpy())
 
 
 class Constant():
