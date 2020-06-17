@@ -4,7 +4,7 @@
 
 
 #Make expieriment directories/files
-expdir="test_expdir"  #"/scratch/gobi1/adragnar/experiments/causal_discovery/0610_logreg_test/$(date +'%s')"   #"/scratch/hdd001/home/adragnar/experiments/causal_discovery/$(date +'%s')"  #"/scratch/gobi1/adragnar/experiments/causal_discovery/$(date +'%s')"
+expdir="test_expdir" #"/scratch/hdd001/home/adragnar/experiments/causal_discovery/$(date +'%s')"  #"/scratch/gobi1/adragnar/experiments/causal_discovery/$(date +'%s')"  #"/scratch/gobi1/adragnar/experiments/causal_discovery/0610_logreg_test/$(date +'%s')"   #"/scratch/hdd001/home/adragnar/experiments/causal_discovery/$(date +'%s')"  #"/scratch/gobi1/adragnar/experiments/causal_discovery/$(date +'%s')"
 mkdir -p $expdir
 cmdfile="$expdir/cmdfile.sh"
 
@@ -17,7 +17,7 @@ algo="constant" # "logreg" "icp" "linreg"
 paramfile="$expdir/${algo}_paramfile.pkl"
 
 #Set Dataset Parameters
-dtypes=("adult")  #"german"
+dtypes=("adult" "german")  #"german"
 reduce_dsize=(-1)
 bin=(0)  #0, 1
 seeds=(52)  # 1000 8079 52 147 256 784 990 587 304 888)
@@ -68,7 +68,7 @@ done
 python reproducibility.py $(pwd) $expdir
 
 #Run evaluation on cluster
-if [ $algo -ne "constant" ]
+if [ $algo != "constant" ]
 then
   num_cmds=`wc -l $cmdfile | cut -d' ' -f1`
   echo "Wrote $num_cmds commands to $cmdfile"
