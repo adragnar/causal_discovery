@@ -21,10 +21,10 @@ import data_processing as dp
 import utils
 
 def get_id_from_fname(f):
-    return f.split('_')[1]
+    return f.split('.')[0].split('_')[1]
 
 def get_ftype_from_fname(f):
-    return f.split('_')[0]
+    return f.split('.')[0].split('_')[0]
 
 def open_pvals(filename):
     try:
