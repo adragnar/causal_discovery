@@ -4,7 +4,7 @@ astroid==2.2.5
 attrs==19.1.0
 backcall==0.1.0
 backports.functools-lru-cache==1.5
-bleach==3.1.0
+bleach==3.1.4
 cdt==0.5.18
 certifi==2020.4.5.1
 chardet==3.0.4
