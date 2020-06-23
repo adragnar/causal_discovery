@@ -1,36 +1,34 @@
-import argparse
-import csv
-import pickle
 import itertools
 import json
 import logging
 import os
-from sklearn.linear_model import Lasso, LogisticRegression
-import torch
 import warnings
-import pandas as pd
-from tqdm import tqdm
-from itertools import combinations
-import torch.autograd as autograd
-from torch import nn
 
 from abc import ABC, abstractmethod
+from tqdm import tqdm
 
-from utils import powerset, dname_from_fpath, make_tensor
-import data_processing as dp
+import pandas as pd
+import numpy as np
+import torch
+import torch.autograd as autograd
+from torch import nn
+from scipy.stats import f as fdist
+from scipy.stats import ttest_ind
+from sklearn.linear_model import Lasso, LinearRegression, LogisticRegression
+
+from utils import make_tensor, powerset
 import environment_processing as eproc
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 warnings.simplefilter(action='ignore', category=RuntimeWarning)
 
 #########################################
-import numpy as np
-from scipy.stats import f as fdist
-from scipy.stats import ttest_ind
 
-import random
 
-class InvarianceBase(object):
+
+
+
+class InvarianceBase():
     '''Basic methods for all causation as invariance algorithms'''
 
     def __init__(self):
@@ -38,7 +36,7 @@ class InvarianceBase(object):
 
     def equalize_strats(self, store, threshold, dlen, seed):
         '''Preprocess all e_ins to have the same number of samples_wanted
-        :param store: {env:e_in}, where env is tuple of df cols, e_in is series of
+        :param store: {env:e_in}, where env is tuple of df cols, e_in is series
                       True/False vals for each row of the df's inclusion in env
         :param threshold: minimum number of samples in each strat
         :param: length of dataset
@@ -50,16 +48,17 @@ class InvarianceBase(object):
             sizes.append(store[env].sum())
 
         if (min(sizes) < threshold) or \
-               (max(sizes) > (dlen - threshold)) : #Check if normalization broken
+               (max(sizes) > (dlen - threshold)): #Check if normalize broken
             logging.error('Environment Stratification Below Threshold')
             for env, e_in in store:
-                logging.error('{} : {}'.format(env, store[env].sum()))
-            assert True == False
+                logging.error('{} : {}'.format(env, e_in.sum()))
+            raise Exception('Problem')
 
         for env in store: #Now normalize with min samples
             raw = store[env].to_frame(name='vals')
-            chosen_cols = raw[raw['vals'] == True].sample(min(sizes), random_state=seed)
-            raw.loc[:,:] = False
+            chosen_cols = raw[raw['vals']].sample(min(sizes), \
+                                                          random_state=seed)
+            raw.loc[:, :] = False
             raw.update(chosen_cols)
             store[env] = raw.squeeze()
 
@@ -89,16 +88,13 @@ class IRMBase(InvarianceBase, ABC):
         grad = autograd.grad(loss, [scale], create_graph=True)[0]
         return torch.sum(grad**2)
 
-    def run(self, data, y_all, d_atts, unid, expdir, seed, env_atts_types, eq_estrat, \
-                args):
+    def run(self, data, y_all, d_atts, unid, expdir, seed, \
+                env_atts_types, eq_estrat, args):
 
         phi_fname = os.path.join(expdir, 'phi_{}.pt'.format(unid))
         errors_fname = os.path.join(expdir, 'errors_{}.npy'.format(unid))
         penalties_fname = os.path.join(expdir, 'penalties_{}.npy'.format(unid))
         losses_fname = os.path.join(expdir, 'losses_{}.npy'.format(unid))
-
-        #Set allowable datts as PCPs
-        allowed_datts = {cat:d_atts[cat] for cat in d_atts.keys() if cat not in env_atts_types}
 
         #Generate Environments     (assuming only cat vars)
         e_ins_store = eproc.get_environments(data, \
@@ -106,7 +102,7 @@ class IRMBase(InvarianceBase, ABC):
 
         logging.info('{} environment attributes'.format(len(e_ins_store)))
         logging.debug('Environment attributes are {}'.format( \
-                                            str([str(e) for e in e_ins_store.keys()])))
+                                    str([str(e) for e in e_ins_store])))
 
         #Normalize operation on e_ins
         if eq_estrat != -1:
@@ -114,7 +110,8 @@ class IRMBase(InvarianceBase, ABC):
             self.equalize_strats(e_ins_store, eq_estrat, data.shape[0], seed)
 
         #Now start with IRM itself
-        phi, errors, penalties, losses = self.train(data, y_all, e_ins_store, seed, args)
+        phi, errors, penalties, losses = self.train(data, y_all, e_ins_store, \
+                                                    seed, args)
 
         #Save Results
         torch.save(phi, phi_fname)
@@ -136,7 +133,9 @@ class LinearInvariantRiskMinimization(IRMBase):
         penalties = []
         losses = []
 
-        phi = torch.nn.Parameter(torch.empty(dim_x, args['hid_layers']).normal_(generator=torch.manual_seed(seed)))
+        phi = torch.nn.Parameter(torch.empty(dim_x, \
+                                            args['hid_layers']).normal_(\
+                                            generator=torch.manual_seed(seed)))
         w = torch.ones(args['hid_layers'], 1)
         w.requires_grad = True
         optimizer = torch.optim.Adam([phi], lr=args['lr'])
@@ -150,20 +149,24 @@ class LinearInvariantRiskMinimization(IRMBase):
                 e_comp[e] = {}
                 # import pdb; pdb.set_trace()
                 # d = make_tensor(data.loc[e_in].values)
-                logits = torch.nn.functional.sigmoid(make_tensor(data.loc[e_in].values) @ phi @ w)
+                logits = torch.nn.functional.sigmoid(\
+                                make_tensor(data.loc[e_in].values) @ phi @ w)
                 labels = make_tensor(y_all.loc[e_in].values)
                 e_comp[e]['nll'] = self.mean_nll(logits, labels)
                 e_comp[e]['acc'] = self.mean_accuracy(logits, labels)
                 e_comp[e]['penalty'] = self.penalty(logits, labels)
 
-            train_nll = torch.stack([e_comp[e]['nll'] for e in e_comp.keys()]).mean()
-            train_acc = torch.stack([e_comp[e]['acc'] for e in e_comp.keys()]).mean()
-            train_penalty = torch.stack([e_comp[e]['penalty'] for e in e_comp.keys()]).mean()
+            train_nll = torch.stack([e_comp[e]['nll'] \
+                                     for e in e_comp]).mean()
+            train_acc = torch.stack([e_comp[e]['acc']
+                                     for e in e_comp]).mean()
+            train_penalty = torch.stack([e_comp[e]['penalty']
+                                         for e in e_comp]).mean()
             loss = train_nll.clone()
 
             #Add the invariance penalty
             penalty_weight = (args['pen_wgt']
-                if step >= args['penalty_anneal_iters'] else 1.0)
+                              if step >= args['penalty_anneal_iters'] else 1.0)
             loss += penalty_weight * train_penalty
             if penalty_weight > 1.0: # Rescale big loss
                 loss /= penalty_weight
@@ -235,9 +238,12 @@ class InvariantRiskMinimization(IRMBase):
                 e_comp[e]['acc'] = self.mean_accuracy(logits, labels)
                 e_comp[e]['penalty'] = self.penalty(logits, labels)
 
-            train_nll = torch.stack([e_comp[e]['nll'] for e in e_comp.keys()]).mean()
-            train_acc = torch.stack([e_comp[e]['acc'] for e in e_comp.keys()]).mean()
-            train_penalty = torch.stack([e_comp[e]['penalty'] for e in e_comp.keys()]).mean()
+            train_nll = torch.stack([e_comp[e]['nll'] \
+                                    for e in e_comp]).mean()
+            train_acc = torch.stack([e_comp[e]['acc'] \
+                                    for e in e_comp]).mean()
+            train_penalty = torch.stack([e_comp[e]['penalty'] \
+                                        for e in e_comp]).mean()
             loss = train_nll.clone()
 
             #Regularize the weights
@@ -248,7 +254,7 @@ class InvariantRiskMinimization(IRMBase):
 
             #Add the invariance penalty
             penalty_weight = (args['pen_wgt']
-                if step >= args['penalty_anneal_iters'] else 1.0)
+                              if step >= args['penalty_anneal_iters'] else 1.0)
             loss += penalty_weight * train_penalty
             if penalty_weight > 1.0: # Rescale big loss
                 loss /= penalty_weight
@@ -297,12 +303,13 @@ class Regression(ABC):
     def compute_preds(self, data, coeffs):
         pass
 
-    def run(self, data, y_all, unid, expdir, args, seed=1000):
+    def run(self, data, y_all, unid, expdir, args):
         reg_fname = os.path.join(expdir, 'regs_{}.pkl'.format(unid))
-        reg, int = self.fit_model(data.values, y_all.values.ravel(), args)
+        reg, int_val = self.fit_model(data.values, y_all.values.ravel(), args)
 
-        coeffs = sorted(zip(reg, data.columns), reverse=True, key=lambda x: abs(x[0]))
-        coeffs.append([int, 'Intercept'])
+        coeffs = sorted(zip(reg, data.columns), reverse=True, \
+                        key=lambda x: abs(x[0]))
+        coeffs.append([int_val, 'Intercept'])
         coeffs = pd.DataFrame(coeffs, columns=['coeff', 'predictor'])
         pd.to_pickle(coeffs, reg_fname)
 
@@ -320,13 +327,15 @@ class Regression(ABC):
             return pd.DataFrame()
 
         #Remove Intercept
-        int = coeffs[coeffs['predictor'] == "Intercept"]['coeff'].values[0]
+        int_val = coeffs[coeffs['predictor'] == "Intercept"]['coeff'].values[0]
         coeffs = coeffs[coeffs['predictor'] != "Intercept"]
 
-        assert set(list(coeffs['predictor'].values)).issubset(set(list(data.columns)))
+        assert set(list(coeffs['predictor'].values)).issubset(\
+                                                       set(list(data.columns)))
         data = data[list(coeffs['predictor'].values)]  #make sure cols align
 
-        return pd.DataFrame(self.compute_preds(data.values, coeffs['coeff'].values, int))
+        return pd.DataFrame(self.compute_preds(data.values, \
+                                               coeffs['coeff'].values, int_val))
 
 class Linear(Regression):
 
@@ -340,10 +349,11 @@ class Linear(Regression):
         :param args: Dictionary of keyword args (dict)'''
 
         assert set(args.keys()) == {'lambda'}
-        model = Lasso(alpha=args['lambda'], fit_intercept=True).fit(data, labels)
+        model = Lasso(alpha=args['lambda'], fit_intercept=True).fit(data, \
+                                                                    labels)
         reg = model.coef_
-        int = model.intercept_[0]
-        return reg, int
+        int_val = model.intercept_[0]
+        return reg, int_val
 
     def get_weight_norm(self, coeffs):
         #Order dataframe by coefficients column
@@ -352,23 +362,13 @@ class Linear(Regression):
 
         return coeffs['coeff'].apply(lambda x: abs(x)).sum()
 
-    def compute_preds(self, data, coeffs, int):
+    def compute_preds(self, data, coeffs, int_val):
         '''Compute prediction from data, regressors, intercept_
         :param data: (np array)
         :param labels: (np array)
         :param int: (scalar)
         '''
-        return (data @ coeffs) + int
-    # def run(self, data, y_all, unid, expdir, linreg_args, seed=1000):
-    #     reg_fname = os.path.join(expdir, 'regs_{}.pkl'.format(unid))
-    #     model = Lasso(alpha=linreg_args['lambda'], fit_intercept=True).fit(data.values, y_all.values)
-    #     reg = model.coef_
-    #     int = model.intercept_[0]
-    #     coeffs = sorted(zip(reg, data.columns), reverse=True, key=lambda x: abs(x[0]))
-    #     coeffs.append([int, 'Intercept'])
-    #     coeffs = pd.DataFrame(coeffs, columns=['coeff', 'predictor'])
-    #     pd.to_pickle(coeffs, reg_fname)
-
+        return (data @ coeffs) + int_val
 
 
 class LogisticReg(Regression):
@@ -383,11 +383,12 @@ class LogisticReg(Regression):
         :param args: Dictionary of keyword args (dict)'''
 
         assert set(args.keys()) == {'C'}
-        model = LogisticRegression(C=args['C'], fit_intercept=True, max_iter=2000).fit(data, labels.ravel())
+        model = LogisticRegression(C=args['C'], fit_intercept=True, \
+                                   max_iter=2000).fit(data, labels.ravel())
         reg = model.coef_.T.squeeze()
-        int = model.intercept_[0]
+        int_val = model.intercept_[0]
 
-        return reg, int
+        return reg, int_val
 
     def get_weight_norm(self, coeffs):
         #Order dataframe by coefficients column
@@ -396,7 +397,7 @@ class LogisticReg(Regression):
 
         return coeffs['coeff'].apply(lambda x: (abs(x) ** 2)).sum()
 
-    def compute_preds(self, data, coeffs, int):
+    def compute_preds(self, data, coeffs, int_val):
         '''Compute prediction from data, regressors, intercept_
         :param data: (np array)
         :param labels: (np array)
@@ -404,7 +405,7 @@ class LogisticReg(Regression):
         '''
         def sigmoid(x):
             return 1/(1 + np.exp(-x))
-        return sigmoid((data @ coeffs) + int)
+        return sigmoid((data @ coeffs) + int_val)
 
 
 class BaseMLP(nn.Module):
@@ -416,7 +417,8 @@ class BaseMLP(nn.Module):
         for lin in [lin1, lin2, lin3]:
             nn.init.xavier_uniform_(lin.weight)
             nn.init.zeros_(lin.bias)
-        self._main = nn.Sequential(lin1, nn.ReLU(True), lin2, nn.ReLU(True), lin3)
+        self._main = nn.Sequential(lin1, nn.ReLU(True), lin2, nn.ReLU(True), \
+                                   lin3)
 
     def weight_norm(self):
         '''Returns the l1 norm of all weights in the model'''
@@ -426,8 +428,8 @@ class BaseMLP(nn.Module):
             weight_norm += w.norm().pow(2)
         return weight_norm
 
-    def forward(self, input):
-        out = self._main(input)
+    def forward(self, input_data):
+        out = self._main(input_data)
         return out
 
 
@@ -436,7 +438,7 @@ class MLP(BaseMLP):
     def __init__(self):
         pass
 
-    def run(self, data, y_all, unid, expdir, args, seed=1000):
+    def run(self, data, y_all, unid, expdir, args):
         wgt_fname = os.path.join(expdir, 'wgts_{}.pt'.format(unid))
         losses_fname = os.path.join(expdir, 'losses_{}.npy'.format(unid))
         losses = []
@@ -448,7 +450,8 @@ class MLP(BaseMLP):
         for step in tqdm(range(args['n_iterations'])):
             logits = model(make_tensor(data.values))
             labels = make_tensor(y_all.values)
-            loss = nn.functional.binary_cross_entropy_with_logits(logits, labels)
+            loss = nn.functional.binary_cross_entropy_with_logits(logits, \
+                                                                  labels)
             weight_norm = model.weight_norm()
             loss += args['l2_reg'] * weight_norm
 
@@ -509,16 +512,17 @@ class InvariantCausalPrediction(InvarianceBase):
         pass
 
     def get_data_regressors(self, atts, sub, ft_eng, data):
-        '''From a given subset of attributes being predicted on and the attributes
-        dictionary with the original columns, extract all coluns to predict on from
-        dataset
+        '''From a given subset of attributes being predicted on + the attributes
+        dictionary with the original columns, extract all coluns to predict on
+        from dataset
 
-        :param atts - dictionary of attributes, {att, [one-hot col list of at vals]}
+        :param atts - dict of attributes, {att,[1-hot col list of at vals]}
         :param sub - subset of atts being predicted on
         :param ft_eng - [which mods applicable]
         '''
         orig_regressors = [atts[cat] for cat in sub]
-        orig_regressors = [item for sublist in orig_regressors for item in sublist if '_DUMmY' not in item]
+        orig_regressors = [item for sublist in orig_regressors \
+                           for item in sublist if '_DUMmY' not in item]
         #Now have all the actual one-hot columns in dataset
 
         if not ft_eng:
@@ -535,8 +539,8 @@ class InvariantCausalPrediction(InvarianceBase):
 
         if 2 in ft_eng:
             x_regressors = [col for col in data.columns if '_x_' in col]
-            for r in [com for com in combinations(orig_regressors, 2) \
-                if (com[0].split('_')[0] != com[1].split('_')[0])]:
+            for r in [co for co in itertools.combinations(orig_regressors, 2) \
+                if (co[0].split('_')[0] != co[1].split('_')[0])]:
 
                 for x_reg in x_regressors:
                     if ((r[0] in x_reg) and (r[1] in x_reg)):
@@ -554,7 +558,7 @@ class InvariantCausalPrediction(InvarianceBase):
 
         return 2 * min(pvalue_mean, pvalue_var2)
 
-    def get_coeffs(self, causal_ps, data, y_all, env_datts={}, eq_estrat=-1, seed=None):
+    def get_coeffs(self, causal_ps, data, y_all):
         '''Generate the average coefficients for certain causal predictor set
         :param causal_ps: List of dset variables to predict on list(str)
         :param data: Dataset (pandas df)
@@ -563,16 +567,11 @@ class InvariantCausalPrediction(InvarianceBase):
         :param eq_estrat: -1 if no, min num samples if yes (int)
 
         '''
-        # e_ins_store = self.get_environments(data, env_datts)
-        #
-        # #Normalize operation on e_ins
-        # if eq_estrat != -1:
-        #     assert eq_estrat > 0
-        #     self.equalize_strats(e_ins_store, eq_estrat, data.shape[0], seed)
 
-        if len(causal_ps) > 0:
+        if causal_ps:
             x_s = data[causal_ps]
-            reg = LinearRegression(fit_intercept=False).fit(x_s.values, y_all.values).coef_[0]
+            reg = LinearRegression(fit_intercept=False).fit(\
+                                   x_s.values, y_all.values).coef_[0]
             n = list(x_s.columns)
         else:
             return pd.DataFrame()
@@ -589,16 +588,19 @@ class InvariantCausalPrediction(InvarianceBase):
         #Order dataframe by coefficients column
         if coeffs.empty:
             return pd.DataFrame()
-        assert set(list(coeffs['predictor'].values)).issubset(set(list(data.columns)))
+        assert set(list(coeffs['predictor'].values)).issubset(\
+                                                     set(list(data.columns)))
         data = data[list(coeffs['predictor'].values)]  #make sure cols align
 
         return pd.DataFrame(data.values @ coeffs['coeff'].values)
 
 
-    def run(self, data, y_all, d_atts, unid, expdir, feateng_type, seed, env_atts_types, eq_estrat):
+    def run(self, data, y_all, d_atts, unid, expdir, feateng_type, \
+                 env_atts_types):
         rawres_fname = os.path.join(expdir, 'rawres_{}.json'.format(unid))
         #Set allowable datts as PCPs
-        allowed_datts = {cat:d_atts[cat] for cat in d_atts.keys() if cat not in env_atts_types}
+        allowed_datts = {cat:d_atts[cat] for cat in d_atts.keys() \
+                         if cat not in env_atts_types}
 
         #Generate Environments     (assuming only cat vars)
         e_ins_store = eproc.get_environments(data, \
@@ -606,13 +608,14 @@ class InvariantCausalPrediction(InvarianceBase):
 
         logging.info('{} environment attributes'.format(len(e_ins_store)))
         logging.debug('Environment attributes are {}'.format( \
-                                            str([str(e) for e in e_ins_store.keys()])))
+                                    str([str(e) for e in e_ins_store])))
 
         #Now start enumerating PCPs
         full_res = {}
         with open(rawres_fname, mode='w+') as rawres:
-            for i, subset in enumerate(tqdm(powerset(allowed_datts.keys()), desc='pcp_sets',
-                               total=len(list(powerset(allowed_datts.keys()))))):  #powerset of PCPs
+            for subset in tqdm(powerset(allowed_datts.keys()), \
+                                desc='pcp_sets', total=len(list( \
+                                powerset(allowed_datts.keys())))):  #powerset
 
                 #Setup raw result logging
                 full_res[str(subset)] = {}
@@ -623,21 +626,24 @@ class InvariantCausalPrediction(InvarianceBase):
 
 
                 #Linear regression on all data
-                regressors = self.get_data_regressors(allowed_datts, subset, feateng_type, data)
+                regressors = self.get_data_regressors(allowed_datts, subset, \
+                                                      feateng_type, data)
                 x_s = data[list(itertools.chain(regressors))]
-                reg = LinearRegression(fit_intercept=False).fit(x_s.values, y_all.values)
+                reg = LinearRegression(fit_intercept=False).fit(x_s.values, \
+                                                                y_all.values)
 
-                #Use the normalized e_ins to compute the residuals + Find p_values for every environment
+                #Use the normalized e_ins to compute the residuals +
+                #Find p_values for every environment
                 assert len(e_ins_store.keys()) > 1   #For validation performance
-                for env in e_ins_store.keys():
+                for env in e_ins_store:
                     e_in = e_ins_store[env]
                     e_out = np.logical_not(e_in)
 
-                    if (e_in.sum() < 2) or (len(e_out) - e_out.sum() < 2) :  #No data from environment
-                        raise Exception('Not enough data in environment to do the computation')
+                    #No data from environment
+                    if (e_in.sum() < 2) or (len(e_out) - e_out.sum() < 2):
+                        raise Exception('Not enough data in environment')
 
-                    res_in = (
-                    y_all.loc[e_in].values - reg.predict(\
+                    res_in = (y_all.loc[e_in].values - reg.predict(\
                               x_s.loc[e_in].values)).ravel()
 
                     res_out = (y_all.loc[e_out].values - reg.predict(
@@ -645,17 +651,21 @@ class InvariantCausalPrediction(InvarianceBase):
 
                     #Check for NaNs
                     if (self.mean_var_test(res_in, res_out) is np.nan) or \
-                    (self.mean_var_test(res_in, res_out) != self.mean_var_test(res_in, res_out)):
+                    (self.mean_var_test(res_in, res_out) != \
+                    self.mean_var_test(res_in, res_out)):
                         full_res[str(subset)][str(env)] = 'NaN'
                     else:
-                        full_res[str(subset)][str(env)] = self.mean_var_test(res_in,
-                                                                        res_out)
+                        full_res[str(subset)][str(env)] = \
+                            self.mean_var_test(res_in, res_out)
 
                 # # TODO: Jonas uses "min(p_values) * len(environments) - 1"
-                full_res[str(subset)]['Final_tstat'] = min([p for p in full_res[str(subset)].values() if type(p) != str]) * len(e_ins_store.keys())
+                full_res[str(subset)]['Final_tstat'] = min( \
+                            [p for p in full_res[str(subset)].values() \
+                             if not isinstance(p, str)]) * \
+                             len(e_ins_store.keys())
 
 
             logging.info('Enumerated all steps')
 
             #Save results
-            json.dump(full_res, rawres, indent=4, separators=(',',':'))
+            json.dump(full_res, rawres, indent=4, separators=(',', ':'))

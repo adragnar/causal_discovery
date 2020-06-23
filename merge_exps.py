@@ -7,11 +7,14 @@ import pandas as pd
 import aggregate as agg
 
 def format_experiments(resdir):
-    '''Given experiment folders pulled raw from server, combine into new directory)'''
+    '''Given experiment folders pulled raw from server, combine into
+       new directory)'''
+
     def iterate_dirs(d):
         return [r for r in os.listdir(d) if (not r.startswith('.'))]
     def iterate_files(d):
-        return [r for r in os.listdir(d) if ((not r.startswith('.')) and ('.' in r))]
+        return [r for r in os.listdir(d) \
+                if ((not r.startswith('.')) and ('.' in r))]
 
     algo_dict = {}
     for edir in iterate_dirs(resdir):
@@ -29,7 +32,8 @@ def format_experiments(resdir):
         for fname in iterate_files(expdir):
 
             #Copy everything into relevant internal folder
-            if (fname != 'cmdfile.sh') and ('paramfile' not in fname) and ('code' not in fname):
+            if (fname != 'cmdfile.sh') and ('paramfile' not in fname) \
+                                       and ('code' not in fname):
                 shutil.move(join(expdir, fname), join(cd, fname))
 
             #Associate algos with folders
@@ -63,7 +67,7 @@ def format_experiments(resdir):
         if expdir in old_names:
             shutil.rmtree(expdir)  #Delete old folders
         else:
-            agg.aggregate_loader(expdir, 'data', edir)  #Aggregate remaining ones
+            agg.aggregate_loader(expdir, 'data', edir)  #Aggregate remaining
 
 
 
@@ -77,7 +81,7 @@ def merge_exps(newdir, e1, e2):
     #Assert experiments compatible
     e1_algo = [a.split('_')[0] for a in os.listdir(e1) if 'paramfile' in a]
     e2_algo = [a.split('_')[0] for a in os.listdir(e2) if 'paramfile' in a]
-    assert len(e1_algo) == 1; assert len(e2_algo) == 1;
+    assert (len(e1_algo) == 1) and (len(e2_algo) == 1)
     assert e1_algo[0] == e2_algo[0]
     new_algo = e1_algo[0]
 
@@ -112,7 +116,7 @@ def merge_exps(newdir, e1, e2):
     #Get the types of files
     uniq_ftypes = set()
     for f in os.listdir(join(e1, 'causal_discovery')):
-         uniq_ftypes.add(f.split('_')[0])
+        uniq_ftypes.add(f.split('_')[0])
 
     #Copy e1 files into newdir
     for f in os.listdir(join(e1, 'causal_discovery')):
@@ -140,11 +144,6 @@ def merge_exps(newdir, e1, e2):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Params')
-    # parser.add_argument("e1_dir", type=str)
-    # parser.add_argument("e2_dir", type=str)
-    # parser.add_argument("newdir", type=str)
-    # args = parser.parse_args()
-    # merge_exps(args.newdir, args.e1_dir, args.e2_dir)
     parser.add_argument("r_dir", type=str)
     args = parser.parse_args()
     format_experiments(args.r_dir)

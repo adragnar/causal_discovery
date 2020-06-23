@@ -4,7 +4,8 @@ import torch
 def powerset(iterable):
     "powerset([1,2,3]) --> () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)"
     s = list(iterable)
-    return list(chain.from_iterable(combinations(s, r) for r in range(len(s)+1)))
+    return list(chain.from_iterable(combinations(s, r) \
+                for r in range(len(s) + 1)))
 
 def dname_from_fpath(fpath):
     '''Return name of dataset from its filepath'''
@@ -19,8 +20,7 @@ def proc_fteng(ft):
     '''Convert the fteng string into appropiate list of modifications to make'''
     if ft == '-1':
         return []
-    else:
-        return [int(c) for c in ft]
+    return [int(c) for c in ft]
 
 def str_2_strlist_parser(envs):
     '''Convert a string of a list of strings without spaces into a list'''

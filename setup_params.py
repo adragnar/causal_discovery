@@ -2,9 +2,7 @@
 commands with all combinations of argument inputs '''
 
 import argparse
-import itertools
 import pandas as pd
-import os
 import utils
 
 def cmd_append(cstr, newstr):
@@ -19,7 +17,7 @@ def cmd_append(cstr, newstr):
     return cstr
 
 
-def unid_from_algo(id, a=None, data=None, env=None):
+def unid_from_algo(id_val, a=None, data=None, env=None):
     '''Generate name of experiment filename descriptor
     :param id: Unique numerical identiifer
     :param a: Name of algo used (String)
@@ -28,18 +26,18 @@ def unid_from_algo(id, a=None, data=None, env=None):
     :param env: The env names to be included (list)
     '''
 
-    if (a == 'icp') or (a == 'irm') or (a == 'linear-irm'):
+    if a in ['icp', 'irm', 'linear-irm']:
         uniqueid = '''{id}_{algo}_{data}_{env_list}'''
-        uniqueid= uniqueid.format(
-            id=id,
+        uniqueid = uniqueid.format(
+            id=id_val,
             algo=a,
             data=utils.dname_from_fpath(data),
             env_list=list_2_string(env, '--')
         )
-    elif (a == 'linreg') or (a == 'logreg') or (a == 'mlp') or (a == 'constant'):
+    elif a in ['linreg', 'logreg', 'mlp', 'constant']:
         uniqueid = '''{id}_{algo}_{data}'''
-        uniqueid= uniqueid.format(
-            id=id,
+        uniqueid = uniqueid.format(
+            id=id_val,
             algo=a,
             data=utils.dname_from_fpath(data),
         )
@@ -54,7 +52,7 @@ def list_2_string(elems, bchar):
     :param bchar: buffer character
     :return:
     '''
-    uid=''
+    uid = ''
     for i, e in enumerate(elems):
         if len(elems) == 1:
             uid = '{}'.format(e)
@@ -69,8 +67,7 @@ def list_2_string(elems, bchar):
 def threshold(num):
     if num == 0:
         return 0
-    else:
-        return 1
+    return 1
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Params')
@@ -138,14 +135,14 @@ if __name__ == '__main__':
         print("test_info?:", args.test_info)
         quit()
 
-    id = args.id
+    id_val = args.id
 
     #First get unique Ids
     if args.algo in ['icp', 'irm', 'linear-irm']:
-        uniqueid = unid_from_algo(id, a=args.algo, \
+        uniqueid = unid_from_algo(id_val, a=args.algo, \
                                   data=args.datafname, env=args.env_att)
     elif args.algo in ['linreg', 'logreg', 'mlp', 'constant']:
-        uniqueid = unid_from_algo(id, a=args.algo, \
+        uniqueid = unid_from_algo(id_val, a=args.algo, \
                                   data=args.datafname)
     else:
         raise Exception('ALgo Unimplemented')
@@ -154,7 +151,7 @@ if __name__ == '__main__':
     command_str = \
         '''python main.py {id} {algo} {data} {expdir} -fteng {feat_eng} -reduce_dsize {d_size} -binarize {bin} -seed {s} -test_info {test}\n'''
     command_str = command_str.format(
-        id=id,
+        id=id_val,
         algo=args.algo,
         data=args.datafname,
         expdir=args.expdir,
@@ -164,7 +161,8 @@ if __name__ == '__main__':
         s=args.seed,
         test=args.test_info,
     )
-    add = [id, args.algo, args.fteng, utils.dname_from_fpath(args.datafname), \
+    add = [id_val, args.algo, args.fteng, \
+           utils.dname_from_fpath(args.datafname), \
            args.seed, args.reduce_dsize, args.binarize, args.test_info]
     parameter_cols = ['Id', 'Algo', 'Fteng', 'Dataset', 'Seed', \
                           'ReduceDsize', 'Bin', 'TestSet']
@@ -187,16 +185,16 @@ if __name__ == '__main__':
         if args.algo in ['irm', 'linear-irm']:
             command_str = cmd_append(command_str, \
                           ('-irm_lr {lr}' + \
-                          ' -irm_niter {niter}' ' -irm_l2 {l2}' + \
-                          ' -irm_penalty_anneal {n_ann}' + \
-                          ' -irm_penalty_weight {pen_weight}' +\
-                          ' -irm_hid_layers {hid}').format(
-                          lr=args.irm_lr,
-                          niter=args.irm_niter,
-                          l2=args.irm_l2,
-                          n_ann=args.irm_penalty_anneal,
-                          pen_weight=args.irm_penalty_weight,
-                          hid=args.irm_hid_layers)
+                            ' -irm_niter {niter}' ' -irm_l2 {l2}' + \
+                            ' -irm_penalty_anneal {n_ann}' + \
+                            ' -irm_penalty_weight {pen_weight}' + \
+                            ' -irm_hid_layers {hid}').format(
+                            lr=args.irm_lr,
+                            niter=args.irm_niter,
+                            l2=args.irm_l2,
+                            n_ann=args.irm_penalty_anneal,
+                            pen_weight=args.irm_penalty_weight,
+                            hid=args.irm_hid_layers)
                           )
             add.extend([args.irm_lr, args.irm_niter, args.irm_l2, \
                         args.irm_penalty_anneal, \

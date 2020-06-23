@@ -1,42 +1,25 @@
 import argparse
-import csv
-import pickle
-import itertools
-import json
 import logging
 import os
-from sklearn.linear_model import LinearRegression
-from sklearn.model_selection import train_test_split
+import random
 import warnings
-import pandas as pd
-from tqdm import tqdm
-from itertools import combinations
 
-from utils import powerset, dname_from_fpath, proc_fteng
-import data_processing as dp
-import environment_processing as eproc
 import algo_hyperparams as ahp
+import data_processing as dp
+import models
+from utils import dname_from_fpath, proc_fteng
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 warnings.simplefilter(action='ignore', category=RuntimeWarning)
 
-#########################################
-import numpy as np
-from scipy.stats import f as fdist
-from scipy.stats import ttest_ind
-
-import random
-import models
-import utils
-
-
-def default(id, algo, dataset_fname, expdir, env_atts_types, feateng_type='-1', \
-            d_size=-1, bin_env=False, eq_estrat=-1, SEED=100, test_info='-1',\
-            val_split=0.0, irm_args={}, linear_irm_args={}, mlp_args={}, \
-            linreg_args={}, logreg_args={}, toy_data=[False], testing=False):
+def default(id_val, algo, dataset_fname, expdir, env_atts_types, \
+            feateng_type='-1', d_size=-1, bin_env=False, eq_estrat=-1, SEED=100,
+            test_info='-1',val_split=0.0, irm_args={}, linear_irm_args={}, \
+            mlp_args={}, linreg_args={}, logreg_args={}, \
+            toy_data=[False], testing=False):
 
     '''
-    :param id: Numerical identifier for run (str)
+    :param id_val: Numerical identifier for run (str)
     :param algo: Name of algo to be applied (str)
     :param dataset_fname: path to dataset (str)
     :param expdir: directory where results stored (str)
@@ -52,15 +35,16 @@ def default(id, algo, dataset_fname, expdir, env_atts_types, feateng_type='-1', 
     random.seed(SEED)
 
     #Meta-function Accounting
-    unid = '''{}_{}_{}_{}_{}_{}'''.format(id, feateng_type,\
-                                       dname_from_fpath(dataset_fname), \
-                                       str(d_size), \
-                                       str(SEED), \
-                                       ''.join([str(f) for f in env_atts_types])
-                                       )
+    unid = '''{}_{}_{}_{}_{}_{}'''.format(id_val, feateng_type,\
+                                          dname_from_fpath(dataset_fname), \
+                                          str(d_size), \
+                                          str(SEED), \
+                                          ''.join([str(f) \
+                                                   for f in env_atts_types])
+                                         )
     logger_fname = os.path.join(expdir, 'log_{}.txt'.format(unid))
     logging.basicConfig(filename=logger_fname, level=logging.DEBUG)
-    logging.info('id: {}'.format(id))
+    logging.info('id: {}'.format(id_val))
     logging.info('algo: {}'.format(algo))
     logging.info('fteng: {}'.format(feateng_type))
     logging.info('dataset: {}'.format(dname_from_fpath(dataset_fname)))
@@ -72,36 +56,38 @@ def default(id, algo, dataset_fname, expdir, env_atts_types, feateng_type='-1', 
     logging.info('test_info: {}'.format(test_info))
 
     #Select correct dataset
-    data, y_all, d_atts = dp.data_loader(dataset_fname, proc_fteng(feateng_type), dsize=d_size, \
-                                    bin=bin_env, toy=toy_data, testing=testing)
-    logging.info('{} Dataset loaded - size {}'.format(dataset_fname.split('/')[-1], \
-                str(data.shape)))
+    data, y_all, d_atts = dp.data_loader(dataset_fname, \
+                                proc_fteng(feateng_type), dsize=d_size, \
+                                binar=bin_env, toy=toy_data, testing=testing)
+    logging.info('{} Dataset loaded - size {}'.format(\
+                                dataset_fname.split('/')[-1], str(data.shape)))
 
     # #Remove Validation and Test Data
     data, y_all, d_atts, _, _, _, _ = dp.train_val_test_split(\
                                          data, y_all, d_atts, val_split, \
                                          test_info, SEED)
 
-    logging.info('Val, Test Environment Removed - Dataset size {}'.format(str(data.shape)))
+    logging.info('Val, Test Environment Removed - Dataset size {}'.format(\
+                                                              str(data.shape)))
 
     if algo == 'icp':
         icp = models.InvariantCausalPrediction()
         icp.run(data, y_all, d_atts, unid, expdir, proc_fteng(feateng_type), \
-                SEED, env_atts_types, eq_estrat)
+                 env_atts_types)
 
     elif algo == 'irm':
-        assert len(irm_args) > 0
+        assert irm_args > 0
         logging.info('irm_params: {}'.format(str(irm_args)))
         irm = models.InvariantRiskMinimization()
-        irm.run(data, y_all, d_atts, unid, expdir, SEED, env_atts_types, eq_estrat, \
-                irm_args)
+        irm.run(data, y_all, d_atts, unid, expdir, SEED, env_atts_types, \
+                eq_estrat, irm_args)
 
     elif algo == 'linear-irm':
-        assert len(linear_irm_args) > 0
+        assert linear_irm_args > 0
         logging.info('linear-irm_params: {}'.format(str(linear_irm_args)))
         l_irm = models.LinearInvariantRiskMinimization()
-        l_irm.run(data, y_all, d_atts, unid, expdir, SEED, env_atts_types, eq_estrat, \
-                linear_irm_args)
+        l_irm.run(data, y_all, d_atts, unid, expdir, SEED, env_atts_types, \
+                  eq_estrat, linear_irm_args)
 
     elif algo == 'mlp':
         mlp = models.MLP()
@@ -202,7 +188,7 @@ if __name__ == '__main__':
         mlp_args = {'lr':args.mlp_lr, \
                      'n_iterations':args.mlp_niter, \
                      'l2_reg':args.mlp_l2, \
-                     'hid_layers':args.mlp_hid_layers }
+                     'hid_layers':args.mlp_hid_layers}
 
         linreg_args = {'lambda':args.linreg_lambda}
         logreg_args = {'C':args.logreg_c}
@@ -216,7 +202,8 @@ if __name__ == '__main__':
 
     default(args.id, args.algo, args.data_fname, args.expdir, [args.env_atts], \
            feateng_type=args.fteng, d_size=args.reduce_dsize, \
-           bin_env=bool(args.binarize), eq_estrat=args.eq_estrat, SEED=args.seed, \
-           test_info=args.test_info, val_split=args.val_split, testing=args.testing, \
-           irm_args=irm_args, linear_irm_args=linear_irm_args, mlp_args=mlp_args, \
+           bin_env=bool(args.binarize), eq_estrat=args.eq_estrat, \
+           SEED=args.seed, test_info=args.test_info, val_split=args.val_split, \
+           testing=args.testing, irm_args=irm_args, \
+           linear_irm_args=linear_irm_args, mlp_args=mlp_args, \
            linreg_args=linreg_args, logreg_args=logreg_args)

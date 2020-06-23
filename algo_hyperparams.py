@@ -2,7 +2,7 @@ from utils import dname_from_fpath
 
 def get_irm_args(dset_fname):
     if dname_from_fpath(dset_fname) == 'adult':
-        args =  {'lr': 0.01, \
+        args = {'lr': 0.01, \
                  'n_iterations':3000, \
                  'penalty_anneal_iters':500, \
                  'l2_reg':0.0001, \
@@ -11,7 +11,7 @@ def get_irm_args(dset_fname):
                  'verbose':True}
 
     elif dname_from_fpath(dset_fname) == 'german':
-        args =  {'lr':0.0001, \
+        args = {'lr':0.0001, \
                  'n_iterations':2000, \
                  'penalty_anneal_iters':100, \
                  'l2_reg':0.001, \
@@ -25,7 +25,7 @@ def get_irm_args(dset_fname):
     return args
 
 def get_linear_irm_args(dset_fname):
-    args =  {'lr': 0.01, \
+    args = {'lr': 0.01, \
              'n_iterations':1000, \
              'penalty_anneal_iters':1, \
              'l2_reg':0.0, \
@@ -35,7 +35,7 @@ def get_linear_irm_args(dset_fname):
     return args
 
 def get_mlp_args(dset_fname):
-    args =  {'lr': 0.0001, \
+    args = {'lr': 0.0001, \
              'n_iterations':5000, \
              'l2_reg':0.0001, \
              'hid_layers':50}
@@ -43,9 +43,9 @@ def get_mlp_args(dset_fname):
     return args
 
 def get_linreg_args(dset_fname):
-    args =  {'lambda':1e-5}
+    args = {'lambda':1e-5}
     return args
 
 def get_logreg_args(dset_fname):
-    args =  {'C':0.001}
+    args = {'C':0.001}
     return args

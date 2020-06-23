@@ -1,8 +1,6 @@
 import argparse
-import csv
 import enum
 import json
-import pickle
 import os
 from os.path import join
 import shutil
@@ -10,11 +8,6 @@ import warnings
 
 import numpy as np
 import pandas as pd
-
-import copy
-import itertools
-from collections import Counter
-import pprint
 
 import models
 import data_processing as dp
@@ -38,14 +31,14 @@ def open_pvals(filename):
 def str_2_pcp(pcpstr):
     pcpstr = (pcpstr.split('(')[1]).split(')')[0]
     pcpstr = pcpstr.replace(' ', '')
-    ret = set([e.strip("'") for e in pcpstr.split(',')])
+    ret = {e.strip("'") for e in pcpstr.split(',')}
     ret.discard('')
     return ret
 
 class POS(enum.Enum):
-   big = 1
-   small = 2
-   perf = 3
+    big = 1
+    small = 2
+    perf = 3
 
 #Alpha tuning values
 START_ALPHA = 1.0
@@ -177,20 +170,20 @@ def alpha_tune(pVals, amin, flag=0):
     #Establish 0-padding to interval
     interval = abs(a1 - a2)/5
 
-    assert (a2 < a0) and (a0 < a1)
+    assert (a2 < a0 < a1)
 
     return (max(0, a2 - interval), a1 + interval)
 
 
 def max_alpha(pVals, arange, eps=1000):
-    '''Given a computed range of CP returning alphas (maybe with interval) and pvals for exp, return highest CP returning alpha'''
+    '''Given a computed range of CP returning alphas (maybe with interval) and \
+       pvals for exp, return highest CP returning alpha'''
     ctr = arange[1]
     while ctr > arange[0]:
         accepted = pVals[pVals['Final_tstat'] > ctr]
         if len(accepted.index) > 0:
             return ctr
-        else:
-            ctr = ctr - (arange[1] - arange[0])/eps
+        ctr = ctr - (arange[1] - arange[0])/eps
     return -1
 
 
@@ -218,7 +211,7 @@ def icp_process(res_dir, dset_dir, name, NUM_POINTS=100, MIN_ALPHA=1e-10):
     expdir, paramfile, params = base_process(res_dir, dset_dir, name)
 
     #Collect all raw files
-    rawres_files= []
+    rawres_files = []
     for f in os.listdir(expdir):
         if ('rawres_' in f):
             rawres_files.append(f)
@@ -232,29 +225,29 @@ def icp_process(res_dir, dset_dir, name, NUM_POINTS=100, MIN_ALPHA=1e-10):
         pvals = open_pvals(os.path.join(expdir, fname))
         if pvals is None:
             continue
-        id = get_id_from_fname(fname)
+        id_val = get_id_from_fname(fname)
         arange = alpha_tune(pvals, MIN_ALPHA)
-        params.loc[id, 'alpha_start'] = arange[0]
-        params.loc[id, 'alpha_stop'] = arange[1]
-        params.loc[id, 'max_alpha'] = max_alpha(pvals, arange)
+        params.loc[id_val, 'alpha_start'] = arange[0]
+        params.loc[id_val, 'alpha_stop'] = arange[1]
+        params.loc[id_val, 'max_alpha'] = max_alpha(pvals, arange)
 
     #Generate All Other Derivative Results
     params['coeffs'] = np.NaN
     for fname in rawres_files:
-        id = get_id_from_fname(fname)
+        id_val = get_id_from_fname(fname)
 
         #Get Data
-        if params.loc[id, 'Dataset'] ==  'adult':
+        if params.loc[id_val, 'Dataset'] == 'adult':
             dataset_fname = os.path.join(dset_dir, 'adult.csv')
-        elif params.loc[id, 'Dataset'] ==  'german':
+        elif params.loc[id_val, 'Dataset'] == 'german':
             dataset_fname = os.path.join(dset_dir, 'germanCredit.csv')
         else:
             raise Exception('Dataset not imlemented')
 
         data, y_all, d_atts = dp.data_loader(dataset_fname, \
-                            utils.proc_fteng(params.loc[id, 'Fteng']), \
-                            dsize=int(params.loc[id, 'ReduceDsize']), \
-                            bin=int(params.loc[id, 'Bin']), \
+                            utils.proc_fteng(params.loc[id_val, 'Fteng']), \
+                            dsize=int(params.loc[id_val, 'ReduceDsize']), \
+                            bin=int(params.loc[id_val, 'Bin']), \
                             testing=0)
 
         # env_datts = {e:d_atts[e]}
@@ -266,22 +259,24 @@ def icp_process(res_dir, dset_dir, name, NUM_POINTS=100, MIN_ALPHA=1e-10):
             continue
 
         #Get the Causal Predictors, Regressors
-        accepted = pvals[pvals['Final_tstat'] > params.loc[id, 'max_alpha']]
+        accepted = pvals[pvals['Final_tstat'] > params.loc[id_val, 'max_alpha']]
         accepted_sets = [str_2_pcp(a) for a in list(accepted.index)]
         causal_preds = set.intersection(*accepted_sets)
 
         icp = models.InvariantCausalPrediction()
         causal_preds = icp.get_data_regressors(d_atts, causal_preds, \
-                                utils.proc_fteng(params.loc[id, 'Fteng']), data)
+                                utils.proc_fteng(params.loc[id_val, 'Fteng']), \
+                                                 data)
 
 
         ##Get the Coefficients of the Predictor
-        res = icp.get_coeffs(causal_preds, data, y_all)  #, env_datts, eq_estrat, params.loc[id, 'Seed'])
+        res = icp.get_coeffs(causal_preds, data, y_all)
 
         #Store Results in HDD and param df
         coeffs_fname = os.path.join(savedir, '{}_coeffs.pkl'.format(id))
         pd.to_pickle(res, coeffs_fname)
-        params.loc[id, 'coeffs'] = join('icp/processed_results', '{}_coeffs.pkl'.format(id))
+        params.loc[id_val, 'coeffs'] = join('icp/processed_results', \
+                                        '{}_coeffs.pkl'.format(id))
 
     pd.to_pickle(params, paramfile)
 
@@ -292,12 +287,13 @@ def irm_process(res_dir, dset_dir, name):
     # params['w'] = np.NaN
 
     for fname in os.listdir(expdir):
-        id = get_id_from_fname(fname)
+        id_val = get_id_from_fname(fname)
         ftype = get_ftype_from_fname(fname)
         if ftype == 'phi':
-            params.loc[id, 'phi'] = join(name, join('causal_discovery', fname))
+            params.loc[id_val, 'phi'] = join(name, join('causal_discovery', \
+                                                        fname))
         # elif ftype == 'w':
-        #     params.loc[id, 'w'] = os.path.join(expdir, fname)
+        #     params.loc[id_val, 'w'] = os.path.join(expdir, fname)
 
     pd.to_pickle(params, paramfile)
 
@@ -307,10 +303,12 @@ def regression_process(res_dir, dset_dir, name):
     #Load Coefficients into dataframe
     params['regressors'] = np.NaN
     for fname in os.listdir(expdir):
-        id = get_id_from_fname(fname)
+        id_val = get_id_from_fname(fname)
         ftype = get_ftype_from_fname(fname)
         if ftype == 'regs':
-            params.loc[id, 'regressors'] = join(name, join('causal_discovery', fname))
+            params.loc[id_val, 'regressors'] = join(name, join( \
+                                                          'causal_discovery', \
+                                                           fname))
 
     pd.to_pickle(params, paramfile)
 
@@ -327,10 +325,11 @@ def mlp_process(res_dir, dset_dir, name):
     #Load weights into dataframe
     params['weights'] = np.NaN
     for fname in os.listdir(expdir):
-        id = get_id_from_fname(fname)
+        id_val = get_id_from_fname(fname)
         ftype = get_ftype_from_fname(fname)
         if ftype == 'wgts':
-            params.loc[id, 'weights'] = join(name, join('causal_discovery', fname))
+            params.loc[id_val, 'weights'] = join(name, join('causal_discovery', \
+                                                        fname))
 
     pd.to_pickle(params, paramfile)
 
@@ -343,9 +342,9 @@ def constant_process(res_dir, dset_dir, name):
 def aggregate_loader(resdir, dsetdir, algo):
     if algo == 'icp':
         icp_process(resdir, dsetdir, algo)
-    elif (algo == 'irm') or (algo == 'linear-irm'):
+    elif algo in ['irm', 'linear-irm']:
         irm_process(resdir, dsetdir, algo)
-    elif (algo == 'linreg') or (algo == 'logreg'):
+    elif algo in ['linreg', 'logreg']:
         regression_process(resdir, dsetdir, algo)
     elif (algo == 'constant'):
         constant_process(resdir, dsetdir, algo)

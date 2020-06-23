@@ -1,11 +1,6 @@
-import argparse
-import pickle
-from time import time
-
 from itertools import combinations
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 from sklearn.model_selection import train_test_split
 from utils import dname_from_fpath
 
@@ -26,9 +21,9 @@ def train_val_test_split(data, labels, d_atts, val=0.0, test='-1', seed=1000):
 
     #Remove Validation Data
     if val != 0.0:
-        assert (0 < val) and (val < 1)
-        data, val_data, labels, val_labels = train_test_split(data, labels, test_size=val, \
-                                             random_state=seed)
+        assert (0 < val < 1)
+        data, val_data, labels, val_labels = train_test_split(data, labels, \
+                                               test_size=val, random_state=seed)
     else:
         val_data, val_labels = pd.DataFrame(), pd.DataFrame()
 
@@ -41,34 +36,36 @@ def train_val_test_split(data, labels, d_atts, val=0.0, test='-1', seed=1000):
 
         d_atts[evar].remove(test)
         test_data, test_labels = data[test_ein.values], labels[test_ein.values]
-        data, labels = data[np.logical_not(test_ein.values)], labels[np.logical_not(test_ein.values)]
+        data, labels = data[np.logical_not(test_ein.values)], \
+                            labels[np.logical_not(test_ein.values)]
     else:
         test_data, test_labels = pd.DataFrame(), pd.DataFrame()
 
     return data, labels, d_atts, val_data, val_labels, test_data, test_labels
 
-def data_loader(fname, fteng, dsize=-1, bin=0, toy=[False], seed=1000, testing=0):
+def data_loader(fname, fteng, dsize=-1, binar=0, toy=[False], seed=1000,
+                testing=0):
     '''From dataset name, optional flags, return dataset, labels,
     and column names
 
     :param fname - path to dataset (csv)
     :param fteng - list of ints, dataset transforms
     :param reduce_size: subsample data -1 for None, val for size of dataset
-    :param bin - binarize environments - 0 for No, 1 for yes
+    :param binar - binarize environments - 0 for No, 1 for yes
     :param toy - If not = [False], = [True, data, y_all, d_atts]
     '''
 
-    if toy[0] == True:
+    if toy[0]:
         data, y_all, d_atts = toy[1], toy[2], toy[3]
     elif dname_from_fpath(fname) == 'adult':
         data, y_all, d_atts = adult_dataset_processing(fname, \
                               fteng, reduce_dsize=dsize, \
-                              bin=bin, seed=seed, \
+                              binar=binar, seed=seed, \
                               testing=testing)
     elif dname_from_fpath(fname) == 'german':
-        assert (seed==1000)
+        assert (seed == 1000)
         data, y_all, d_atts = german_credit_dataset_processing(fname, \
-                              fteng, bin=bin, \
+                              fteng, binar=binar, \
                               testing=testing)
 
     return data, y_all, d_atts
@@ -100,15 +97,15 @@ def data_conversion(data, categorical_feats, continous_feats, predictor, fteng):
                 data[(col + '_sq')] = data[col] ** 2
 
     if 2 in fteng:  #add new col with multiplied feats
-            for cp in [com for com in combinations(orig_cols, 2) \
-                       if (com[0].split('_')[0] != com[1].split('_')[0])]:
-                data[(cp[0] + '_x_' + cp[1])] = data[cp[0]] * data[cp[1]]
+        for cp in [com for com in combinations(orig_cols, 2) \
+                   if (com[0].split('_')[0] != com[1].split('_')[0])]:
+            data[(cp[0] + '_x_' + cp[1])] = data[cp[0]] * data[cp[1]]
 
     #Note - doing a logical or of features will break dummy encoding
 
 
     #Get the unmodified attribute classes for possible envs
-    all_cats={cat:[] for cat in (categorical_feats + continous_feats)}
+    all_cats = {cat:[] for cat in (categorical_feats + continous_feats)}
 
     for col in data.columns:
         for cat in all_cats:
@@ -121,16 +118,18 @@ def data_conversion(data, categorical_feats, continous_feats, predictor, fteng):
     print(data.shape)
     return data, labels, all_cats
 
-def adult_dataset_processing(fname, fteng, reduce_dsize=-1, bin=False, \
+def adult_dataset_processing(fname, fteng, reduce_dsize=-1, binar=False, \
                              seed=1000, testing=False):
     '''Process the adult dataset from csv. Return the dataframe, as well as a
-        list of columns that must be treated as one block during the enumeration of plausible causal predictors
+        list of columns that must be treated as one block during the enumeration
+        of plausible causal predictors
 
         fteng: List of the feature engineering steps to do on data.
         1) Introtuce products of cat + cont vars
         2) Introduce square of cont vars
         3) Convert education to continous
-        reduce_dsize: The size of randomly sampled rows from dset to take. -1 if not applicable
+        reduce_dsize: The size of randomly sampled rows from dset to take. -1
+        if not applicable
 
         :return: cleaned dataframe with info
         '''
@@ -142,13 +141,6 @@ def adult_dataset_processing(fname, fteng, reduce_dsize=-1, bin=False, \
 
     # let's first count how many missing entries there are for each feature
     col_names = data.columns
-    num_rows = data.shape[0]
-
-    # next let's throw out all rows (samples) with 1 or more "?"
-    # Hint: take a look at what data[data["income"] != ">50K"] returns
-    # Hint: if data[field] do not contain strings then data["income"] != ">50K" will return an error
-
-    ######
 
     # 2.3 YOUR CODE HERE
     for feature in col_names:
@@ -167,17 +159,20 @@ def adult_dataset_processing(fname, fteng, reduce_dsize=-1, bin=False, \
     data.drop('educational-num', axis=1, inplace=True)
     data.drop('fnlwgt', axis=1, inplace=True)
     data = data[data['native-country'] != 'South']  #no entries
-    # data = data[data['native-country'] != 'Holand-Netherlands']  #too few entries
+    # data = data[data['native-country'] != 'Holand-Netherlands']  #too few ents
     data = data[(data['workclass'] != 'Without-pay') & \
             (data['workclass'] != 'Never-worked')] #small num-_entries (21)
     data = data[(data['occupation'] != 'Armed-Forces')] #small num-_entries (14)
 
     #NOTE - These lists aren't MECE
     cat_feats = {'workclass':{'selfWork':['Self-emp-not-inc', 'Self-emp-inc'], \
-                              'govWork':['Federal-gov', 'Local-gov', 'State-gov'], \
+                              'govWork':['Federal-gov', 'Local-gov', \
+                                         'State-gov'], \
                               'privateWork':['Private']}, \
                  'education':{}, \
-                 'marital-status':{'married':['Married-civ-spouse', 'Married-spouse-absent', 'Married-AF-spouse', 'Widowed'],\
+                 'marital-status':{'married':['Married-civ-spouse', \
+                                              'Married-spouse-absent', \
+                                              'Married-AF-spouse', 'Widowed'],\
                                    'divorced':['Divorced', 'Separated'], \
                                    'neither':['Never-married']}, \
                  'occupation':{'craft':['Craft-repair'],
@@ -185,40 +180,54 @@ def adult_dataset_processing(fname, fteng, reduce_dsize=-1, bin=False, \
                                'manager':['Exec-managerial'],
                                'secretary':['Adm-clerical'],
                                'sales':['Sales'],
-                               'other':['Other-service', 'Protective-serv', 'Priv-house-serv'],
+                               'other':['Other-service', 'Protective-serv', \
+                                        'Priv-house-serv'],
                                'machine':['Machine-op-inspct'],
                                'transport':['Transport-moving'],
                                'cleaners':['Handlers-cleaners'],
                                'agriculture':['Farming-fishing'],
                                'infotech':['Tech-support'],}, \
                  'relationship':{'spouse':['Husband', 'Wife'],
-                                 'nofam':['Unmarried', 'Other-relative', 'Not-in-family'],
+                                 'nofam':['Unmarried', 'Other-relative', \
+                                          'Not-in-family'],
                                  'ownchild':['Own-child']}, \
                  'race':{}, \
                  'gender':{}, \
-                 'native-country':{'highHDI':['United-States', 'England', 'Canada', 'Germany', 'Japan', 'Greece', \
-                                              'Italy', 'Poland', 'Portugal', 'Ireland', 'France', 'Hungary', 'Scotland', 'Hong', 'Holand-Netherlands'], \
-                                   'midHDI':['Puerto-Rico', 'Outlying-US(Guam-USVI-etc)', 'Cuba', 'Iran', 'Jamaica', \
-                                             'Mexico', 'Dominican-Republic', 'Ecuador', 'Taiwan', 'Columbia', 'Thailand', 'Yugoslavia', \
+                 'native-country':{'highHDI':['United-States', 'England', \
+                                              'Canada', 'Germany', 'Japan', \
+                                              'Greece', 'Italy', 'Poland', \
+                                              'Portugal', 'Ireland', 'France', \
+                                              'Hungary', 'Scotland', 'Hong', \
+                                              'Holand-Netherlands'], \
+                                   'midHDI':['Puerto-Rico', \
+                                             'Outlying-US(Guam-USVI-etc)', \
+                                             'Cuba', 'Iran', 'Jamaica', \
+                                             'Mexico', 'Dominican-Republic', \
+                                             'Ecuador', 'Taiwan', 'Columbia', \
+                                             'Thailand', 'Yugoslavia', \
                                              'Trinadad&Tobago', 'Peru'], \
-                                   'lowHDI':['Cambodia', 'India', 'China', 'Honduras', 'Philippines', 'Vietnam', 'Laos', 'Haiti', \
-                                             'Guatemala', 'Nicaragua', 'El-Salvador']}
+                                   'lowHDI':['Cambodia', 'India', 'China', \
+                                             'Honduras', 'Philippines', \
+                                             'Vietnam', 'Laos', 'Haiti', \
+                                             'Guatemala', 'Nicaragua', \
+                                             'El-Salvador']}
                  }
     cont_feats = ['age', 'capital-gain', \
                        'capital-loss', 'hours-per-week']
     pred_feats = 'income'
 
     #Custom binarize the stratification categories
-    if bin:
+    if binar:
         print('hi')
-        for ft in cat_feats:
-            for agg_ft in cat_feats[ft]:
-                data[ft] = data[ft].apply(lambda val: agg_ft if val in cat_feats[ft][agg_ft] else val)
+        for ft, agg_ft in cat_feats.items():
+            data[ft] = data[ft].apply(\
+                lambda val: agg_ft if val in cat_feats[ft][agg_ft] else val)
 
     if testing:  #Return dataset before processing for testing
         return data
 
-    return data_conversion(data, list(cat_feats.keys()), cont_feats, pred_feats, fteng)
+    return data_conversion(data, list(cat_feats.keys()), cont_feats, \
+                                      pred_feats, fteng)
 
     #Custom binarize the stratification categories
     # if testing:
@@ -230,7 +239,7 @@ def adult_dataset_processing(fname, fteng, reduce_dsize=-1, bin=False, \
     #     quit()
 
 
-def german_credit_dataset_processing(fname, fteng=[], bin=False, testing=False):
+def german_credit_dataset_processing(fname, fteng=[], binar=False, testing=False):
     data = pd.read_csv(fname)
 
     #Get rid of unwanted stuff before making feat lists
@@ -258,28 +267,31 @@ def german_credit_dataset_processing(fname, fteng=[], bin=False, testing=False):
                  }
 
     cont_feats = ['CreditAmount', 'InstallmentDisposable', \
-                       'NumExistCredits', 'CheqAccountStatus', 'Duration', 'CreditHistory', \
-                     'PresentEmployment', 'Age', 'Job', 'Deps']
+                       'NumExistCredits', 'CheqAccountStatus', \
+                       'Duration', 'CreditHistory', 'PresentEmployment', \
+                       'Age', 'Job', 'Deps']
     pred_feats = 'Labels'
-    in_order = ['Labels', 'CheqAccountStatus', 'Duration', 'CreditHistory', 'Purpose', \
-                'CreditAmount', 'Savings', 'PresentEmployment', \
+    in_order = ['Labels', 'CheqAccountStatus', 'Duration', 'CreditHistory', \
+                'Purpose', 'CreditAmount', 'Savings', 'PresentEmployment', \
                 'InstallmentDisposable', 'Personal', 'OtherDebtors', \
                 'Property', 'Age', 'OtherInstallmentPlans', 'Housing', \
                 'NumExistCredits', 'Job', 'Deps']
 
-    # Note - for knowing which column is which, might be good to associate numbers with labels
+    # Note - for knowing which column is which, might be good to associate
+    #numbers with labels
     data.columns = in_order
 
     #Custom binarize the stratification categories
-    if bin:
-        for ft in cat_feats:
-            for agg_ft in cat_feats[ft]:
-                data[ft] = data[ft].apply(lambda val: agg_ft if val in cat_feats[ft][agg_ft] else val)
+    if binar:
+        for ft, agg_ft in cat_feats.items():
+            data[ft] = data[ft].apply(\
+                lambda val: agg_ft if val in cat_feats[ft][agg_ft] else val)
 
     if testing:
         return data
 
-    return data_conversion(data, list(cat_feats.keys()), cont_feats, pred_feats, fteng=fteng)
+    return data_conversion(data, list(cat_feats.keys()), cont_feats, \
+                                      pred_feats, fteng=fteng)
 
     #Custom binarize the stratification categories
 
@@ -287,5 +299,5 @@ def german_credit_dataset_processing(fname, fteng=[], bin=False, testing=False):
 
 
 if __name__ == '__main__':
-    a,b = german_credit_dataset_processing('data/german_credit.csv', [1,2])
+    a, b = german_credit_dataset_processing('data/german_credit.csv', [1, 2])
     print(3)
